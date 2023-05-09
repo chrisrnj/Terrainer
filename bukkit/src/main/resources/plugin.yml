@@ -1,0 +1,179 @@
+api-version: '1.17'
+author: Epicnicity322
+depend: [ EpicPluginLib ]
+description: A fast and simple terrain claiming plugin.
+main: com.epicnicity322.terrainer.bukkit.TerrainerPlugin
+name: Terrainer
+version: '1.0'
+
+commands:
+  terrainer:
+    aliases: [ tr,terrain ]
+    description: Terrainer's main command.
+    permission: terrainer
+
+permissions:
+  terrainer:
+    description: 'Allows use of Terrainer''s main command: /terrain'
+    default: true
+
+  terrainer.admin:
+    description: Recommended admin permissions.
+    default: op
+    children:
+      terrainer.player: true
+      terrainer.bypass.build: true
+      terrainer.bypass.limit.claims: true
+      terrainer.bypass.limit.blocks: true
+      terrainer.limit.others: true
+      terrainer.limit.blocks: true
+      terrainer.limit.claims: true
+      terrainer.limit.give: true
+      terrainer.limit.set: true
+      terrainer.limit.take: true
+      terrainer.select.command.3d: true
+      terrainer.select.command.3d.coordinates: true
+      terrainer.select.command.coordinates: true
+      terrainer.wand: true
+      terrainer.reload: true
+
+  terrainer.player:
+    description: Recommended player permissions.
+    default: true
+    children:
+      terrainer.claim: true
+      terrainer.flag: true
+      terrainer.select.command: true
+      terrainer.select.wand: true
+      terrainer.world.*: true
+
+  terrainer.claim:
+    description: Allows users to use the command '/tr claim [name]', to claim terrains from their selection.
+    default: false
+
+  terrainer.flag:
+    description: Allows players to toggle flags using the Flag Management GUI, or through the command '/tr flag <flag> [args] [-t <terrain>]'.
+    default: false
+
+  terrainer.bypass.build:
+    description: Allows players to build in any terrain, even if they are not a member of the terrain.
+    default: false
+
+  terrainer.bypass.overlap:
+    description: Allows players to select and claim terrains over other terrains they do not own.
+    default: false
+
+  terrainer.bypass.limit.claims:
+    description: Allows players to have unlimited terrains.
+    default: false
+
+  terrainer.bypass.limit.blocks:
+    description: Allows players to claim terrains with unlimited area.
+    default: false
+
+  terrainer.select.command:
+    description: Allows players to select to their current position using the commands '/tr pos1' or '/tr pos2'.
+    default: false
+
+  terrainer.select.command.coordinates:
+    description: Allows users to select to a coordinate using the command '/tr <pos1|pos2> <x> <y> <z> [world]'.
+    default: false
+    children:
+      terrainer.select.command: true
+
+  terrainer.select.wand:
+    description: Allows players to select using the Terrainer Selection Wand.
+    default: false
+
+  terrainer.wand:
+    description: Allows players to get the Terrainer Selection Wand item using the command '/tr wand'.
+    default: false
+    children:
+      terrainer.select.wand: true
+
+  terrainer.world.<worldname>:
+    description: Allows players to claim or select terrains in this world.
+    default: false
+
+  terrainer.3d:
+    description: Allows players to select and make terrains with different heights.
+    default: false
+
+  terrainer.limit:
+    description: Allows players to see their own limits with '/tr limit'.
+    default: false
+
+  terrainer.limit.others:
+    description: Allows players to see limits of other players with '/tr limit <player>'.
+    default: false
+    children:
+      terrainer.limit: true
+
+  terrainer.limit.claims.Default:
+    description: Defines a player limit based on the value set on config node 'Claim Limits.Default'.
+    default: false
+
+  terrainer.limit.claims.VIP:
+    description: Defines a player limit based on the value set on config node 'Claim Limits.VIP'.
+    default: false
+
+  terrainer.limit.claims.Staff:
+    description: Defines a player limit based on the value set on config node 'Claim Limits.Staff'.
+    default: false
+
+  terrainer.limit.blocks.Default:
+    description: Defines a player limit based on the value set on config node 'Block Limits.Default'.
+    default: false
+
+  terrainer.limit.blocks.VIP:
+    description: Defines a player limit based on the value set on config node 'Block Limits.VIP'.
+    default: false
+
+  terrainer.limit.blocks.Staff:
+    description: Defines a player limit based on the value set on config node 'Block Limits.Staff'.
+    default: false
+
+  terrainer.limit.edit:
+    description: Allows players to edit limits with '/tr limit <player> <give|set|take> <blocks|claims> <value>'.
+    default: false
+    children:
+      terrainer.limit.others: true
+      terrainer.limit.edit.blocks: true
+      terrainer.limit.edit.claims: true
+      terrainer.limit.give: true
+      terrainer.limit.set: true
+      terrainer.limit.take: true
+
+  terrainer.limit.edit.blocks:
+    description: Allows players to edit block limits.
+    default: false
+    children:
+      terrainer.limit: true
+
+  terrainer.limit.edit.claims:
+    description: Allows players to edit claim limits.
+    default: false
+    children:
+      terrainer.limit: true
+
+  terrainer.limit.give:
+    description: Allows users to give themselves more limit with '/tr limit <player> give <blocks|claims> <value>'.
+    default: false
+    children:
+      terrainer.limit: true
+
+  terrainer.limit.set:
+    description: Allows users to set their own limits with '/tr limit <player> set <blocks|claims> <value>'.
+    default: false
+    children:
+      terrainer.limit: true
+
+  terrainer.limit.take:
+    description: Allows users to lower their own limits with  '/tr limit <player> take <block|claim> <value>'.
+    default: false
+    children:
+      terrainer.limit: true
+
+  terrainer.reload:
+    description: Allows users to reload configurations using the command '/tr reload'.
+    default: false
