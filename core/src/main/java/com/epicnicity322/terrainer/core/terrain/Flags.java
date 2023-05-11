@@ -49,6 +49,10 @@ public final class Flags {
      */
     public static final @NotNull Flag<Boolean> CONTAINERS = Flag.newBooleanFlag("Containers", false);
     /**
+     * Allows dispensers inside the terrain to fire.
+     */
+    public static final @NotNull Flag<Boolean> DISPENSERS = Flag.newBooleanFlag("Dispensers", true);
+    /**
      * Allows everyone to open and close doors, trapdoors and gates.
      */
     public static final @NotNull Flag<Boolean> DOORS = Flag.newBooleanFlag("Doors", false);
@@ -151,6 +155,10 @@ public final class Flags {
      */
     public static final @NotNull Flag<Boolean> MOB_SPAWN = Flag.newBooleanFlag("Mob Spawn", true);
     /**
+     * Allows dispensers outside the terrain firing into the inside.
+     */
+    public static final @NotNull Flag<Boolean> OUTSIDE_DISPENSERS = Flag.newBooleanFlag("Outside Dispensers", false);
+    /**
      * Allows pistons outside the terrain moving blocks inside the terrain.
      */
     public static final @NotNull Flag<Boolean> OUTSIDE_PISTONS = Flag.newBooleanFlag("Outside Pistons", false);
@@ -186,11 +194,11 @@ public final class Flags {
 
     //private static final @NotNull Pattern space = Pattern.compile(" ");
     private static final @NotNull HashSet<Flag<?>> customValues = new HashSet<>();
-    private static final @NotNull Set<Flag<?>> values = Set.of(ARMOR_STANDS, BUILD, BUTTONS, CONTAINERS, DOORS, EFFECTS,
-            ENEMY_HARM, ENTER, ENTER_VEHICLES, ENTITY_HARM, ENTITY_INTERACTIONS, EXPLOSION_DAMAGE, FARMLAND_TRAMPLE,
-            FIRE_DAMAGE, INTERACTIONS, ITEM_DROP, ITEM_FRAMES, ITEM_PICKUP, LEAF_DECAY, LEAVE, LEAVE_MESSAGE,
-            LIQUID_FLOW, MESSAGE_LOCATION, MOB_SPAWN, OUTSIDE_PISTONS, PISTONS, PRESSURE_PLATES, PVP, SIGN_CLICK,
-            SIGN_EDIT, SPAWNERS, VULNERABILITY);
+    private static final @NotNull Set<Flag<?>> values = Set.of(ARMOR_STANDS, BUILD, BUTTONS, CONTAINERS, DISPENSERS,
+            DOORS, EFFECTS, ENEMY_HARM, ENTER, ENTER_VEHICLES, ENTITY_HARM, ENTITY_INTERACTIONS, EXPLOSION_DAMAGE,
+            FARMLAND_TRAMPLE, FIRE_DAMAGE, INTERACTIONS, ITEM_DROP, ITEM_FRAMES, ITEM_PICKUP, LEAF_DECAY, LEAVE,
+            LEAVE_MESSAGE, LIQUID_FLOW, MESSAGE_LOCATION, MOB_SPAWN, OUTSIDE_DISPENSERS, OUTSIDE_PISTONS, PISTONS,
+            PRESSURE_PLATES, PVP, SIGN_CLICK, SIGN_EDIT, SPAWNERS, VULNERABILITY);
 
     private Flags() {
     }

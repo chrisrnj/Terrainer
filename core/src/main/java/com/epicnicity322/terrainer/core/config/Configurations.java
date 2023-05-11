@@ -108,6 +108,8 @@ public final class Configurations {
                   Material: LEVER
                 Containers:
                   Material: CHEST
+                Dispensers:
+                  Material: DISPENSER
                 Doors:
                   Material: OAK_DOOR
                 Effects:
@@ -148,6 +150,8 @@ public final class Configurations {
                   Material: PAPER
                 Mob Spawn:
                   Material: ZOMBIE_HEAD
+                Outside Dispensers:
+                  Material: DISPENSER
                 Outside Pistons:
                   Material: STICKY_PISTON
                 Pistons:
@@ -365,15 +369,20 @@ public final class Configurations {
                 Buttons:
                   Display Name: '&2&lButtons'
                   Lore: >-
-                    State> <var0>
+                    State: <var0>
                     <line>Allows everyone to use buttons and levers.
                 Containers:
                   Display Name: '&6&lContainers'
                   Lore: >-
                     State: <var0>
                     <line>Allows everyone to use containers.
+                Dispensers:
+                  Display Name: '&7Dispensers'
+                  Lore: >-
+                    State: <var0>
+                    <line>Allows dispensers to fire.
                 Doors:
-                  Display Name: '&x&8&B&5&F&2&B&lDoors And Gates'
+                  Display Name: '&x&8&B&5&F&2&B&lDoors'
                   Lore: >-
                     State: <var0>
                     <line>Allows everyone to use doors and gates.
@@ -489,12 +498,18 @@ public final class Configurations {
                     <line>as enter message, and you can set a leave
                     <line>message using the 'Leave Message' flag.
                 Mob Spawn:
-                  Display Name: '&x&4&D&7&E&3&A&lPrevent Mob Spawn'
+                  Display Name: '&x&4&D&7&E&3&A&lMob Spawn'
                   Lore: >-
                     State: <var0>
                     <line>Prevents mobs from spawning within the
                     <line>terrain. Spawner mobs are controlled by
                     <line>'Prevent Spawners' flag.
+                Outside Dispensers:
+                  Display Name: '&7Outside Dispensers'
+                  Lore: >-
+                    State: <var0>
+                    <line>Allows dispensers from outside the terrain
+                    <line>to fire into the terrain.
                 Outside Pistons:
                   Display Name: '&x&8&F&B&F&4&5&lOutside Piston Pull'
                   Lore: >-

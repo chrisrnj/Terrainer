@@ -30,6 +30,7 @@ import com.epicnicity322.terrainer.core.terrain.TerrainManager;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.*;
+import org.bukkit.block.data.Directional;
 import org.bukkit.entity.*;
 import org.bukkit.event.Cancellable;
 import org.bukkit.event.EventHandler;
@@ -884,6 +885,26 @@ public final class ProtectionsListener implements Listener {
 
     @EventHandler(priority = EventPriority.LOWEST)
     public void onMount(EntityMountEvent event) {
+        if (event.getEntity().hasPermission("terrainer.bypass.entervehicles")) return;
         handleProtection(event, event.getEntity(), event.getMount().getLocation(), Flags.ENTER_VEHICLES, "Protections.Enter Vehicles");
+    }
+
+    @EventHandler(priority = EventPriority.LOWEST)
+    public void onDispense(BlockDispenseEvent event) {
+        Block block = event.getBlock();
+        Block frontBlock = block.getRelative(((Directional) block.getBlockData()).getFacing());
+        UUID world = block.getWorld().getUID();
+
+        for (Terrain terrain : TerrainManager.terrains()) {
+            if (!terrain.world().equals(world)) continue;
+
+            boolean dispenserIn = terrain.isWithin(block.getX(), block.getY(), block.getZ());
+            boolean frontIn = terrain.isWithin(frontBlock.getX(), frontBlock.getY(), frontBlock.getZ());
+
+            if ((dispenserIn && deny(terrain, Flags.DISPENSERS)) || (!dispenserIn && frontIn && deny(terrain, Flags.OUTSIDE_DISPENSERS))) {
+                event.setCancelled(true);
+                return;
+            }
+        }
     }
 }
