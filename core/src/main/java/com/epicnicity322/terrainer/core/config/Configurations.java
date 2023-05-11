@@ -229,7 +229,7 @@ public final class Configurations {
               Success:
                 First: '&6First position selected in world &7<world>&6 at &7<coord>&6.'
                 Second: '&6Second position selected in world &7<world>&6 at &7<coord>&6.'
-                Suggest: '&ePositions were selected successfully. Now, to create a terrain, use the command &7&n/<label> create [name]&e.'
+                Suggest: '&ePositions were selected successfully. Now, to create a terrain, use the command &7&n/<label> claim [name]&e.'
                         
             Info:
               Error:

@@ -134,7 +134,7 @@ public abstract class PlayerUtil<P extends R, R> {
             receiver = getConsoleRecipient();
         }
 
-        terrain.setOwner(player == null ? null : UUID.randomUUID());
+        terrain.setOwner(player == null ? null : getUniqueId(player));
         if (TerrainManager.add(terrain)) {
             lang.send(receiver, lang.get("Create.Success").replace("<name>", terrain.name())
                     .replace("<used>", Long.toString(usedBlocks)).replace("<max>", Long.toString(maxBlocks)));
