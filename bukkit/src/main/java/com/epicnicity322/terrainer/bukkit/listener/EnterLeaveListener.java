@@ -84,11 +84,7 @@ public final class EnterLeaveListener implements Listener {
         if (!wasCancelled && event.isCancelled()) {
             to.setX(from.getBlockX() + 0.5);
             to.setZ(from.getBlockZ() + 0.5);
-            if (fromY > toY) {
-                to.setY(from.getBlockY() + 0.5);
-            } else if (fromY < toY) {
-                to.setY(from.getBlockY() - 0.5);
-            }
+            if (toY != fromY) to.setY(from.getBlockY());
             event.setCancelled(false);
             ignoredPlayersTeleportEvent.add(player.getUniqueId());
         }
