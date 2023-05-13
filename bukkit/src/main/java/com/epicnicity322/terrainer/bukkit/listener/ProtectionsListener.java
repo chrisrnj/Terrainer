@@ -43,6 +43,7 @@ import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.event.player.PlayerInteractAtEntityEvent;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.event.vehicle.VehicleDestroyEvent;
 import org.bukkit.event.world.StructureGrowEvent;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
@@ -397,6 +398,23 @@ public final class ProtectionsListener implements Listener {
                         if (player.hasPermission("terrainer.bypass.containers")) return;
                         flag = Flags.CONTAINERS;
                         message = "Protections.Containers";
+                    }
+                    case "RAIL" -> {
+                        ItemStack hand = event.getItem();
+                        if (hand == null) return;
+                        if (hand.getType() == Material.MINECART) {
+                            if (player.hasPermission("terrainer.bypass.build")) return;
+                            flag = Flags.BUILD_VEHICLES;
+                            message = "Protections.Build Vehicles";
+                        } else if (isBuildingItem(hand.getType())) {
+                            if (player.hasPermission("terrainer.bypass.build")) return;
+                            flag = Flags.BUILD;
+                            message = "Protections.Build";
+                        } else {
+                            if (player.hasPermission("terrainer.bypass.interactions")) return;
+                            flag = Flags.INTERACTIONS;
+                            message = "Protections.Interactions";
+                        }
                     }
                     default -> {
                         if (!type.isInteractable()) {
@@ -906,5 +924,14 @@ public final class ProtectionsListener implements Listener {
                 return;
             }
         }
+    }
+
+    @EventHandler(priority = EventPriority.LOWEST)
+    public void onVehicleDestroy(VehicleDestroyEvent event) {
+        //TODO: check if attacker is explosive.
+        Entity attacker = event.getAttacker();
+        if (attacker == null || attacker.getType() != EntityType.PLAYER) return;
+        if (attacker.hasPermission("terrainer.bypass.build")) return;
+        handleProtection(event, attacker, event.getVehicle().getLocation(), Flags.BUILD_VEHICLES, "Protections.Build Vehicles");
     }
 }

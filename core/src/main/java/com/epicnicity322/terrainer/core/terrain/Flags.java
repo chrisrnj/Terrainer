@@ -41,6 +41,10 @@ public final class Flags {
      */
     public static final @NotNull Flag<Boolean> BUILD = Flag.newBooleanFlag("Build", false);
     /**
+     * Allows everyone to place and break vehicles.
+     */
+    public static final @NotNull Flag<Boolean> BUILD_VEHICLES = Flag.newBooleanFlag("Build Vehicles", false);
+    /**
      * Allows everyone to use buttons and levers.
      */
     public static final @NotNull Flag<Boolean> BUTTONS = Flag.newBooleanFlag("Buttons", false);
@@ -194,11 +198,11 @@ public final class Flags {
 
     //private static final @NotNull Pattern space = Pattern.compile(" ");
     private static final @NotNull HashSet<Flag<?>> customValues = new HashSet<>();
-    private static final @NotNull Set<Flag<?>> values = Set.of(ARMOR_STANDS, BUILD, BUTTONS, CONTAINERS, DISPENSERS,
-            DOORS, EFFECTS, ENEMY_HARM, ENTER, ENTER_VEHICLES, ENTITY_HARM, ENTITY_INTERACTIONS, EXPLOSION_DAMAGE,
-            FARMLAND_TRAMPLE, FIRE_DAMAGE, INTERACTIONS, ITEM_DROP, ITEM_FRAMES, ITEM_PICKUP, LEAF_DECAY, LEAVE,
-            LEAVE_MESSAGE, LIQUID_FLOW, MESSAGE_LOCATION, MOB_SPAWN, OUTSIDE_DISPENSERS, OUTSIDE_PISTONS, PISTONS,
-            PRESSURE_PLATES, PVP, SIGN_CLICK, SIGN_EDIT, SPAWNERS, VULNERABILITY);
+    private static final @NotNull Set<Flag<?>> values = Set.of(ARMOR_STANDS, BUILD, BUILD_VEHICLES, BUTTONS, CONTAINERS,
+            DISPENSERS, DOORS, EFFECTS, ENEMY_HARM, ENTER, ENTER_VEHICLES, ENTITY_HARM, ENTITY_INTERACTIONS,
+            EXPLOSION_DAMAGE, FARMLAND_TRAMPLE, FIRE_DAMAGE, INTERACTIONS, ITEM_DROP, ITEM_FRAMES, ITEM_PICKUP,
+            LEAF_DECAY, LEAVE, LEAVE_MESSAGE, LIQUID_FLOW, MESSAGE_LOCATION, MOB_SPAWN, OUTSIDE_DISPENSERS,
+            OUTSIDE_PISTONS, PISTONS, PRESSURE_PLATES, PVP, SIGN_CLICK, SIGN_EDIT, SPAWNERS, VULNERABILITY);
 
     private Flags() {
     }

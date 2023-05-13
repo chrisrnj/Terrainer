@@ -104,6 +104,8 @@ public final class Configurations {
                   Material: ARMOR_STAND
                 Build:
                   Material: BRICKS
+                Build Vehicles:
+                  Material: MINECART
                 Buttons:
                   Material: LEVER
                 Containers:
@@ -119,11 +121,11 @@ public final class Configurations {
                 Enter:
                   Material: LIME_WOOL
                 Enter Vehicles:
-                  Material: MINECART
+                  Material: OAK_BOAT
                 Entity Harm:
                   Material: PORKCHOP
                 Entity Interactions:
-                  Material: WHEAT
+                  Material: LEAD
                 Explosion Damage:
                   Material: TNT
                 Farmland Trample:
@@ -194,7 +196,8 @@ public final class Configurations {
             Protections:
               Armor Stands: '<cooldown=2000> &4You''re not allowed to use armor stands here.'
               Build: '<cooldown=2000> &4You''re not allowed to build here.'
-              Buttons And Levers: '<cooldown=2000> &4You''re not allowed to use buttons and levers here.'
+              Build Vehicles: '<cooldown=2000> &4You''re not allowed to break or place vehicles here.'
+              Buttons: '<cooldown=2000> &4You''re not allowed to use buttons and levers here.'
               Containers: '<cooldown=2000> &4You''re not allowed to open containers here.'
               Doors: '<cooldown=2000> &4You''re not allowed to open doors or gates here.'
               Drop: '<cooldown=2000> &4You''re not allowed to drop items here.'
@@ -366,6 +369,12 @@ public final class Configurations {
                   Lore: >-
                     State: <var0>
                     <line>Allows everyone to build.
+                Build Vehicles:
+                  Display Name: '&8&lBuild Vehicles'
+                  Lore: >-
+                    State: <var0>
+                    <line>Allows everyone to place or break vehicles,
+                    <line>such as default minecarts and boats.
                 Buttons:
                   Display Name: '&2&lButtons'
                   Lore: >-
