@@ -96,7 +96,7 @@ public record Flag<T>(@NotNull String id, @NotNull T defaultValue, @NotNull Func
      * @param id           The ID of the flag, used in commands and to find localized names. Must match [a-zA-Z ] regex.
      * @param defaultValue The default value used in terrains where the flag is undefined.
      * @param stringToData The transformer to obtain the data object from the player's input.
-     * @throws IllegalArgumentException If the provided data type is not serializable or if the ID does not match the [a-zA-Z ] regex.
+     * @throws IllegalArgumentException If the provided data type is not serializable, or if the ID does not match the [a-zA-Z ] regex.
      * @see #Flag(String, Object, Function, Function)
      */
     public Flag(@NotNull String id, @NotNull T defaultValue, @NotNull Function<String, T> stringToData) {
@@ -104,7 +104,7 @@ public record Flag<T>(@NotNull String id, @NotNull T defaultValue, @NotNull Func
     }
 
     /**
-     * @throws IllegalArgumentException If the provided data type is not serializable or if the ID does not match the [a-zA-Z ] regex.
+     * @throws IllegalArgumentException If the provided data type is not serializable, or if the ID does not match the [a-zA-Z ] regex.
      */
     public Flag {
         if (!Serializable.class.isAssignableFrom(defaultValue.getClass())) {

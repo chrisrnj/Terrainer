@@ -90,9 +90,8 @@ public final class TerrainManager {
         // Calling add event. If it's cancelled, then the terrain should not be added, and false is returned.
         if (callOnAdd(terrain)) return false;
 
-        // Removing instance with same ID if found.
+        // Removing instance with the same ID if found.
         Terrain found = getTerrainByID(terrain.id);
-        Set<String> previousFlags = null;
         if (found != null) {
             found.save = false;
             found.changed = true;
@@ -137,7 +136,7 @@ public final class TerrainManager {
 
     /**
      * Unregisters a terrain with matching ID. If found, this makes so the terrain object is no longer saved
-     * automatically once changes are made, also the saved file associated to this terrain's ID is deleted.
+     * automatically once changes are made, also the saved file associated with this terrain's ID is deleted.
      * <p>
      * The terrain is not removed if the {@link ITerrainRemoveEvent} was cancelled.
      *
@@ -229,7 +228,7 @@ public final class TerrainManager {
      * Get the terrains owned by a player.
      *
      * @param owner The UUID of the player to check if owns the terrain.
-     * @return The terrains that have this player as owner.
+     * @return The terrains that have this player as an owner.
      */
     public static @NotNull HashSet<Terrain> getTerrainsOf(@Nullable UUID owner) {
         var terrainsOf = new HashSet<Terrain>();
@@ -361,8 +360,8 @@ public final class TerrainManager {
     }
 
     /**
-     * Adds a function that will be applied once a terrain is removed. The result of the function will be used to determine
-     * if the removal of the terrain should be cancelled or not.
+     * Adds a function that will be applied once the terrain is removed.
+     * The result of the function will be used to determine if the removal of the terrain should be cancelled or not.
      *
      * @param onRemove The listener for TerrainRemoveEvent.
      * @apiNote You should use the platform's implementation of {@link ITerrainRemoveEvent} instead of this. This is only used internally to call the platform's event.
