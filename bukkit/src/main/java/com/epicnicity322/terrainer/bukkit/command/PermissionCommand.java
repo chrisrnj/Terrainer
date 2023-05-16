@@ -57,16 +57,18 @@ public abstract class PermissionCommand extends Command implements Permission {
         CommandArguments commandArguments = findTerrain(isGrant() ? "terrainer.grant.others" : "terrainer.revoke.others", true, label, sender, args);
 
         if (commandArguments == null) return;
+        String label2 = args[0];
         args = commandArguments.preceding();
 
         Terrain terrain = commandArguments.terrain();
 
-        if (args.length == 1) {
+        if (args.length == 0) {
             //TODO: open permission management inventory.
+            lang.send(sender, "Permission Management GUI is not done yet, please use the full command for managing terrain permissions.");
             return;
         }
 
-        TargetResponse response = target(1, null, sender, args);
+        TargetResponse response = target(0, null, sender, args);
         if (response == null) return;
 
         UUID toAdd = response.id();
@@ -86,16 +88,18 @@ public abstract class PermissionCommand extends Command implements Permission {
 
         boolean mod = false;
 
-        if (args.length > 2) {
-            if (args[2].equalsIgnoreCase("moderator") || contains(moderatorAliases, args[2])) {
+        if (args.length > 1) {
+            if (args[1].equalsIgnoreCase("moderator") || contains(moderatorAliases, args[1])) {
                 Boolean denyModsManagingMods = (denyModsManagingMods = terrain.flags().getData(Flags.MODS_CAN_MANAGE_MODS)) != null && !denyModsManagingMods;
-                if (denyModsManagingMods && sender instanceof Player player && !player.getUniqueId().equals(terrain.owner())) {
-                    lang.send(sender, lang.get("General.No Permission"));
+
+                if (!sender.hasPermission("terrainer.bypass.modscanmanagemods") && denyModsManagingMods && sender instanceof Player player && !player.getUniqueId().equals(terrain.owner())) {
+                    lang.send(sender, lang.get("Permission.Error.Mods Can Manage Mods Denied"));
                     return;
                 }
+
                 mod = true;
-            } else if (!args[2].equalsIgnoreCase("member") && !contains(memberAliases, args[2])) {
-                lang.send(sender, lang.get("Invalid Arguments.Error").replace("<label>", label).replace("<label2>", args[0]).replace("<args>", lang.get("Target.Player") + " [moderator|member] [--t " + lang.get("Target.Terrain") + "]"));
+            } else if (!args[1].equalsIgnoreCase("member") && !contains(memberAliases, args[1])) {
+                lang.send(sender, lang.get("Invalid Arguments.Error").replace("<label>", label).replace("<label2>", label2).replace("<args>", lang.get("Target.Player") + " [moderator|member] [--t " + lang.get("Target.Terrain") + "]"));
                 return;
             }
         }
