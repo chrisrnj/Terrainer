@@ -18,10 +18,11 @@
 
 package com.epicnicity322.terrainer.bukkit.command;
 
+import com.epicnicity322.epicpluginlib.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.jetbrains.annotations.NotNull;
 
-public final class HelpCommand extends TerrainerCommand {
+public final class HelpCommand extends Command {
     @Override
     public @NotNull String getName() {
         return "help";

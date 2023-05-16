@@ -18,6 +18,7 @@
 
 package com.epicnicity322.terrainer.bukkit.command;
 
+import com.epicnicity322.epicpluginlib.bukkit.command.Command;
 import com.epicnicity322.epicpluginlib.bukkit.lang.MessageSender;
 import com.epicnicity322.terrainer.bukkit.TerrainerPlugin;
 import com.epicnicity322.terrainer.bukkit.gui.ListGUI;
@@ -29,7 +30,7 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.HumanEntity;
 import org.jetbrains.annotations.NotNull;
 
-public final class FlagCommand extends TerrainerCommand {
+public final class FlagCommand extends Command {
     @Override
     public @NotNull String getName() {
         return "flag";

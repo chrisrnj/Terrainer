@@ -18,6 +18,7 @@
 
 package com.epicnicity322.terrainer.bukkit.command;
 
+import com.epicnicity322.epicpluginlib.bukkit.command.Command;
 import com.epicnicity322.epicpluginlib.bukkit.lang.MessageSender;
 import com.epicnicity322.terrainer.bukkit.TerrainerPlugin;
 import com.epicnicity322.terrainer.core.Coordinate;
@@ -37,7 +38,7 @@ interface Position {
     boolean isFirst();
 }
 
-public abstract class PosCommand extends TerrainerCommand implements Position {
+public abstract class PosCommand extends Command implements Position {
     private PosCommand() {
     }
 

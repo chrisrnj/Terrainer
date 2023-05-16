@@ -18,6 +18,7 @@
 
 package com.epicnicity322.terrainer.bukkit.command;
 
+import com.epicnicity322.epicpluginlib.bukkit.command.Command;
 import com.epicnicity322.epicpluginlib.bukkit.lang.MessageSender;
 import com.epicnicity322.terrainer.bukkit.TerrainerPlugin;
 import com.epicnicity322.terrainer.bukkit.event.terrain.UserCreateTerrainEvent;
@@ -34,7 +35,11 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.UUID;
 
-public final class DefineCommand extends TerrainerCommand {
+/**
+ * A command designed to create terrains that are protected against any threat.
+ * This is useful for server buildings, such as the spawn.
+ */
+public final class DefineCommand extends Command {
     @Override
     public @NotNull String getName() {
         return "define";
@@ -79,12 +84,14 @@ public final class DefineCommand extends TerrainerCommand {
 
         // Setting spawn protection flags.
         Terrain.FlagMap flagMap = terrain.flags();
+        flagMap.putFlag(Flags.ENEMY_HARM, false);
         flagMap.putFlag(Flags.EXPLOSION_DAMAGE, false);
         flagMap.putFlag(Flags.FIRE_DAMAGE, false);
         flagMap.putFlag(Flags.LEAF_DECAY, false);
         flagMap.putFlag(Flags.MESSAGE_LOCATION, "NONE");
-        flagMap.putFlag(Flags.ENEMY_HARM, false);
         flagMap.putFlag(Flags.MOB_SPAWN, false);
+        flagMap.putFlag(Flags.SPAWNERS, false);
+
         if (TerrainManager.add(terrain)) {
             lang.send(sender, lang.get("Create.Define").replace("<name>", terrain.name()));
             var create = new UserCreateTerrainEvent(terrain, sender, true);

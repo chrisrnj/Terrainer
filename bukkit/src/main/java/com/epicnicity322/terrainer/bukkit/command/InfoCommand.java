@@ -18,6 +18,7 @@
 
 package com.epicnicity322.terrainer.bukkit.command;
 
+import com.epicnicity322.epicpluginlib.bukkit.command.Command;
 import com.epicnicity322.epicpluginlib.bukkit.lang.MessageSender;
 import com.epicnicity322.epicpluginlib.core.util.ObjectUtils;
 import com.epicnicity322.terrainer.bukkit.TerrainerPlugin;
@@ -39,7 +40,7 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
 
-public final class InfoCommand extends TerrainerCommand {
+public final class InfoCommand extends Command {
     @Override
     public @NotNull String getName() {
         return "info";
@@ -71,7 +72,7 @@ public final class InfoCommand extends TerrainerCommand {
                     if (i != (args.length - 1)) name.append(" ");
                 }
                 for (Terrain t : TerrainManager.terrains()) {
-                    if (ChatColor.stripColor(t.name()).equals(name.toString())) terrains.add(t);
+                    if (ChatColor.stripColor(t.name()).contentEquals(name)) terrains.add(t);
                 }
             } else {
                 terrains = new HashSet<>(2);
@@ -100,9 +101,6 @@ public final class InfoCommand extends TerrainerCommand {
             }
         }
 
-        String and = lang.get("Target.And");
-        String none = lang.get("Target.None");
-
         for (Terrain t : terrains) {
             World w = Bukkit.getWorld(t.world());
             String worldName = w == null ? t.world().toString() : w.getName();
@@ -115,9 +113,9 @@ public final class InfoCommand extends TerrainerCommand {
                     .replace("<world>", worldName).replace("<x1>", Double.toString(min.x())).replace("<y1>", Double.toString(min.y()))
                     .replace("<z1>", Double.toString(min.z())).replace("<x2>", Double.toString(max.x())).replace("<y2>", Double.toString(max.y()))
                     .replace("<z2>", Double.toString(max.z()))
-                    .replace("<mods>", TerrainerUtil.listToString(t.moderators().view(), util::getOwnerName, and, none))
-                    .replace("<members>", TerrainerUtil.listToString(t.members().view(), util::getOwnerName, and, none))
-                    .replace("<flags>", TerrainerUtil.listToString(t.flags().view().keySet(), id -> id, and, none)));
+                    .replace("<mods>", TerrainerUtil.listToString(t.moderators().view(), util::getOwnerName))
+                    .replace("<members>", TerrainerUtil.listToString(t.members().view(), util::getOwnerName))
+                    .replace("<flags>", TerrainerUtil.listToString(t.flags().view().keySet(), id -> id)));
         }
     }
 

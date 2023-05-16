@@ -18,6 +18,7 @@
 
 package com.epicnicity322.terrainer.bukkit.command;
 
+import com.epicnicity322.epicpluginlib.bukkit.command.Command;
 import com.epicnicity322.epicpluginlib.bukkit.lang.MessageSender;
 import com.epicnicity322.terrainer.bukkit.TerrainerPlugin;
 import com.epicnicity322.terrainer.core.Coordinate;
@@ -33,7 +34,7 @@ import org.jetbrains.annotations.NotNull;
 import java.util.Locale;
 import java.util.UUID;
 
-public abstract class Pos3DCommand extends TerrainerCommand implements Position {
+public abstract class Pos3DCommand extends Command implements Position {
     private Pos3DCommand() {
     }
 

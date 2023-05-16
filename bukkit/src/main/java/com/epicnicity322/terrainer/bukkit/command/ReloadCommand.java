@@ -18,11 +18,12 @@
 
 package com.epicnicity322.terrainer.bukkit.command;
 
+import com.epicnicity322.epicpluginlib.bukkit.command.Command;
 import com.epicnicity322.terrainer.bukkit.TerrainerPlugin;
 import org.bukkit.command.CommandSender;
 import org.jetbrains.annotations.NotNull;
 
-public final class ReloadCommand extends TerrainerCommand {
+public final class ReloadCommand extends Command {
     @Override
     public @NotNull String getName() {
         return "reload";

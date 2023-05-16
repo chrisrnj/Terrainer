@@ -18,6 +18,7 @@
 
 package com.epicnicity322.terrainer.bukkit.command;
 
+import com.epicnicity322.epicpluginlib.bukkit.command.Command;
 import com.epicnicity322.epicpluginlib.bukkit.lang.MessageSender;
 import com.epicnicity322.terrainer.bukkit.TerrainerPlugin;
 import com.epicnicity322.terrainer.bukkit.event.terrain.UserCreateTerrainEvent;
@@ -33,7 +34,7 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.UUID;
 
-public final class ClaimCommand extends TerrainerCommand {
+public final class ClaimCommand extends Command {
     private int maxNameLength = 26;
 
     @Override
