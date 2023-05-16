@@ -12,7 +12,12 @@ import org.bukkit.event.Listener;
 public class FlagListener implements Listener {
     @EventHandler(priority = EventPriority.LOWEST)
     public void onFlagSet(UserFlagSetEvent event) {
-        if (event.flag() != Flags.MODS_CAN_MANAGE_MODS && event.flag() != Flags.MODS_CAN_EDIT_FLAGS) return;
+        if (event.flag() == Flags.MODS_CAN_MANAGE_MODS) {
+            if (event.sender().hasPermission("terrainer.bypass.modscanmanagemods")) return;
+        } else if (event.flag() == Flags.MODS_CAN_EDIT_FLAGS) {
+            if (event.sender().hasPermission("terrainer.bypass.modscaneditflags")) return;
+        } else return;
+
         if (!(event.sender() instanceof Player player)) return;
 
         if (!player.getUniqueId().equals(event.terrain().owner())) {
@@ -23,7 +28,12 @@ public class FlagListener implements Listener {
 
     @EventHandler(priority = EventPriority.LOWEST)
     public void onFlagUnset(UserFlagUnsetEvent event) {
-        if (event.flag() != Flags.MODS_CAN_MANAGE_MODS && event.flag() != Flags.MODS_CAN_EDIT_FLAGS) return;
+        if (event.flag() == Flags.MODS_CAN_MANAGE_MODS) {
+            if (event.sender().hasPermission("terrainer.bypass.modscanmanagemods")) return;
+        } else if (event.flag() == Flags.MODS_CAN_EDIT_FLAGS) {
+            if (event.sender().hasPermission("terrainer.bypass.modscaneditflags")) return;
+        } else return;
+
         if (!(event.sender() instanceof Player player)) return;
 
         if (!player.getUniqueId().equals(event.terrain().owner())) {
