@@ -19,7 +19,9 @@
 package com.epicnicity322.terrainer.bukkit.command;
 
 import com.epicnicity322.epicpluginlib.bukkit.command.Command;
+import com.epicnicity322.epicpluginlib.bukkit.command.CommandRunnable;
 import com.epicnicity322.terrainer.bukkit.TerrainerPlugin;
+import com.epicnicity322.terrainer.bukkit.util.CommandUtil;
 import org.bukkit.command.CommandSender;
 import org.jetbrains.annotations.NotNull;
 
@@ -32,6 +34,11 @@ public final class ReloadCommand extends Command {
     @Override
     public @NotNull String getPermission() {
         return "terrainer.reload";
+    }
+
+    @Override
+    protected @NotNull CommandRunnable getNoPermissionRunnable() {
+        return CommandUtil.noPermissionRunnable();
     }
 
     @Override

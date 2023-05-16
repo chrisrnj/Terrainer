@@ -19,10 +19,12 @@
 package com.epicnicity322.terrainer.bukkit.command;
 
 import com.epicnicity322.epicpluginlib.bukkit.command.Command;
+import com.epicnicity322.epicpluginlib.bukkit.command.CommandRunnable;
 import com.epicnicity322.epicpluginlib.bukkit.lang.MessageSender;
 import com.epicnicity322.epicpluginlib.core.util.ObjectUtils;
 import com.epicnicity322.terrainer.bukkit.TerrainerPlugin;
 import com.epicnicity322.terrainer.bukkit.util.BukkitPlayerUtil;
+import com.epicnicity322.terrainer.bukkit.util.CommandUtil;
 import com.epicnicity322.terrainer.core.Coordinate;
 import com.epicnicity322.terrainer.core.terrain.Terrain;
 import com.epicnicity322.terrainer.core.terrain.TerrainManager;
@@ -49,6 +51,11 @@ public final class InfoCommand extends Command {
     @Override
     public @NotNull String getPermission() {
         return "terrainer.info";
+    }
+
+    @Override
+    protected @NotNull CommandRunnable getNoPermissionRunnable() {
+        return CommandUtil.noPermissionRunnable();
     }
 
     @Override

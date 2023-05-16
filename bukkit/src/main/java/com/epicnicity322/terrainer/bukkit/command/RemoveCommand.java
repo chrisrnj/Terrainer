@@ -19,6 +19,8 @@
 package com.epicnicity322.terrainer.bukkit.command;
 
 import com.epicnicity322.epicpluginlib.bukkit.command.Command;
+import com.epicnicity322.epicpluginlib.bukkit.command.CommandRunnable;
+import com.epicnicity322.terrainer.bukkit.util.CommandUtil;
 import org.bukkit.command.CommandSender;
 import org.jetbrains.annotations.NotNull;
 
@@ -31,6 +33,11 @@ public final class RemoveCommand extends Command {
     @Override
     public @NotNull String getPermission() {
         return "terrainer.remove";
+    }
+
+    @Override
+    protected @NotNull CommandRunnable getNoPermissionRunnable() {
+        return CommandUtil.noPermissionRunnable();
     }
 
     @Override

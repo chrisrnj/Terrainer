@@ -19,8 +19,10 @@
 package com.epicnicity322.terrainer.bukkit.command;
 
 import com.epicnicity322.epicpluginlib.bukkit.command.Command;
+import com.epicnicity322.epicpluginlib.bukkit.command.CommandRunnable;
 import com.epicnicity322.epicpluginlib.bukkit.lang.MessageSender;
 import com.epicnicity322.terrainer.bukkit.TerrainerPlugin;
+import com.epicnicity322.terrainer.bukkit.util.CommandUtil;
 import com.epicnicity322.terrainer.core.terrain.Flags;
 import com.epicnicity322.terrainer.core.terrain.Terrain;
 import org.bukkit.command.CommandSender;
@@ -43,12 +45,31 @@ public abstract class PermissionCommand extends Command implements Permission {
     private @NotNull String @Nullable [] moderatorAliases = new String[]{"mod"};
     private @NotNull String @Nullable [] memberAliases = null;
 
+    private static boolean contains(@NotNull String @Nullable [] array, @NotNull String value) {
+        if (array == null) return false;
+        for (String s : array) {
+            if (value.equalsIgnoreCase(s)) return true;
+        }
+        return false;
+    }
+
+    private static boolean canManageModerators(@NotNull CommandSender sender, @NotNull Terrain terrain) {
+        Boolean denyModsManagingMods = (denyModsManagingMods = terrain.flags().getData(Flags.MODS_CAN_MANAGE_MODS)) != null && !denyModsManagingMods;
+
+        return sender.hasPermission("terrainer.bypass.modscanmanagemods") || !denyModsManagingMods || !(sender instanceof Player player) || player.getUniqueId().equals(terrain.owner());
+    }
+
     public void setMemberAliases(@NotNull String @Nullable [] memberAliases) {
         this.memberAliases = memberAliases;
     }
 
     public void setModeratorAliases(@NotNull String @Nullable [] moderatorAliases) {
         this.moderatorAliases = moderatorAliases;
+    }
+
+    @Override
+    protected @NotNull CommandRunnable getNoPermissionRunnable() {
+        return CommandUtil.noPermissionRunnable();
     }
 
     @Override
@@ -102,20 +123,6 @@ public abstract class PermissionCommand extends Command implements Permission {
         }
 
         managePermission(sender, mod, toAdd, terrain, response.who().get());
-    }
-
-    private static boolean contains(@NotNull String @Nullable [] array, @NotNull String value) {
-        if (array == null) return false;
-        for (String s : array) {
-            if (value.equalsIgnoreCase(s)) return true;
-        }
-        return false;
-    }
-
-    private static boolean canManageModerators(@NotNull CommandSender sender, @NotNull Terrain terrain) {
-        Boolean denyModsManagingMods = (denyModsManagingMods = terrain.flags().getData(Flags.MODS_CAN_MANAGE_MODS)) != null && !denyModsManagingMods;
-
-        return sender.hasPermission("terrainer.bypass.modscanmanagemods") || !denyModsManagingMods || !(sender instanceof Player player) || player.getUniqueId().equals(terrain.owner());
     }
 
     public static final class GrantCommand extends PermissionCommand {

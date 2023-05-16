@@ -19,6 +19,7 @@
 package com.epicnicity322.terrainer.bukkit.command;
 
 import com.epicnicity322.epicpluginlib.bukkit.command.Command;
+import com.epicnicity322.epicpluginlib.bukkit.command.CommandRunnable;
 import com.epicnicity322.epicpluginlib.bukkit.lang.MessageSender;
 import com.epicnicity322.epicpluginlib.core.util.ObjectUtils;
 import com.epicnicity322.terrainer.bukkit.TerrainerPlugin;
@@ -49,6 +50,11 @@ public final class ListCommand extends Command {
     @Override
     public @NotNull String getPermission() {
         return "terrainer.list";
+    }
+
+    @Override
+    protected @NotNull CommandRunnable getNoPermissionRunnable() {
+        return CommandUtil.noPermissionRunnable();
     }
 
     @SuppressWarnings("deprecation")
