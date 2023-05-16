@@ -28,15 +28,15 @@ public final class TerrainerUtil {
     private TerrainerUtil() {
     }
 
-    public static <T> @NotNull String listToString(@NotNull Collection<T> list, @NotNull Function<T, String> name, @NotNull String and, @NotNull String none) {
-        if (list.isEmpty()) return Terrainer.lang().get("");
+    public static <T> @NotNull String listToString(@NotNull Collection<T> list, @NotNull Function<T, String> name) {
+        if (list.isEmpty()) return Terrainer.lang().get("Target.None");
         StringBuilder formatted = new StringBuilder();
         int size = list.size();
         int i = 1;
         for (T t : list) {
             formatted.append(name.apply(t));
             if (i + 1 == size) {
-                formatted.append(", ").append(and).append(" ");
+                formatted.append(", ").append(Terrainer.lang().get("Target.And")).append(" ");
             } else if (i != size) {
                 formatted.append(", ");
             }
