@@ -152,6 +152,10 @@ public final class Configurations {
                   Material: PAPER
                 Mob Spawn:
                   Material: ZOMBIE_HEAD
+                Mods Can Add Mods:
+                  Material: WOODEN_AXE
+                Mods Can Edit Flags:
+                  Material: WRITABLE_BOOK
                 Outside Dispensers:
                   Material: DISPENSER
                 Outside Pistons:
@@ -355,7 +359,8 @@ public final class Configurations {
               Unset: '&7Flag <flag>&7 removed from terrain &f<name>&7.'
               Error:
                 Default: '&4Unable to set flag <flag>&4: &f<message>'
-                Message Location: '&cThe only accepted values for message location are: ActionBar, BossBar, Chat, Title or NONE.'
+                Message Location: '&4The only accepted values for message location are: &7ActionBar&4, &7BossBar&4, &7Chat&4, &7Title&4 or &7NONE&4.'
+                Not Owner: '&4Only the owner is allowed to edit this flag.'
                 Unknown: '&4Something went wrong while setting this flag. Please contact an administrator.'
               Management GUI Title: '&2Flags of <terrain>&2:'
               Values:
@@ -513,6 +518,19 @@ public final class Configurations {
                     <line>Prevents mobs from spawning within the
                     <line>terrain. Spawner mobs are controlled by
                     <line>'Prevent Spawners' flag.
+                Mods Can Manage Mods:
+                  Display Name: 'Mods Can Manage Mods'
+                  Lore: >-
+                    State: <var0>
+                    <line>Allows moderators to grant or revoke the
+                    <line>moderation role to other players.
+                Mods Can Edit Flags:
+                  Display Name: 'Mods Can Edit Flags'
+                  Lore: >-
+                    State: <var0>
+                    <line>Allows moderators to edit terrain flags,
+                    <line>except those who control moderator
+                    <line>permissions.
                 Outside Dispensers:
                   Display Name: '&7Outside Dispensers'
                   Lore: >-
