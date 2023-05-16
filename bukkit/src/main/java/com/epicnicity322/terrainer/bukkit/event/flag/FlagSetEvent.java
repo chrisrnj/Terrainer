@@ -34,6 +34,10 @@ public class FlagSetEvent<T> extends Event implements IFlagSetEvent<T>, Cancella
     private @NotNull T data;
     private boolean cancelled = false;
 
+    public FlagSetEvent(@NotNull IFlagSetEvent<T> event) {
+        this(event.terrain(), event.flag(), event.data());
+    }
+
     public FlagSetEvent(@NotNull Terrain terrain, @NotNull Flag<T> flag, @NotNull T data) {
         super(!Bukkit.isPrimaryThread());
         this.terrain = terrain;

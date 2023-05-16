@@ -25,9 +25,12 @@ import com.epicnicity322.epicpluginlib.bukkit.logger.Logger;
 import com.epicnicity322.epicpluginlib.core.config.ConfigurationHolder;
 import com.epicnicity322.epicpluginlib.core.logger.ConsoleLogger;
 import com.epicnicity322.terrainer.bukkit.command.*;
+import com.epicnicity322.terrainer.bukkit.event.flag.FlagSetEvent;
+import com.epicnicity322.terrainer.bukkit.event.flag.FlagUnsetEvent;
 import com.epicnicity322.terrainer.bukkit.event.terrain.TerrainAddEvent;
 import com.epicnicity322.terrainer.bukkit.event.terrain.TerrainRemoveEvent;
 import com.epicnicity322.terrainer.bukkit.listener.EnterLeaveListener;
+import com.epicnicity322.terrainer.bukkit.listener.FlagListener;
 import com.epicnicity322.terrainer.bukkit.listener.PreLoginListener;
 import com.epicnicity322.terrainer.bukkit.listener.ProtectionsListener;
 import com.epicnicity322.terrainer.bukkit.util.BukkitPlayerUtil;
@@ -39,6 +42,7 @@ import com.epicnicity322.yamlhandler.Configuration;
 import com.epicnicity322.yamlhandler.ConfigurationSection;
 import org.bukkit.Bukkit;
 import org.bukkit.command.PluginCommand;
+import org.bukkit.entity.Player;
 import org.bukkit.event.HandlerList;
 import org.bukkit.event.Listener;
 import org.bukkit.plugin.Plugin;
@@ -70,10 +74,7 @@ public final class TerrainerPlugin extends JavaPlugin {
         lang.addLanguage("ES_LA", Configurations.LANG_EN_US);
     }
 
-    private final @NotNull Set<Command> commands = Set.of(new ClaimCommand(), new DefineCommand(), new FlagCommand(),
-            new InfoCommand(), new LimitCommand(), new ListCommand(), new PosCommand.Pos1Command(),
-            new PosCommand.Pos2Command(), new Pos3DCommand.Pos13DCommand(), new Pos3DCommand.Pos23DCommand(),
-            new ReloadCommand());
+    private final @NotNull Set<Command> commands = Set.of(new ClaimCommand(), new DefineCommand(), new FlagCommand(), new InfoCommand(), new LimitCommand(), new ListCommand(), new PosCommand.Pos1Command(), new PosCommand.Pos2Command(), new Pos3DCommand.Pos13DCommand(), new Pos3DCommand.Pos23DCommand(), new ReloadCommand());
     private final @NotNull BukkitPlayerUtil playerUtil = new BukkitPlayerUtil(this);
     private final @NotNull PreLoginListener preLoginListener = new PreLoginListener();
 
@@ -160,7 +161,7 @@ public final class TerrainerPlugin extends JavaPlugin {
 
     @Override
     public void onLoad() {
-        // Registering PreLoginListener without checking if plugin is enabled.
+        // Registering PreLoginListener without checking if the plugin is enabled.
 
         boolean enabled = isEnabled();
         try {
@@ -178,16 +179,28 @@ public final class TerrainerPlugin extends JavaPlugin {
         reload();
 
         PluginManager pm = getServer().getPluginManager();
+        pm.registerEvents(new FlagListener(), this);
         pm.registerEvents(new ProtectionsListener(), this);
+
         TerrainManager.setOnTerrainAddListener(event -> {
             var add = new TerrainAddEvent(event.terrain());
-            getServer().getPluginManager().callEvent(add);
+            pm.callEvent(add);
             return add.isCancelled();
         });
         TerrainManager.setOnTerrainRemoveListener(event -> {
             var remove = new TerrainRemoveEvent(event.terrain());
-            getServer().getPluginManager().callEvent(remove);
+            pm.callEvent(remove);
             return remove.isCancelled();
+        });
+        TerrainManager.setOnFlagSetListener(event -> {
+            var set = new FlagSetEvent<>(event);
+            pm.callEvent(set);
+            return set.isCancelled();
+        });
+        TerrainManager.setOnFlagUnsetListener(event -> {
+            var unset = new FlagUnsetEvent<>(event.terrain(), event.flag());
+            pm.callEvent(unset);
+            return unset.isCancelled();
         });
 
         loadCommands();
@@ -210,9 +223,9 @@ public final class TerrainerPlugin extends JavaPlugin {
         if (!players.isEmpty()) {
             Terrainer.logger().log("Terrainer will kick all players to prevent damage to terrains.");
         }
-//        for (Player p : players) {
-//            p.kickPlayer(lang.getColored("Protection Enforcement.Kick Message"));
-//        }
+        for (Player p : players) {
+            p.kickPlayer(lang.getColored("Protection Enforcement.Kick Message"));
+        }
     }
 
     private void loadCommands() {
@@ -225,7 +238,7 @@ public final class TerrainerPlugin extends JavaPlugin {
     }
 
     // TerrainEnterEvent and TerrainLeaveEvent has to register a lot of listeners that are heavy on performance, in order
-    //to check if the player is within a terrain. To avoid unnecessary registration of such listeners, they are only
+    //to check if the player is within the terrain. To avoid unnecessary registration of such listeners, they are only
     //registered once a TerrainEnterEvent and TerrainLeaveEvent are registered.
     public static final class EnterLeaveHandlerList extends HandlerList {
         @Override
