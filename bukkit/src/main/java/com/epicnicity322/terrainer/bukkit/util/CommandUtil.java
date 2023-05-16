@@ -154,11 +154,12 @@ public class CommandUtil {
         return new CommandArguments(preceding.toArray(new String[0]), terrain);
     }
 
-    public static @Nullable TargetResponse target(int targetIndex, @NotNull String permissionOthers, @NotNull CommandSender sender, @NotNull String[] args) {
+    public static @Nullable TargetResponse target(int targetIndex, @Nullable String permissionOthers, @NotNull CommandSender sender, @NotNull String[] args) {
         MessageSender lang = TerrainerPlugin.getLanguage();
 
         if (args.length > targetIndex) {
-            if (!args[targetIndex].equalsIgnoreCase(sender.getName()) && !args[targetIndex].equalsIgnoreCase("me") && !sender.hasPermission(permissionOthers)) {
+            if (permissionOthers != null && !sender.hasPermission(permissionOthers) &&
+                    !args[targetIndex].equalsIgnoreCase(sender.getName()) && !args[targetIndex].equalsIgnoreCase("me")) {
                 lang.send(sender, lang.get("General.No Permission Others"));
                 return null;
             }
