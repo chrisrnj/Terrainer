@@ -37,12 +37,12 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 /**
- * A terrain is a protected cuboid area which not allowed players can not build or interact. Terrains objects are only
+ * A terrain is a protected cuboid area which not allowed players can not build or interact. Terrain objects are only
  * saved, loaded and have its flags enforced if they are added to a {@link TerrainManager}.
  */
 public class Terrain implements Serializable {
     @Serial
-    private static final long serialVersionUID = 2141474854265729337L;
+    private static final long serialVersionUID = -1763009442941586418L;
     private static final @NotNull YamlConfigurationLoader loader = new YamlConfigurationLoader();
     final @NotNull UUID world;
     final @NotNull UUID id;
@@ -56,10 +56,6 @@ public class Terrain implements Serializable {
     @NotNull String name;
     @Nullable String description;
     /**
-     * Whether a loaded chunk has this terrain in it.
-     */
-    transient boolean active = false;
-    /**
      * Whether this terrain should make a call to {@link TerrainManager#loadAutoSave()} everytime something changes.
      */
     transient boolean save = false;
@@ -69,12 +65,12 @@ public class Terrain implements Serializable {
     transient volatile boolean changed = false;
 
     /**
-     * Constructor for creating a terrain object. Terrains objects are only saved, loaded and have its flags enforced if
+     * Constructor for creating a terrain object. Terrain objects are only saved, loaded and have its flags enforced if
      * they are added to a {@link TerrainManager}.
      * <p>
      * Diagonal coordinates have their min and max automatically calculated.
      * <p>
-     * Moderators, members and flags collections are copied, to avoid unsafe changes.
+     * Moderators, members and flag collections are copied to avoid unsafe changes.
      * <p>
      * Flags with non {@link Serializable} objects are removed.
      *
@@ -117,7 +113,7 @@ public class Terrain implements Serializable {
     }
 
     /**
-     * Makes an exact copy of a terrain. Terrains objects are only saved, loaded and have its flags enforced if they are
+     * Makes an exact copy of a terrain. Terrain objects are only saved, loaded and have its flags enforced if they are
      * added to a {@link TerrainManager}, so any changes made to this copy will not be saved.
      *
      * @param terrain The terrain to make an unregistered copy of.
@@ -458,7 +454,7 @@ public class Terrain implements Serializable {
     }
 
     /**
-     * Checks if the specified terrain's diagonals overlaps this terrain.
+     * Checks if the specified terrain's diagonals overlap this terrain.
      *
      * @param terrain The terrain to check if contains this terrain within.
      * @return Whether this terrain is being overlapped by the other terrain.
@@ -486,24 +482,6 @@ public class Terrain implements Serializable {
         return true;
     }
 
-    /**
-     * @return Whether any of the loaded chunks in the server has this terrain in it.
-     */
-    public boolean isActive() {
-        return active;
-    }
-
-    /**
-     * Sets the active state of this terrain. Active terrains that are registered in {@link TerrainManager#terrains()}
-     * will have its flags enforced. Terrains should always be active if there is a loaded chunk that contains this
-     * terrain.
-     *
-     * @param active The new active state.
-     */
-    public void setActive(boolean active) {
-        this.active = active;
-    }
-
     @Override
     public boolean equals(@Nullable Object o) {
         if (this == o) return true;
@@ -523,7 +501,8 @@ public class Terrain implements Serializable {
     }
 
     /**
-     * Allows to unload empty sets from memory, and to tell the terrain when a change is made. To allow terrain auto-saving.
+     * Allows unloading empty sets from memory, and telling the terrain when a change is made.
+     * To allow terrain auto-saving.
      *
      * @param <E> The elements in the set.
      */
@@ -538,7 +517,10 @@ public class Terrain implements Serializable {
         private @Nullable Set<E> unmodifiableSet;
 
         private PrivateSet(@Nullable Collection<E> collection) {
-            if (collection != null) this.set = new HashSet<>(collection);
+            if (collection != null && !collection.isEmpty()) {
+                this.set = new HashSet<>(collection);
+                this.unmodifiableSet = Collections.unmodifiableSet(set);
+            }
         }
 
         public boolean add(@NotNull E e) {
@@ -632,9 +614,10 @@ public class Terrain implements Serializable {
         private @Nullable Map<String, Object> unmodifiableMap;
 
         private FlagMap(@Nullable HashMap<String, Object> map) {
-            if (map != null) {
+            if (map != null && !map.isEmpty()) {
                 this.map = new HashMap<>(map);
                 this.map.values().removeIf(object -> !(object instanceof Serializable));
+                unmodifiableMap = Collections.unmodifiableMap(map);
             }
         }
 
@@ -645,7 +628,7 @@ public class Terrain implements Serializable {
          *      Flag<String> farewellFlag = Flags.LEAVE_MESSAGE;
          *      terrain.flags().putFlag(farewellFlag, "Goodbye!");
          * }</pre>
-         * Any saved data is serialized when the terrain is saved, then, when the terrain is loaded, it's cast back to
+         * Any saved data is serialized when the terrain is saved; then, when the terrain is loaded, it's cast back to
          * its original object. Therefore, all stored objects must implement {@link Serializable}.
          * <pre>{@code
          *      String leaveMessage = terrain.flags().getData(Flags.LEAVE_MESSAGE);
@@ -657,7 +640,8 @@ public class Terrain implements Serializable {
          * @param flag The flag to activate in this terrain.
          * @param data The additional properties of this flag.
          * @param <T>  The data type of the flag.
-         * @return The previous associated data to this flag, null if there was no data or FlagSetEvent was cancelled. Could be of a different data type if there was a flag with same ID and different data type.
+         * @return The previous associated data to this flag, null if there was no data or FlagSetEvent was cancelled.
+         * Could be of a different data type if there was a flag with the same ID and different data type.
          * @throws IllegalArgumentException If the data object does not implement {@link Serializable}.
          */
         public <T> @Nullable Object putFlag(@NotNull Flag<T> flag, @NotNull T data) {
@@ -682,12 +666,13 @@ public class Terrain implements Serializable {
         /**
          * Gets the data associated to the {@link Flag}.
          * <p>
-         * If this flag is present in the terrain, returns the associated data to the flag. If there is a flag with the
-         * same {@link Flag#id()} as the specified one, but different type, then null is returned.
+         * If this flag is present in the terrain, return the associated data to the flag.
+         * If there is a flag with the same {@link Flag#id()} as the specified one, but different type,
+         * then null is returned.
          *
          * @param flag The flag to get the data.
          * @param <T>  The data type of the flag.
-         * @return The associated data to this flag. <code>null</code> (or the default) if the terrain does not contain the flag.
+         * @return The associated data to this flag. <code>null</code> (Or the default) if the terrain does not contain the flag.
          */
         @SuppressWarnings("unchecked")
         public <T> @Nullable T getData(@NotNull Flag<T> flag) {
