@@ -159,13 +159,13 @@ public final class Flags {
      */
     public static final @NotNull Flag<Boolean> MOB_SPAWN = Flag.newBooleanFlag("Mob Spawn", true);
     /**
-     * Whether moderators can grant or revoke the moderation role of other players in a terrain.
-     */
-    public static final @NotNull Flag<Boolean> MODS_CAN_MANAGE_MODS = Flag.newBooleanFlag("Mods Can Manage Mods", false);
-    /**
      * Allows moderators to edit terrain flags, except for flags that control moderator permissions.
      */
     public static final @NotNull Flag<Boolean> MODS_CAN_EDIT_FLAGS = Flag.newBooleanFlag("Mods Can Edit Flags", true);
+    /**
+     * Whether moderators can grant or revoke the moderation role of other players in a terrain.
+     */
+    public static final @NotNull Flag<Boolean> MODS_CAN_MANAGE_MODS = Flag.newBooleanFlag("Mods Can Manage Mods", false);
     /**
      * Allows dispensers outside the terrain firing into the inside.
      */
@@ -209,8 +209,8 @@ public final class Flags {
     private static final @NotNull Set<Flag<?>> values = Set.of(ARMOR_STANDS, BUILD, BUILD_VEHICLES, BUTTONS, CONTAINERS,
             DISPENSERS, DOORS, EFFECTS, ENEMY_HARM, ENTER, ENTER_VEHICLES, ENTITY_HARM, ENTITY_INTERACTIONS,
             EXPLOSION_DAMAGE, FARMLAND_TRAMPLE, FIRE_DAMAGE, INTERACTIONS, ITEM_DROP, ITEM_FRAMES, ITEM_PICKUP,
-            LEAF_DECAY, LEAVE, LEAVE_MESSAGE, LIQUID_FLOW, MESSAGE_LOCATION, MOB_SPAWN, MODS_CAN_MANAGE_MODS,
-            MODS_CAN_EDIT_FLAGS, OUTSIDE_DISPENSERS, OUTSIDE_PISTONS, PISTONS, PRESSURE_PLATES, PVP, SIGN_CLICK,
+            LEAF_DECAY, LEAVE, LEAVE_MESSAGE, LIQUID_FLOW, MESSAGE_LOCATION, MOB_SPAWN, MODS_CAN_EDIT_FLAGS,
+            MODS_CAN_MANAGE_MODS, OUTSIDE_DISPENSERS, OUTSIDE_PISTONS, PISTONS, PRESSURE_PLATES, PVP, SIGN_CLICK,
             SIGN_EDIT, SPAWNERS, VULNERABILITY);
 
     private Flags() {

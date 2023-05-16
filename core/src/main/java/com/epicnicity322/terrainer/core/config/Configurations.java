@@ -152,10 +152,10 @@ public final class Configurations {
                   Material: PAPER
                 Mob Spawn:
                   Material: ZOMBIE_HEAD
-                Mods Can Add Mods:
-                  Material: WOODEN_AXE
                 Mods Can Edit Flags:
                   Material: WRITABLE_BOOK
+                Mods Can Manage Mods:
+                  Material: WOODEN_AXE
                 Outside Dispensers:
                   Material: DISPENSER
                 Outside Pistons:
@@ -306,6 +306,7 @@ public final class Configurations {
             Permission:
               Error:
                 Console: '&4You can not manage permissions of console.'
+                Mods Can Manage Mods Denied: '&4Moderators are not allowed to manage moderation roles in this terrain.'
                 Multiple: '&4You can only manage permission of one player at a time.'
                 Owner: '&4This player owns the terrain.'
               Moderator:
@@ -537,12 +538,6 @@ public final class Configurations {
                     <line>Prevents mobs from spawning within the
                     <line>terrain. Spawner mobs are controlled by
                     <line>'Prevent Spawners' flag.
-                Mods Can Manage Mods:
-                  Display Name: 'Mods Can Manage Mods'
-                  Lore: >-
-                    State: <var0>
-                    <line>Allows moderators to grant or revoke the
-                    <line>moderation role to other players.
                 Mods Can Edit Flags:
                   Display Name: 'Mods Can Edit Flags'
                   Lore: >-
@@ -550,6 +545,12 @@ public final class Configurations {
                     <line>Allows moderators to edit terrain flags,
                     <line>except those who control moderator
                     <line>permissions.
+                Mods Can Manage Mods:
+                  Display Name: 'Mods Can Manage Mods'
+                  Lore: >-
+                    State: <var0>
+                    <line>Allows moderators to grant or revoke the
+                    <line>moderation role to other players.
                 Outside Dispensers:
                   Display Name: '&7Outside Dispensers'
                   Lore: >-
