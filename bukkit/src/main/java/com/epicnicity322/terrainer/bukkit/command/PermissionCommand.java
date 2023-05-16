@@ -90,13 +90,10 @@ public abstract class PermissionCommand extends Command implements Permission {
 
         if (args.length > 1) {
             if (args[1].equalsIgnoreCase("moderator") || contains(moderatorAliases, args[1])) {
-                Boolean denyModsManagingMods = (denyModsManagingMods = terrain.flags().getData(Flags.MODS_CAN_MANAGE_MODS)) != null && !denyModsManagingMods;
-
-                if (!sender.hasPermission("terrainer.bypass.modscanmanagemods") && denyModsManagingMods && sender instanceof Player player && !player.getUniqueId().equals(terrain.owner())) {
+                if (!canManageModerators(sender, terrain)) {
                     lang.send(sender, lang.get("Permission.Error.Mods Can Manage Mods Denied"));
                     return;
                 }
-
                 mod = true;
             } else if (!args[1].equalsIgnoreCase("member") && !contains(memberAliases, args[1])) {
                 lang.send(sender, lang.get("Invalid Arguments.Error").replace("<label>", label).replace("<label2>", label2).replace("<args>", lang.get("Target.Player") + " [moderator|member] [--t " + lang.get("Target.Terrain") + "]"));
@@ -107,12 +104,18 @@ public abstract class PermissionCommand extends Command implements Permission {
         managePermission(sender, mod, toAdd, terrain, response.who().get());
     }
 
-    private boolean contains(@NotNull String @Nullable [] array, @NotNull String value) {
+    private static boolean contains(@NotNull String @Nullable [] array, @NotNull String value) {
         if (array == null) return false;
         for (String s : array) {
             if (value.equalsIgnoreCase(s)) return true;
         }
         return false;
+    }
+
+    private static boolean canManageModerators(@NotNull CommandSender sender, @NotNull Terrain terrain) {
+        Boolean denyModsManagingMods = (denyModsManagingMods = terrain.flags().getData(Flags.MODS_CAN_MANAGE_MODS)) != null && !denyModsManagingMods;
+
+        return sender.hasPermission("terrainer.bypass.modscanmanagemods") || !denyModsManagingMods || !(sender instanceof Player player) || player.getUniqueId().equals(terrain.owner());
     }
 
     public static final class GrantCommand extends PermissionCommand {
@@ -144,6 +147,10 @@ public abstract class PermissionCommand extends Command implements Permission {
                 terrain.moderators().add(toAdd);
                 lang.send(sender, lang.get("Permission.Moderator.Granted").replace("<who>", who).replace("<terrain>", terrain.name()));
             } else {
+                if (terrain.moderators().view().contains(toAdd) && !PermissionCommand.canManageModerators(sender, terrain)) {
+                    lang.send(sender, lang.get("Permission.Error.Mods Can Manage Mods Denied"));
+                    return;
+                }
                 if (terrain.members().view().contains(toAdd)) {
                     lang.send(sender, lang.get("Permission.Member.Error.Contains").replace("<who>", who).replace("<terrain>", terrain.name()));
                     return;
@@ -185,7 +192,12 @@ public abstract class PermissionCommand extends Command implements Permission {
                 terrain.members().add(toAdd);
                 lang.send(sender, lang.get("Permission.Moderator.Revoked").replace("<who>", who).replace("<terrain>", terrain.name()));
             } else {
-                if (!terrain.members().view().contains(toAdd) && !terrain.moderators().view().contains(toAdd)) {
+                boolean isMod = terrain.moderators().view().contains(toAdd);
+                if (isMod && !PermissionCommand.canManageModerators(sender, terrain)) {
+                    lang.send(sender, lang.get("Permission.Error.Mods Can Manage Mods Denied"));
+                    return;
+                }
+                if (!terrain.members().view().contains(toAdd) && !isMod) {
                     lang.send(sender, lang.get("Permission.Member.Error.Does Not Contain").replace("<who>", who).replace("<terrain>", terrain.name()));
                     return;
                 }
