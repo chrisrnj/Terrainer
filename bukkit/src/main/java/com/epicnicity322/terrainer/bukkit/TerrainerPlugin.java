@@ -69,12 +69,13 @@ public final class TerrainerPlugin extends JavaPlugin {
     static {
         Terrainer.setLang(lang);
         Terrainer.setLogger(logger);
+        //TODO: Translate to languages.
         lang.addLanguage("EN_US", Configurations.LANG_EN_US);
         lang.addLanguage("PT_BR", Configurations.LANG_EN_US);
         lang.addLanguage("ES_LA", Configurations.LANG_EN_US);
     }
 
-    private final @NotNull Set<Command> commands = Set.of(new ClaimCommand(), new DefineCommand(), new FlagCommand(), new InfoCommand(), new LimitCommand(), new ListCommand(), new PosCommand.Pos1Command(), new PosCommand.Pos2Command(), new Pos3DCommand.Pos13DCommand(), new Pos3DCommand.Pos23DCommand(), new ReloadCommand());
+    private final @NotNull Set<Command> commands = Set.of(new ClaimCommand(), new DefineCommand(), new FlagCommand(), new PermissionCommand.GrantCommand(), new PermissionCommand.RevokeCommand(), new InfoCommand(), new LimitCommand(), new ListCommand(), new PosCommand.Pos1Command(), new PosCommand.Pos2Command(), new Pos3DCommand.Pos13DCommand(), new Pos3DCommand.Pos23DCommand(), new ReloadCommand());
     private final @NotNull BukkitPlayerUtil playerUtil = new BukkitPlayerUtil(this);
     private final @NotNull PreLoginListener preLoginListener = new PreLoginListener();
 

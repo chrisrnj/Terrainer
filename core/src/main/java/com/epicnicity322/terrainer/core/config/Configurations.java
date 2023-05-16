@@ -292,6 +292,7 @@ public final class Configurations {
               Error: '&4Invalid syntax! Use: &7/<label> <label2> <args>&4.'
               Flag: '<flag>'
               Flag Values: '[values]'
+              Player: '<player>'
               Terrain: '<terrain>'
               World: 'world'
                         
@@ -301,6 +302,24 @@ public final class Configurations {
               Everyone: 'Everyone'
               None: 'None'
               You: 'You'
+                        
+            Permission:
+              Error:
+                Console: '&4You can not manage permissions of console.'
+                Multiple: '&4You can only manage permission of one player at a time.'
+                Owner: '&4This player owns the terrain.'
+              Moderator:
+                Error:
+                  Contains: '&4<who> already is a moderator of <terrain>&4!'
+                  Does Not Contain: '&4<who> is not a moderator of <terrain>&4!'
+                Granted: '&aGranted moderator role for &f<who>&a in terrain &f<terrain>&a.'
+                Revoked: '&7Revoked moderator role of &f<who>&7 in terrain &f<terrain>&7.'
+              Member:
+                Error:
+                  Contains: '&4<who> already is a member of <terrain>&4!'
+                  Does Not Contain: '&4<who> is not a member of <terrain>&4!'
+                Granted: '&aGranted member role for &f<who>&a in terrain &f<terrain>&a.'
+                Revoked: '&7Revoked member role of &f<who>&7 in terrain &f<terrain>&7.'
                         
             List:
               GUI Items:
