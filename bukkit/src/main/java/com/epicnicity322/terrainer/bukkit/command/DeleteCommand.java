@@ -51,7 +51,7 @@ public final class DeleteCommand extends Command {
         if (commandArguments == null) return;
         Terrain terrain = commandArguments.terrain();
 
-        lang.send(sender, lang.get("Delete.Confirmation").replace("<label>", label).replace("<label2>", lang.get("Commands.Confirm.Confirm")));
+        lang.send(sender, lang.get("Delete.Confirmation").replace("<label>", label).replace("<label2>", lang.get("Commands.Confirm.Confirm")).replace("<name>", terrain.name()));
         ConfirmCommand.requestConfirmation(sender, () -> {
             if (TerrainManager.remove(terrain)) {
                 lang.send(sender, lang.get("Delete.Success").replace("<name>", terrain.name()));
