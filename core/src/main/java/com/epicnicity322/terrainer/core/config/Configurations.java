@@ -185,6 +185,22 @@ public final class Configurations {
               Not A Number: '&cThe value "&7<value>&c" is not a number.'
               World Not Found: '&cA world with name "&7<value>&c" was not found.'
                         
+            Commands:
+              Confirm:
+                Confirm: 'confirm'
+                List: 'list'
+                        
+            Confirm:
+              Arguments: '[<id>|list] [page]'
+              Error:
+                Multiple: '&7You have more than one confirmation pending, use &a&n<command>&7 to see the list.'
+                Not Found: '&4A confirmation with that ID was not found.'
+                Nothing Pending: '&4You have nothing to confirm.'
+                Run: '&4Something went wrong while confirming this request.'
+              Header: '&eList of requests waiting for confirmations (Page &7<page>&e of &7<total>&e):'
+              Entry: '&a<id>: &f<description>'
+              Footer: '&eTo view more confirmations use &a&n<command>'
+                        
             Create:
               Error:
                 Different Worlds: '&cTerrain could not be created because the selections are in different worlds!'
@@ -196,6 +212,11 @@ public final class Configurations {
                 Unknown: '&cAn unknown error occurred while creating this terrain.'
               Success: '&2Terrain ''&a<name>&2'' claimed successfully! Used block limit: &7<used>&f/&7<max>'
               Define: '&2Terrain ''&a<name>&2'' defined successfully with all protection flags!'
+                        
+            Delete:
+              Confirmation: '&7Are you sure you want to delete &e<name>&7? Please confirm the deletion with &f&n/<label> <label2>'
+              Confirmation Description: 'Delete <name>'
+              Success: '&e<name>&a was deleted successfully!'
                         
             Protections:
               Armor Stands: '<cooldown=2000> &4You''re not allowed to use armor stands here.'

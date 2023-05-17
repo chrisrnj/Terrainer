@@ -20,19 +20,23 @@ package com.epicnicity322.terrainer.bukkit.command;
 
 import com.epicnicity322.epicpluginlib.bukkit.command.Command;
 import com.epicnicity322.epicpluginlib.bukkit.command.CommandRunnable;
+import com.epicnicity322.epicpluginlib.bukkit.lang.MessageSender;
+import com.epicnicity322.terrainer.bukkit.TerrainerPlugin;
 import com.epicnicity322.terrainer.bukkit.util.CommandUtil;
+import com.epicnicity322.terrainer.core.terrain.Terrain;
+import com.epicnicity322.terrainer.core.terrain.TerrainManager;
 import org.bukkit.command.CommandSender;
 import org.jetbrains.annotations.NotNull;
 
-public final class RemoveCommand extends Command {
+public final class DeleteCommand extends Command {
     @Override
     public @NotNull String getName() {
-        return "remove";
+        return "delete";
     }
 
     @Override
     public @NotNull String getPermission() {
-        return "terrainer.remove";
+        return "terrainer.delete";
     }
 
     @Override
@@ -42,6 +46,16 @@ public final class RemoveCommand extends Command {
 
     @Override
     public void run(@NotNull String label, @NotNull CommandSender sender, @NotNull String[] args) {
+        MessageSender lang = TerrainerPlugin.getLanguage();
+        CommandUtil.CommandArguments commandArguments = CommandUtil.findTerrain("terrainer.delete.others", false, label, sender, args);
+        if (commandArguments == null) return;
+        Terrain terrain = commandArguments.terrain();
 
+        lang.send(sender, lang.get("Delete.Confirmation").replace("<label>", label).replace("<label2>", lang.get("Commands.Confirm.Confirm")));
+        ConfirmCommand.requestConfirmation(sender, () -> {
+            if (TerrainManager.remove(terrain)) {
+                lang.send(sender, lang.get("Delete.Success").replace("<name>", terrain.name()));
+            }
+        }, () -> lang.getColored("Delete.Confirmation Description").replace("<name>", terrain.name()));
     }
 }
