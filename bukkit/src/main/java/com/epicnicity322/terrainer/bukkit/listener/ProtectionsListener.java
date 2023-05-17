@@ -51,6 +51,7 @@ import org.jetbrains.annotations.Nullable;
 import org.spigotmc.event.entity.EntityMountEvent;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 
 public final class ProtectionsListener implements Listener {
@@ -934,4 +935,46 @@ public final class ProtectionsListener implements Listener {
         if (attacker.hasPermission("terrainer.bypass.build")) return;
         handleProtection(event, attacker, event.getVehicle().getLocation(), Flags.BUILD_VEHICLES, "Protections.Build Vehicles");
     }
+
+    @EventHandler(priority = EventPriority.LOWEST)
+    public void onProjectileHit(ProjectileHitEvent event) {
+        if (!getOriginMethod) return;
+
+        Projectile projectile = event.getEntity();
+        Location originLoc = projectile.getOrigin();
+        if (originLoc == null) return;
+        Player shooter = projectile.getShooter() instanceof Player p ? p : null;
+        if (shooter != null && shooter.hasPermission("terrainer.bypass.outsideprojectiles")) return;
+
+        int originX = originLoc.getBlockX(), originY = originLoc.getBlockY(), originZ = originLoc.getBlockZ();
+        Location hitLoc = event.getHitEntity() == null ? Objects.requireNonNull(event.getHitBlock()).getLocation() : event.getHitEntity().getLocation();
+        int x = hitLoc.getBlockX(), y = hitLoc.getBlockY(), z = hitLoc.getBlockZ();
+        UUID world = projectile.getWorld().getUID();
+
+
+        for (Terrain terrain : TerrainManager.terrains()) {
+            if (!terrain.world().equals(world)) continue;
+
+            if (!terrain.isWithin(originX, originY, originZ) && terrain.isWithin(x, y, z) && deny(terrain, Flags.OUTSIDE_PROJECTILES)) {
+                if (shooter != null) lang.send(shooter, lang.get("Protections.Projectiles"));
+                event.setCancelled(true);
+                projectile.remove();
+                return;
+            }
+        }
+    }
+
+    @EventHandler(priority = EventPriority.LOWEST)
+    public void onProjectileLaunch(ProjectileLaunchEvent event) {
+        Player shooter = event.getEntity().getShooter() instanceof Player p ? p : null;
+        if (shooter == null) {
+            Location loc = event.getLocation();
+            handleProtection(event, event.getEntity().getWorld().getUID(), loc.getBlockX(), loc.getBlockY(), loc.getBlockZ(), Flags.PROJECTILES);
+        } else {
+            if (shooter.hasPermission("terrainer.bypass.projectiles")) return;
+            handleProtection(event, shooter, event.getLocation(), Flags.PROJECTILES, "Protections.Projectiles");
+        }
+    }
+
+    //TODO: fix water stealing with empty bucket
 }

@@ -175,6 +175,10 @@ public final class Flags {
      */
     public static final @NotNull Flag<Boolean> OUTSIDE_PISTONS = Flag.newBooleanFlag("Outside Pistons", false);
     /**
+     * Allows outside projectiles to land inside the terrain.
+     */
+    public static final @NotNull Flag<Boolean> OUTSIDE_PROJECTILES = Flag.newBooleanFlag("Outside Projectiles", false);
+    /**
      * Allows pistons inside the terrain moving blocks.
      */
     public static final @NotNull Flag<Boolean> PISTONS = Flag.newBooleanFlag("Pistons", true);
@@ -182,6 +186,10 @@ public final class Flags {
      * Allows everyone to press pressure plates.
      */
     public static final @NotNull Flag<Boolean> PRESSURE_PLATES = Flag.newBooleanFlag("Pressure Plates", false);
+    /**
+     * Allows everyone to shoot projectiles.
+     */
+    public static final @NotNull Flag<Boolean> PROJECTILES = Flag.newBooleanFlag("Projectiles", false);
     /**
      * Allows players to engage in combat.
      */
@@ -210,8 +218,8 @@ public final class Flags {
             DISPENSERS, DOORS, EFFECTS, ENEMY_HARM, ENTER, ENTER_VEHICLES, ENTITY_HARM, ENTITY_INTERACTIONS,
             EXPLOSION_DAMAGE, FARMLAND_TRAMPLE, FIRE_DAMAGE, INTERACTIONS, ITEM_DROP, ITEM_FRAMES, ITEM_PICKUP,
             LEAF_DECAY, LEAVE, LEAVE_MESSAGE, LIQUID_FLOW, MESSAGE_LOCATION, MOB_SPAWN, MODS_CAN_EDIT_FLAGS,
-            MODS_CAN_MANAGE_MODS, OUTSIDE_DISPENSERS, OUTSIDE_PISTONS, PISTONS, PRESSURE_PLATES, PVP, SIGN_CLICK,
-            SIGN_EDIT, SPAWNERS, VULNERABILITY);
+            MODS_CAN_MANAGE_MODS, OUTSIDE_DISPENSERS, OUTSIDE_PISTONS, OUTSIDE_PROJECTILES, PISTONS, PRESSURE_PLATES,
+            PROJECTILES, PVP, SIGN_CLICK, SIGN_EDIT, SPAWNERS, VULNERABILITY);
 
     private Flags() {
     }

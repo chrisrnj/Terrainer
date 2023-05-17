@@ -160,10 +160,14 @@ public final class Configurations {
                   Material: DISPENSER
                 Outside Pistons:
                   Material: STICKY_PISTON
+                Outside Projectiles:
+                  Material: ARROW
                 Pistons:
                   Material: PISTON
                 Pressure Plates:
                   Material: OAK_PRESSURE_PLATE
+                Projectiles:
+                  Material: BOW
                 PvP:
                   Material: DIAMOND_SWORD
                 Sign Click:
@@ -242,8 +246,9 @@ public final class Configurations {
                 &4<default>
                 &cYou were kicked early to prevent damages to terrains.
               Leave: '<cooldown=2000> &4You''re not allowed to leave.'
-              Pressure Plates: '<cooldown=2000> &4You''re not allowed to use pressure plates here.'
               Pickup: '<cooldown=2000> &4You''re not allowed to pick up items here.'
+              Pressure Plates: '<cooldown=2000> &4You''re not allowed to use pressure plates here.'
+              Projectiles: '<cooldown=2000> &4You''re not allowed to shoot projectiles here.'
               PvP: '<cooldown=2000> &4You''re not allowed to engage in combat here.'
               Signs: '<cooldown=2000> &4You''re not allowed to interact with signs here.'
                         
@@ -590,6 +595,12 @@ public final class Configurations {
                     State: <var0>
                     <line>Allows pistons from outside the terrain
                     <line>pushing or pulling blocks.
+                Outside Projectiles:
+                  Display Name: '&x&A&0&6&A&4&2&lOutside Projectiles'
+                  Lore: >-
+                    State: <var0>
+                    <line>Allows projectiles from outside to land
+                    <line>within.
                 Pistons:
                   Display Name: '&e&lPistons'
                   Lore: >-
@@ -600,6 +611,11 @@ public final class Configurations {
                   Lore: >-
                     State: <var0>
                     <line>Allows everyone to trigger pressure plates.
+                Projectiles:
+                  Display Name: '&x&A&0&6&A&4&2&lProjectiles'
+                  Lore: >-
+                    State: <var0>
+                    <line>Allows everyone to shoot projectiles.
                 PvP:
                   Display Name: '&x&1&D&A&A&E&3&lPvP'
                   Lore: >-
