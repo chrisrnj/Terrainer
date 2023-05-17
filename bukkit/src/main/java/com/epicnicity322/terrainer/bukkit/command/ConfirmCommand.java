@@ -30,10 +30,12 @@ public final class ConfirmCommand extends Command {
      * @param player      The command sender to ask the confirmation.
      * @param onConfirm   The runnable to run when they confirm.
      * @param description The description to show the player when listing their confirmations.
+     * @param identifier  The object to compare, so the same confirmation is not set twice.
      * @return The identifier of this request, used for cancelling on {@link #cancelConfirmation(CommandSender, UUID)}.
+     * Null if there was already a request with the same identifier.
      */
-    public static @NotNull UUID requestConfirmation(@NotNull CommandSender player, @NotNull Runnable onConfirm, @NotNull Supplier<String> description) {
-        return requestConfirmation(player instanceof Player p ? p.getUniqueId() : null, onConfirm, description);
+    public static @Nullable UUID requestConfirmation(@NotNull CommandSender player, @NotNull Runnable onConfirm, @NotNull Supplier<String> description, @NotNull Object identifier) {
+        return requestConfirmation(player instanceof Player p ? p.getUniqueId() : null, onConfirm, description, identifier);
     }
 
     /**
@@ -42,13 +44,25 @@ public final class ConfirmCommand extends Command {
      * @param player      The ID of the player to ask the confirmation. Null for console.
      * @param onConfirm   The runnable to run when they confirm.
      * @param description The description to show the player when listing their confirmations.
+     * @param identifier  The object to compare, so the same confirmation is not set twice.
      * @return The identifier of this request, used for cancelling on {@link #cancelConfirmation(CommandSender, UUID)}.
+     * Null if there was already a request with the same identifier.
      */
-    public static @NotNull UUID requestConfirmation(@Nullable UUID player, @NotNull Runnable onConfirm, @NotNull Supplier<String> description) {
+    public static @Nullable UUID requestConfirmation(@Nullable UUID player, @NotNull Runnable onConfirm, @NotNull Supplier<String> description, @NotNull Object identifier) {
         if (player == null) player = console;
-        ArrayList<PendingConfirmation> onConfirmList = requests.computeIfAbsent(player, k -> new ArrayList<>(3));
+        ArrayList<PendingConfirmation> onConfirmList = requests.get(player);
+
+        if (onConfirmList == null) {
+            onConfirmList = new ArrayList<>(3);
+            requests.put(player, onConfirmList);
+        } else {
+            for (PendingConfirmation confirmation : onConfirmList) {
+                if (confirmation.identifier.equals(identifier)) return null;
+            }
+        }
+
         UUID requestID = UUID.randomUUID();
-        onConfirmList.add(new PendingConfirmation(requestID, onConfirm, description));
+        onConfirmList.add(new PendingConfirmation(requestID, onConfirm, description, identifier));
         return requestID;
     }
 
@@ -209,6 +223,6 @@ public final class ConfirmCommand extends Command {
     }
 
     private record PendingConfirmation(@NotNull UUID requestID, @NotNull Runnable onConfirm,
-                                       @NotNull Supplier<String> description) {
+                                       @NotNull Supplier<String> description, @NotNull Object identifier) {
     }
 }

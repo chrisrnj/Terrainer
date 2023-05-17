@@ -56,6 +56,6 @@ public final class DeleteCommand extends Command {
             if (TerrainManager.remove(terrain)) {
                 lang.send(sender, lang.get("Delete.Success").replace("<name>", terrain.name()));
             }
-        }, () -> lang.getColored("Delete.Confirmation Description").replace("<name>", terrain.name()));
+        }, () -> lang.getColored("Delete.Confirmation Description").replace("<name>", terrain.name()), terrain.id());
     }
 }
