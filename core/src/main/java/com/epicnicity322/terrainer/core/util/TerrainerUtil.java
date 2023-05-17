@@ -42,7 +42,6 @@ public final class TerrainerUtil {
             }
             i++;
         }
-        formatted.append('.');
         return formatted.toString();
     }
 }
