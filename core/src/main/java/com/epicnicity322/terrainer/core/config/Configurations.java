@@ -267,7 +267,6 @@ public final class Configurations {
                 &8Information of &f<name>&8:
                 &7ID: &f<id>
                 &7Owner: &f<owner>
-                &7Description: &f<desc>
                 &7Creation Date: &f<date>
                 &7Area: &f<area> blocks
                 &7World: &f<world>
@@ -276,6 +275,7 @@ public final class Configurations {
                 &7Moderators: &f<mods>
                 &7Members: &f<members>
                 &7Flags: &f<flags>
+                &7Description: &f<desc>
                 &8----------------------------------------
                         
             Input:
@@ -307,6 +307,7 @@ public final class Configurations {
                 Can Not Take: '&cCan''t take more limit because limit is already 0!'
                         
             Description:
+              Default: '&fA protected area.'
               Max: '&cThe value must be <max> characters long max!'
                         
             Invalid Arguments:

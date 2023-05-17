@@ -377,9 +377,10 @@ public class Terrain implements Serializable {
     }
 
     /**
-     * @return The description of the terrain. Null if this terrain has no description, and uses the default one.
+     * @return The description of the terrain.
      */
-    public @Nullable String description() {
+    public @NotNull String description() {
+        if (description == null) return Terrainer.lang().get("Description.Default");
         return description;
     }
 

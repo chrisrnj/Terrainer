@@ -21,7 +21,6 @@ package com.epicnicity322.terrainer.bukkit.command;
 import com.epicnicity322.epicpluginlib.bukkit.command.Command;
 import com.epicnicity322.epicpluginlib.bukkit.command.CommandRunnable;
 import com.epicnicity322.epicpluginlib.bukkit.lang.MessageSender;
-import com.epicnicity322.epicpluginlib.core.util.ObjectUtils;
 import com.epicnicity322.terrainer.bukkit.TerrainerPlugin;
 import com.epicnicity322.terrainer.bukkit.util.BukkitPlayerUtil;
 import com.epicnicity322.terrainer.bukkit.util.CommandUtil;
@@ -115,7 +114,7 @@ public final class InfoCommand extends Command {
             Coordinate max = t.maxDiagonal();
 
             lang.send(sender, lang.get("Info.Text").replace("<name>", t.name()).replace("<id>", t.id().toString())
-                    .replace("<owner>", util.getOwnerName(t.owner())).replace("<desc>", ObjectUtils.getOrDefault(t.description(), "null"))
+                    .replace("<owner>", util.getOwnerName(t.owner())).replace("<desc>", t.description())
                     .replace("<date>", t.creationDate().format(DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm:ss"))).replace("<area>", Double.toString(t.area()))
                     .replace("<world>", worldName).replace("<x1>", Double.toString(min.x())).replace("<y1>", Double.toString(min.y()))
                     .replace("<z1>", Double.toString(min.z())).replace("<x2>", Double.toString(max.x())).replace("<y2>", Double.toString(max.y()))
