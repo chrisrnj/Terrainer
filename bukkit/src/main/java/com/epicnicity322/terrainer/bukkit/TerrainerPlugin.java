@@ -54,10 +54,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.io.IOException;
 import java.lang.reflect.Field;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 public final class TerrainerPlugin extends JavaPlugin {
     private static final @NotNull MessageSender lang = new MessageSender(() -> Configurations.CONFIG.getConfiguration().getString("Language").orElse("EN_US"), Configurations.LANG_EN_US.getDefaultConfiguration());
@@ -217,6 +214,7 @@ public final class TerrainerPlugin extends JavaPlugin {
         });
     }
 
+    @SuppressWarnings("deprecation")
     @Override
     public void onDisable() {
         TerrainManager.save();
@@ -225,7 +223,7 @@ public final class TerrainerPlugin extends JavaPlugin {
             Terrainer.logger().log("Terrainer will kick all players to prevent damage to terrains.");
         }
         for (Player p : players) {
-            p.kickPlayer(lang.getColored("Protection Enforcement.Kick Message"));
+            p.kickPlayer(lang.getColored("Protections.Kick Message").replace("<default>", Objects.requireNonNullElse(getServer().getShutdownMessage(), "Server stopped")));
         }
     }
 

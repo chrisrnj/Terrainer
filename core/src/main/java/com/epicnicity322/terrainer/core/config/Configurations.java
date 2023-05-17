@@ -48,7 +48,7 @@ public final class Configurations {
               Default: 450 # Permission: terrainer.limit.blocks.Default
               VIP: 25000
               Staff: 75000
-            # Additionaly, you can use the command '/tr limit <player> blocks give <amount>' to give more blocks to a specific player.
+            # Additionally, you can use the command '/tr limit <player> blocks give <amount>' to give more blocks to a specific player.
                         
             # You can set a group's default claim limits through this setting.
             # You can add you own limits and use them in groups through the permission 'terrainer.limit.claims.<group>'
@@ -57,7 +57,7 @@ public final class Configurations {
               Default: 2 # Permission: terrainer.limit.claims.Default
               VIP: 10
               Staff: 30
-            # Additionaly, you can use the command '/tr limit <player> claims give <amount>' to give more claims to a specific player.
+            # Additionally, you can use the command '/tr limit <player> claims give <amount>' to give more claims to a specific player.
                         
             Input:
               # Whether an anvil should be used to get inputs from the player. If disabled, the input will be get from chat.
@@ -185,6 +185,7 @@ public final class Configurations {
               Not A Number: '&cThe value "&7<value>&c" is not a number.'
               World Not Found: '&cA world with name "&7<value>&c" was not found.'
                         
+            # Translations of command arguments.
             Commands:
               Confirm:
                 Confirm: 'confirm'
@@ -197,7 +198,7 @@ public final class Configurations {
                 Not Found: '&4A confirmation with that ID was not found.'
                 Nothing Pending: '&4You have nothing to confirm.'
                 Run: '&4Something went wrong while confirming this request.'
-              Header: '&eList of requests waiting for confirmations (Page &7<page>&e of &7<total>&e):'
+              Header: '&eList of pending confirmations (Page &7<page>&e of &7<total>&e):'
               Entry: '&a<id>: &f<description>'
               Footer: '&eTo view more confirmations use &a&n<command>'
                         
@@ -234,8 +235,12 @@ public final class Configurations {
               Harm: '<cooldown=2000> &4You''re not allowed to harm entities here.'
               Interactions: '<cooldown=2000> &4You''re not allowed to use this here.'
               Item Frames: '<cooldown=2000> &4You''re not allowed to use item frames here.'
-              Join Loading Server Message: '&cServer is loading, please try joining in a few seconds.'
-              Kick Message: '&cServer stopped.'
+              Join Loading Server Message: |-
+                &cServer is loading, please try joining in a few seconds.
+              # Use <default> for the default spigot shutdown message.
+              Kick Message: |-
+                &4<default>
+                &cYou were kicked early to prevent damages to terrains.
               Leave: '<cooldown=2000> &4You''re not allowed to leave.'
               Pressure Plates: '<cooldown=2000> &4You''re not allowed to use pressure plates here.'
               Pickup: '<cooldown=2000> &4You''re not allowed to pick up items here.'
