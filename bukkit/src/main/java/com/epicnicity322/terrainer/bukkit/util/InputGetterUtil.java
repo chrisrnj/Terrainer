@@ -33,7 +33,6 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.HandlerList;
 import org.bukkit.event.Listener;
-import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.player.AsyncPlayerChatEvent;
 import org.bukkit.inventory.InventoryView;
 import org.bukkit.inventory.ItemStack;
@@ -42,8 +41,10 @@ import org.bukkit.plugin.Plugin;
 import org.bukkit.scheduler.BukkitTask;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 
 public final class InputGetterUtil {
@@ -87,24 +88,33 @@ public final class InputGetterUtil {
 
         InventoryView view = player.openAnvil(null, true);
         if (view == null) return false;
-        HashMap<Integer, Consumer<InventoryClickEvent>> buttons = new HashMap<>();
 
         view.setItem(0, InventoryUtils.getItemStack("Input.Anvil GUI", Configurations.CONFIG.getConfiguration(), TerrainerPlugin.getLanguage()));
-        buttons.put(2, event -> {
+
+        AtomicBoolean ignoreClose = new AtomicBoolean(false);
+
+        InventoryUtils.openInventory(view.getTopInventory(), Collections.singletonMap(2, event -> {
             ItemStack item = event.getCurrentItem();
             ItemMeta meta = item == null ? null : item.getItemMeta();
             String input = meta == null ? "" : meta.getDisplayName();
             try {
+                ignoreClose.set(true);
+                view.close();
+                ignoreClose.set(false);
                 onInput.accept(input);
             } catch (Throwable t) {
                 Terrainer.logger().log("Unable to accept input '" + input + "'for InputGetterUtil#input(HumanEntity, Consumer<String>) method:", ConsoleLogger.Level.ERROR);
                 t.printStackTrace();
             }
-        });
-        InventoryUtils.openInventory(view.getTopInventory(), buttons, player, event -> {
+        }), player, event -> {
+            if (ignoreClose.get()) {
+                event.getInventory().setItem(0, null);
+                return;
+            }
             ItemStack item = event.getInventory().getItem(2);
             ItemMeta meta = item == null ? null : item.getItemMeta();
             String input = meta == null ? "" : meta.getDisplayName();
+            event.getInventory().setItem(0, null);
             try {
                 onInput.accept(input);
             } catch (Throwable t) {
