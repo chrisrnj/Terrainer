@@ -186,8 +186,12 @@ public final class ConfirmCommand extends Command {
         }
 
         if (id == null) {
-            lang.send(sender, lang.get("Confirm.Error.Multiple").replace("<command>", "/" + label + " " + args[0] + " " + lang.get("Commands.Confirm.List")));
-            return;
+            if (confirmations.size() > 1) {
+                lang.send(sender, lang.get("Confirm.Error.Multiple").replace("<command>", "/" + label + " " + args[0] + " " + lang.get("Commands.Confirm.List")));
+                return;
+            } else {
+                id = 0;
+            }
         }
 
         try {
