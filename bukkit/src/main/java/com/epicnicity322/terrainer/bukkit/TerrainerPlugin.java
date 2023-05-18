@@ -178,7 +178,7 @@ public final class TerrainerPlugin extends JavaPlugin {
 
         PluginManager pm = getServer().getPluginManager();
         pm.registerEvents(new FlagListener(), this);
-        pm.registerEvents(new ProtectionsListener(), this);
+        pm.registerEvents(new ProtectionsListener(this), this);
 
         TerrainManager.setOnTerrainAddListener(event -> {
             var add = new TerrainAddEvent(event.terrain());

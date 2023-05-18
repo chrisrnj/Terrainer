@@ -63,7 +63,6 @@ public final class Flags {
     /**
      * Gives the effects to the players in the terrain like a beacon. Upon leaving the terrain, the effects are removed.
      */
-    //TODO:
     public static final @NotNull Flag<Map<String, Integer>> EFFECTS = Flag.newIntegerMapFlag("Effects", null);
     /**
      * Prevents players from harming enemy entities.
@@ -129,13 +128,12 @@ public final class Flags {
      * Sends a leave message to the player leaving the terrain. When this flag has no data, the default farewell message
      * in language is used.
      */
-    //TODO:
     public static final @NotNull Flag<String> LEAVE_MESSAGE = new Flag<>("Leave Message", "", input -> {
         int max = Configurations.CONFIG.getConfiguration().getNumber("Max Description Length").orElse(30).intValue();
         if (input.length() > max) {
             throw new FlagTransformException(Terrainer.lang().get("Description.Max").replace("<max>", Integer.toString(max)));
         }
-        return input;
+        return input.trim();
     });
     /**
      * Allows water and lava to flow.
@@ -145,8 +143,6 @@ public final class Flags {
      * Changes the location where enter and leave messages will be shown. By default, terrains send messages in the
      * "title", but the values "actionbar", "bossbar", "chat", and "none" are supported.
      */
-    //TODO:
-    // # Supports actionbar, bossbar, chat, title and none.
     public static final @NotNull Flag<String> MESSAGE_LOCATION = new Flag<>("Message Location", "title", input -> {
         input = input.toLowerCase(Locale.ROOT);
         return switch (input) {
@@ -201,7 +197,6 @@ public final class Flags {
     /**
      * Allows everyone to edit signs.
      */
-    //TODO:
     public static final @NotNull Flag<Boolean> SIGN_EDIT = Flag.newBooleanFlag("Sign Edit", false);
     /**
      * Allows spawners to spawn mobs.

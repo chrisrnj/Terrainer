@@ -223,6 +223,8 @@ public final class Configurations {
               Confirmation Description: 'Delete <name>'
               Success: '&e<name>&a was deleted successfully!'
                         
+            Enter Leave Messages Format: '&6<name>: &7<message>'
+                        
             Protections:
               Armor Stands: '<cooldown=2000> &4You''re not allowed to use armor stands here.'
               Build: '<cooldown=2000> &4You''re not allowed to build here.'
@@ -251,6 +253,7 @@ public final class Configurations {
               Projectiles: '<cooldown=2000> &4You''re not allowed to shoot projectiles here.'
               PvP: '<cooldown=2000> &4You''re not allowed to engage in combat here.'
               Signs: '<cooldown=2000> &4You''re not allowed to interact with signs here.'
+              Sign Edit: '<cooldown=2000> &4You''re not allowed to edit signs here.'
                         
             Reload:
               Error: '&cSomething went wrong while reloading Terrainer, check console to see more info.'
@@ -317,7 +320,7 @@ public final class Configurations {
                 Can Not Take: '&cCan''t take more limit because limit is already 0!'
                         
             Description:
-              Default: '&fA protected area.'
+              Default: 'A protected area.'
               Max: '&cThe value must be <max> characters long max!'
                         
             Invalid Arguments:

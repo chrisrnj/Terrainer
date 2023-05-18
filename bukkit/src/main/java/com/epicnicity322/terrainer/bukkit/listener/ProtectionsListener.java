@@ -23,14 +23,22 @@ import com.epicnicity322.epicpluginlib.bukkit.reflection.ReflectionUtil;
 import com.epicnicity322.terrainer.bukkit.TerrainerPlugin;
 import com.epicnicity322.terrainer.bukkit.event.terrain.TerrainEnterEvent;
 import com.epicnicity322.terrainer.bukkit.event.terrain.TerrainLeaveEvent;
+import com.epicnicity322.terrainer.bukkit.event.terrain.TerrainRemoveEvent;
 import com.epicnicity322.terrainer.core.terrain.Flag;
 import com.epicnicity322.terrainer.core.terrain.Flags;
 import com.epicnicity322.terrainer.core.terrain.Terrain;
 import com.epicnicity322.terrainer.core.terrain.TerrainManager;
+import net.md_5.bungee.api.ChatMessageType;
+import net.md_5.bungee.api.chat.TextComponent;
+import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.*;
 import org.bukkit.block.data.Directional;
+import org.bukkit.boss.BarColor;
+import org.bukkit.boss.BarStyle;
+import org.bukkit.boss.BossBar;
 import org.bukkit.entity.*;
 import org.bukkit.event.Cancellable;
 import org.bukkit.event.EventHandler;
@@ -39,27 +47,33 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.block.*;
 import org.bukkit.event.entity.*;
 import org.bukkit.event.hanging.HangingBreakByEntityEvent;
-import org.bukkit.event.player.PlayerDropItemEvent;
-import org.bukkit.event.player.PlayerInteractAtEntityEvent;
-import org.bukkit.event.player.PlayerInteractEntityEvent;
-import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.event.player.*;
 import org.bukkit.event.vehicle.VehicleDestroyEvent;
 import org.bukkit.event.world.StructureGrowEvent;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.potion.PotionEffect;
+import org.bukkit.potion.PotionEffectType;
+import org.bukkit.scheduler.BukkitTask;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.spigotmc.event.entity.EntityMountEvent;
 
-import java.util.List;
-import java.util.Objects;
-import java.util.UUID;
+import java.util.*;
 
 public final class ProtectionsListener implements Listener {
     // Enemy interface was added in 1.19.3.
     private static final @Nullable Class<?> enemyInterface = ReflectionUtil.getClass("org.bukkit.entity.Enemy");
     // Paper
     private static final boolean getOriginMethod = ReflectionUtil.getMethod(Entity.class, "getOrigin") != null;
+    private static final @NotNull HashMap<UUID, BossBar> bossBarEnterCache = new HashMap<>();
+    private static final @NotNull HashMap<UUID, BossBar> bossBarLeaveCache = new HashMap<>();
+    private static final @NotNull HashMap<UUID, BukkitTask> bossBarTasks = new HashMap<>();
     private final @NotNull MessageSender lang = TerrainerPlugin.getLanguage();
+    private final @NotNull TerrainerPlugin plugin;
+
+    public ProtectionsListener(@NotNull TerrainerPlugin plugin) {
+        this.plugin = plugin;
+    }
 
     /**
      * Entities that fight back the players.
@@ -79,7 +93,7 @@ public final class ProtectionsListener implements Listener {
     /**
      * Items that when you use, they place a block.
      */
-    private boolean isBuildingItem(@NotNull Material type) {
+    private static boolean isBuildingItem(@NotNull Material type) {
         if (type.isBlock()) return true;
 
         return switch (type) {
@@ -89,7 +103,7 @@ public final class ProtectionsListener implements Listener {
         };
     }
 
-    private boolean isContainer(@NotNull Material type) {
+    private static boolean isContainer(@NotNull Material type) {
         return switch (type) {
             case BARREL, BLAST_FURNACE, BREWING_STAND, CHEST, DISPENSER, DROPPER, FURNACE, HOPPER, SHULKER_BOX, SMOKER, TRAPPED_CHEST ->
                     true;
@@ -97,7 +111,7 @@ public final class ProtectionsListener implements Listener {
         };
     }
 
-    private @NotNull Location getOrigin(@NotNull Entity entity) {
+    private static @NotNull Location getOrigin(@NotNull Entity entity) {
         if (getOriginMethod) {
             return entity.getOrigin() == null ? entity.getLocation() : entity.getOrigin();
         } else {
@@ -105,7 +119,7 @@ public final class ProtectionsListener implements Listener {
         }
     }
 
-    private boolean deny(@NotNull Terrain terrain, @NotNull Flag<Boolean> flag) {
+    private static boolean deny(@NotNull Terrain terrain, @NotNull Flag<Boolean> flag) {
         Boolean state;
         return (state = terrain.flags().getData(flag)) != null && !state;
     }
@@ -116,7 +130,7 @@ public final class ProtectionsListener implements Listener {
      * <li>The player has no relations (not a member) to the terrain;</li>
      * <li>The terrain does not have the specified flag.</li>
      */
-    private boolean handleProtection(@NotNull Cancellable event, @NotNull Entity player, @NotNull Location loc, @NotNull Flag<Boolean> flag, @Nullable String message) {
+    private static boolean handleProtection(@NotNull Cancellable event, @NotNull Entity player, @NotNull Location loc, @NotNull Flag<Boolean> flag, @Nullable String message) {
         int x = loc.getBlockX();
         int y = loc.getBlockY();
         int z = loc.getBlockZ();
@@ -126,7 +140,10 @@ public final class ProtectionsListener implements Listener {
             if (!terrain.world().equals(world) || !terrain.isWithin(x, y, z)) continue;
             if (!TerrainerPlugin.getPlayerUtil().hasAnyRelations(player.getUniqueId(), terrain) && deny(terrain, flag)) {
                 event.setCancelled(true);
-                if (message != null) lang.send(player, lang.get(message));
+                if (message != null) {
+                    MessageSender lang = TerrainerPlugin.getLanguage();
+                    lang.send(player, lang.get(message));
+                }
                 return true;
             }
         }
@@ -136,7 +153,7 @@ public final class ProtectionsListener implements Listener {
     /**
      * Cancels the event if the provided flag is set to deny in a terrain found in the location.
      */
-    private void handleProtection(@NotNull Cancellable event, @NotNull UUID world, int x, int y, int z, @NotNull Flag<Boolean> flag) {
+    private static void handleProtection(@NotNull Cancellable event, @NotNull UUID world, int x, int y, int z, @NotNull Flag<Boolean> flag) {
         for (Terrain terrain : TerrainManager.terrains()) {
             if (!terrain.world().equals(world) || !terrain.isWithin(x, y, z)) continue;
             if (deny(terrain, flag)) {
@@ -149,7 +166,7 @@ public final class ProtectionsListener implements Listener {
     /**
      * Called everytime a player receives vulnerability.
      */
-    private boolean handleVulnerability(@NotNull EntityDamageEvent event, @Nullable Entity pvp) {
+    private static boolean handleVulnerability(@NotNull EntityDamageEvent event, @Nullable Entity pvp) {
         if (event.getEntityType() != EntityType.PLAYER) return false;
 
         Location loc = event.getEntity().getLocation();
@@ -164,8 +181,9 @@ public final class ProtectionsListener implements Listener {
                 event.setCancelled(true);
                 return true;
             } else if (pvp != null && deny(terrain, Flags.PVP)) {
-                event.setCancelled(true);
+                MessageSender lang = TerrainerPlugin.getLanguage();
                 lang.send(pvp, lang.get("Protections.PvP"));
+                event.setCancelled(true);
                 return true;
             }
         }
@@ -178,7 +196,7 @@ public final class ProtectionsListener implements Listener {
      * <li>The terrain has {@link Flags#EXPLOSION_DAMAGE} flag OR the origin is outside the terrain and the terrain
      * does not have {@link Flags#BUILD}</li>
      */
-    private void handleExplosion(@NotNull Location origin, @NotNull List<Block> exploded) {
+    private static void handleExplosion(@NotNull Location origin, @NotNull List<Block> exploded) {
         int x = origin.getBlockX();
         int y = origin.getBlockY();
         int z = origin.getBlockZ();
@@ -202,7 +220,7 @@ public final class ProtectionsListener implements Listener {
      * {@link Flags#ENTITY_HARM}, or {@link Flags#ITEM_FRAMES}, depending on the entity type. Conversely, the entity
      * will not be damaged if the terrain has a flag that disallows it, such as {@link Flags#ENEMY_HARM}.</li>
      */
-    private void handleEntityExplosion(@NotNull Cancellable event, @NotNull Location damager, @NotNull Entity victim) {
+    private static void handleEntityExplosion(@NotNull Cancellable event, @NotNull Location damager, @NotNull Entity victim) {
         Location loc = victim.getLocation();
         int x = loc.getBlockX();
         int y = loc.getBlockY();
@@ -279,6 +297,12 @@ public final class ProtectionsListener implements Listener {
             if (player.hasPermission("terrainer.bypass.build")) return;
             handleProtection(event, player, block.getLocation(), Flags.BUILD, "Protections.Build");
         }
+    }
+
+    @EventHandler(priority = EventPriority.LOWEST)
+    public void onBucketFill(PlayerBucketFillEvent event) {
+        if (event.getPlayer().hasPermission("terrainer.bypass.build")) return;
+        handleProtection(event, event.getPlayer(), event.getBlockClicked().getLocation(), Flags.BUILD, "Protections.Build");
     }
 
     // Prevent block place if BUILD is false.
@@ -976,5 +1000,105 @@ public final class ProtectionsListener implements Listener {
         }
     }
 
-    //TODO: fix water stealing with empty bucket
+    @EventHandler(priority = EventPriority.LOWEST)
+    public void onSignChange(SignChangeEvent event) {
+        if (event.getPlayer().hasPermission("terrainer.bypass.signedit")) return;
+        handleProtection(event, event.getPlayer(), event.getBlock().getLocation(), Flags.SIGN_EDIT, "Protections.Sign Edit");
+    }
+
+    @SuppressWarnings("deprecation")
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void monitorOnEnter(TerrainEnterEvent event) {
+        Terrain terrain = event.terrain();
+        Player player = event.player();
+
+        Map<String, Integer> effects = terrain.flags().getData(Flags.EFFECTS);
+        if (effects != null) {
+            effects.forEach((effect, power) -> {
+                PotionEffectType type = PotionEffectType.getByName(effect);
+                if (type == null) return;
+                player.addPotionEffect(new PotionEffect(type, Integer.MAX_VALUE, power, false, false));
+            });
+        }
+
+        String messageLocation = terrain.flags().getData(Flags.MESSAGE_LOCATION);
+        if (messageLocation != null && !(messageLocation = messageLocation.toLowerCase(Locale.ROOT)).equals("none")) {
+            String message = ChatColor.translateAlternateColorCodes('&', lang.get("Enter Leave Messages Format").replace("<name>", terrain.name()).replace("<message>", terrain.description()));
+            switch (messageLocation) {
+                case "actionbar" ->
+                        player.spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacyText(message));
+                case "bossbar" -> {
+                    BossBar leaveBar = bossBarLeaveCache.get(terrain.id());
+                    if (leaveBar != null) leaveBar.removePlayer(player);
+                    BossBar bar = bossBarEnterCache.get(terrain.id());
+                    if (bar == null) {
+                        bar = Bukkit.createBossBar(message, BarColor.RED, BarStyle.SOLID);
+                        bossBarEnterCache.put(terrain.id(), bar);
+                    } else {
+                        bar.setTitle(message);
+                    }
+                    bar.addPlayer(player);
+                    BossBar finalBar = bar;
+                    BukkitTask previous = bossBarTasks.put(player.getUniqueId(), Bukkit.getScheduler().runTaskLater(plugin, () -> finalBar.removePlayer(player), 100));
+                    if (previous != null) previous.cancel();
+                }
+                case "chat" -> lang.send(player, message);
+                case "title" ->
+                        player.sendTitle(ChatColor.GOLD + ChatColor.translateAlternateColorCodes('&', terrain.name()), ChatColor.GRAY + ChatColor.translateAlternateColorCodes('&', terrain.description()));
+            }
+        }
+    }
+
+    @SuppressWarnings("deprecation")
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void monitorOnLeave(TerrainLeaveEvent event) {
+        Terrain terrain = event.terrain();
+        Player player = event.player();
+
+        Map<String, Integer> effects = terrain.flags().getData(Flags.EFFECTS);
+        if (effects != null) {
+            effects.forEach((effect, power) -> {
+                PotionEffectType type = PotionEffectType.getByName(effect);
+                if (type == null) return;
+                player.removePotionEffect(type);
+            });
+        }
+
+        String messageLocation = terrain.flags().getData(Flags.MESSAGE_LOCATION);
+        if (messageLocation != null && !(messageLocation = messageLocation.toLowerCase(Locale.ROOT)).equals("none")) {
+            String leaveMessage = terrain.flags().getData(Flags.LEAVE_MESSAGE);
+            if (leaveMessage != null && !leaveMessage.isEmpty()) {
+                String message = ChatColor.translateAlternateColorCodes('&', lang.get("Enter Leave Messages Format").replace("<name>", terrain.name()).replace("<message>", leaveMessage));
+                switch (messageLocation) {
+                    case "actionbar" ->
+                            player.spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacyText(message));
+                    case "bossbar" -> {
+                        BossBar enterBar = bossBarEnterCache.get(terrain.id());
+                        if (enterBar != null) enterBar.removePlayer(player);
+                        BossBar bar = bossBarLeaveCache.get(terrain.id());
+                        if (bar == null) {
+                            bar = Bukkit.createBossBar(message, BarColor.RED, BarStyle.SOLID);
+                            bossBarLeaveCache.put(terrain.id(), bar);
+                        } else {
+                            bar.setTitle(message);
+                        }
+                        bar.addPlayer(player);
+                        BossBar finalBar = bar;
+                        BukkitTask previous = bossBarTasks.put(player.getUniqueId(), Bukkit.getScheduler().runTaskLater(plugin, () -> finalBar.removePlayer(player), 100));
+                        if (previous != null) previous.cancel();
+                    }
+                    case "chat" -> lang.send(player, message);
+                    case "title" ->
+                            player.sendTitle(ChatColor.GOLD + ChatColor.translateAlternateColorCodes('&', terrain.name()), ChatColor.GRAY + ChatColor.translateAlternateColorCodes('&', leaveMessage));
+                }
+            }
+        }
+
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onTerrainRemove(TerrainRemoveEvent event) {
+        bossBarEnterCache.remove(event.terrain().id());
+        bossBarLeaveCache.remove(event.terrain().id());
+    }
 }
