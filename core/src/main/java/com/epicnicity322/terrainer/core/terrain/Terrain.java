@@ -618,7 +618,7 @@ public class Terrain implements Serializable {
             if (map != null && !map.isEmpty()) {
                 this.map = new HashMap<>(map);
                 this.map.values().removeIf(object -> !(object instanceof Serializable));
-                unmodifiableMap = Collections.unmodifiableMap(map);
+                unmodifiableMap = Collections.unmodifiableMap(this.map);
             }
         }
 
