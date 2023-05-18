@@ -44,10 +44,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.command.PluginCommand;
 import org.bukkit.entity.Player;
 import org.bukkit.event.HandlerList;
-import org.bukkit.event.Listener;
-import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.PluginManager;
-import org.bukkit.plugin.RegisteredListener;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -59,9 +56,7 @@ import java.util.*;
 public final class TerrainerPlugin extends JavaPlugin {
     private static final @NotNull MessageSender lang = new MessageSender(() -> Configurations.CONFIG.getConfiguration().getString("Language").orElse("EN_US"), Configurations.LANG_EN_US.getDefaultConfiguration());
     private static final @NotNull Logger logger = new Logger(Terrainer.logger().getPrefix());
-    private static final @NotNull EnterLeaveListener enterLeaveListener = new EnterLeaveListener();
     private static @Nullable TerrainerPlugin instance;
-    private static volatile boolean enterLeaveRegistered = false;
 
     static {
         Terrainer.setLang(lang);
@@ -142,21 +137,6 @@ public final class TerrainerPlugin extends JavaPlugin {
         return exceptions.isEmpty();
     }
 
-    private static void registerEnterLeave() {
-        if (instance == null) return;
-        if (enterLeaveRegistered) return;
-        logger.log("TerrainEnterEvent or TerrainLeaveEvent was registered! Terrainer will start listening to movement events.");
-        enterLeaveRegistered = true;
-        instance.getServer().getPluginManager().registerEvents(enterLeaveListener, instance);
-    }
-
-    private static void unregisterEnterLeave() {
-        if (!enterLeaveRegistered) return;
-        logger.log("There are no more registered listeners for TerrainEnterEvent or TerrainLeaveEvent! Terrainer will stop listening to movement events to save performance.");
-        enterLeaveRegistered = false;
-        HandlerList.unregisterAll(enterLeaveListener);
-    }
-
     @Override
     public void onLoad() {
         // Registering PreLoginListener without checking if the plugin is enabled.
@@ -177,6 +157,7 @@ public final class TerrainerPlugin extends JavaPlugin {
         reload();
 
         PluginManager pm = getServer().getPluginManager();
+        pm.registerEvents(new EnterLeaveListener(), this);
         pm.registerEvents(new FlagListener(), this);
         pm.registerEvents(new ProtectionsListener(this), this);
 
@@ -234,34 +215,5 @@ public final class TerrainerPlugin extends JavaPlugin {
             return;
         }
         CommandManager.registerCommand(main, commands);
-    }
-
-    // TerrainEnterEvent and TerrainLeaveEvent has to register a lot of listeners that are heavy on performance, in order
-    //to check if the player is within the terrain. To avoid unnecessary registration of such listeners, they are only
-    //registered once a TerrainEnterEvent and TerrainLeaveEvent are registered.
-    public static final class EnterLeaveHandlerList extends HandlerList {
-        @Override
-        public synchronized void register(@NotNull RegisteredListener listener) {
-            super.register(listener);
-            registerEnterLeave();
-        }
-
-        @Override
-        public synchronized void unregister(@NotNull Plugin plugin) {
-            super.unregister(plugin);
-            if (getRegisteredListeners().length == 0) unregisterEnterLeave();
-        }
-
-        @Override
-        public synchronized void unregister(@NotNull Listener listener) {
-            super.unregister(listener);
-            if (getRegisteredListeners().length == 0) unregisterEnterLeave();
-        }
-
-        @Override
-        public synchronized void unregister(@NotNull RegisteredListener listener) {
-            super.unregister(listener);
-            if (getRegisteredListeners().length == 0) unregisterEnterLeave();
-        }
     }
 }

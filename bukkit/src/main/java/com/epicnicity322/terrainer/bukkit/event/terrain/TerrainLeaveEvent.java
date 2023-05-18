@@ -18,7 +18,6 @@
 
 package com.epicnicity322.terrainer.bukkit.event.terrain;
 
-import com.epicnicity322.terrainer.bukkit.TerrainerPlugin;
 import com.epicnicity322.terrainer.core.event.terrain.ITerrainLeaveEvent;
 import com.epicnicity322.terrainer.core.terrain.Terrain;
 import org.bukkit.Location;
@@ -29,7 +28,7 @@ import org.bukkit.event.HandlerList;
 import org.jetbrains.annotations.NotNull;
 
 public class TerrainLeaveEvent extends Event implements ITerrainLeaveEvent<Location, Player>, Cancellable {
-    private static final @NotNull HandlerList handlers = new TerrainerPlugin.EnterLeaveHandlerList();
+    private static final @NotNull HandlerList handlers = new HandlerList();
     private final @NotNull Location from;
     private final @NotNull Location to;
     private final @NotNull Player player;
