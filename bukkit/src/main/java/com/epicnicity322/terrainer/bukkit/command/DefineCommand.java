@@ -94,6 +94,8 @@ public final class DefineCommand extends Command {
         flagMap.putFlag(Flags.ENEMY_HARM, false);
         flagMap.putFlag(Flags.EXPLOSION_DAMAGE, false);
         flagMap.putFlag(Flags.FIRE_DAMAGE, false);
+        flagMap.putFlag(Flags.FLY, false);
+        flagMap.putFlag(Flags.GLIDE, false);
         flagMap.putFlag(Flags.LEAF_DECAY, false);
         flagMap.putFlag(Flags.MESSAGE_LOCATION, "NONE");
         flagMap.putFlag(Flags.MOB_SPAWN, false);
