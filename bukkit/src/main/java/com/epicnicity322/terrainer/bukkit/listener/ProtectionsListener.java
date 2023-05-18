@@ -23,13 +23,13 @@ import com.epicnicity322.epicpluginlib.bukkit.reflection.ReflectionUtil;
 import com.epicnicity322.terrainer.bukkit.TerrainerPlugin;
 import com.epicnicity322.terrainer.bukkit.event.terrain.TerrainEnterEvent;
 import com.epicnicity322.terrainer.bukkit.event.terrain.TerrainLeaveEvent;
-import com.epicnicity322.terrainer.bukkit.event.terrain.TerrainRemoveEvent;
 import com.epicnicity322.terrainer.core.terrain.Flag;
 import com.epicnicity322.terrainer.core.terrain.Flags;
 import com.epicnicity322.terrainer.core.terrain.Terrain;
 import com.epicnicity322.terrainer.core.terrain.TerrainManager;
 import net.md_5.bungee.api.ChatMessageType;
 import net.md_5.bungee.api.chat.TextComponent;
+import org.apache.commons.lang3.mutable.Mutable;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
@@ -65,9 +65,7 @@ public final class ProtectionsListener implements Listener {
     private static final @Nullable Class<?> enemyInterface = ReflectionUtil.getClass("org.bukkit.entity.Enemy");
     // Paper
     private static final boolean getOriginMethod = ReflectionUtil.getMethod(Entity.class, "getOrigin") != null;
-    private static final @NotNull HashMap<UUID, BossBar> bossBarEnterCache = new HashMap<>();
-    private static final @NotNull HashMap<UUID, BossBar> bossBarLeaveCache = new HashMap<>();
-    private static final @NotNull HashMap<UUID, BukkitTask> bossBarTasks = new HashMap<>();
+    private static final @NotNull HashMap<UUID, BossBarTask> bossBarTasks = new HashMap<>();
     private final @NotNull MessageSender lang = TerrainerPlugin.getLanguage();
     private final @NotNull TerrainerPlugin plugin;
 
@@ -975,7 +973,6 @@ public final class ProtectionsListener implements Listener {
         int x = hitLoc.getBlockX(), y = hitLoc.getBlockY(), z = hitLoc.getBlockZ();
         UUID world = projectile.getWorld().getUID();
 
-
         for (Terrain terrain : TerrainManager.terrains()) {
             if (!terrain.world().equals(world)) continue;
 
@@ -1027,21 +1024,7 @@ public final class ProtectionsListener implements Listener {
             switch (messageLocation) {
                 case "actionbar" ->
                         player.spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacyText(message));
-                case "bossbar" -> {
-                    BossBar leaveBar = bossBarLeaveCache.get(terrain.id());
-                    if (leaveBar != null) leaveBar.removePlayer(player);
-                    BossBar bar = bossBarEnterCache.get(terrain.id());
-                    if (bar == null) {
-                        bar = Bukkit.createBossBar(message, BarColor.RED, BarStyle.SOLID);
-                        bossBarEnterCache.put(terrain.id(), bar);
-                    } else {
-                        bar.setTitle(message);
-                    }
-                    bar.addPlayer(player);
-                    BossBar finalBar = bar;
-                    BukkitTask previous = bossBarTasks.put(player.getUniqueId(), Bukkit.getScheduler().runTaskLater(plugin, () -> finalBar.removePlayer(player), 100));
-                    if (previous != null) previous.cancel();
-                }
+                case "bossbar" -> sendBar(message, player);
                 case "chat" -> lang.send(player, message);
                 case "title" ->
                         player.sendTitle(ChatColor.GOLD + ChatColor.translateAlternateColorCodes('&', terrain.name()), ChatColor.GRAY + ChatColor.translateAlternateColorCodes('&', terrain.description()));
@@ -1072,33 +1055,51 @@ public final class ProtectionsListener implements Listener {
                 switch (messageLocation) {
                     case "actionbar" ->
                             player.spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacyText(message));
-                    case "bossbar" -> {
-                        BossBar enterBar = bossBarEnterCache.get(terrain.id());
-                        if (enterBar != null) enterBar.removePlayer(player);
-                        BossBar bar = bossBarLeaveCache.get(terrain.id());
-                        if (bar == null) {
-                            bar = Bukkit.createBossBar(message, BarColor.RED, BarStyle.SOLID);
-                            bossBarLeaveCache.put(terrain.id(), bar);
-                        } else {
-                            bar.setTitle(message);
-                        }
-                        bar.addPlayer(player);
-                        BossBar finalBar = bar;
-                        BukkitTask previous = bossBarTasks.put(player.getUniqueId(), Bukkit.getScheduler().runTaskLater(plugin, () -> finalBar.removePlayer(player), 100));
-                        if (previous != null) previous.cancel();
-                    }
+                    case "bossbar" -> sendBar(message, player);
                     case "chat" -> lang.send(player, message);
                     case "title" ->
                             player.sendTitle(ChatColor.GOLD + ChatColor.translateAlternateColorCodes('&', terrain.name()), ChatColor.GRAY + ChatColor.translateAlternateColorCodes('&', leaveMessage));
                 }
             }
         }
-
     }
 
-    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
-    public void onTerrainRemove(TerrainRemoveEvent event) {
-        bossBarEnterCache.remove(event.terrain().id());
-        bossBarLeaveCache.remove(event.terrain().id());
+    private void sendBar(@NotNull String message, @NotNull Player player) {
+        UUID playerId = player.getUniqueId();
+        BossBarTask previous = bossBarTasks.get(playerId);
+
+        if (previous == null) {
+            BossBar bar = Bukkit.createBossBar(message, BarColor.RED, BarStyle.SOLID);
+            Mutable<BukkitTask> task = new Mutable<>() {
+                private @NotNull BukkitTask task = Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                    bossBarTasks.remove(playerId);
+                    bar.removePlayer(player);
+                }, 100);
+
+                @Override
+                public BukkitTask getValue() {
+                    return task;
+                }
+
+                @Override
+                public void setValue(@NotNull BukkitTask task) {
+                    this.task = task;
+                }
+            };
+            previous = new BossBarTask(bar, task);
+            bossBarTasks.put(player.getUniqueId(), previous);
+            bar.addPlayer(player);
+        } else {
+            BossBar bar = previous.bar;
+            bar.setTitle(message);
+            previous.task.getValue().cancel();
+            previous.task.setValue(Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                bossBarTasks.remove(playerId);
+                bar.removePlayer(player);
+            }, 100));
+        }
+    }
+
+    private record BossBarTask(@NotNull BossBar bar, @NotNull Mutable<BukkitTask> task) {
     }
 }
