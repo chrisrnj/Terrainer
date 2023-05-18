@@ -22,7 +22,7 @@ import com.epicnicity322.epicpluginlib.bukkit.command.Command;
 import com.epicnicity322.epicpluginlib.bukkit.command.CommandRunnable;
 import com.epicnicity322.epicpluginlib.bukkit.lang.MessageSender;
 import com.epicnicity322.terrainer.bukkit.TerrainerPlugin;
-import com.epicnicity322.terrainer.bukkit.gui.ListGUI;
+import com.epicnicity322.terrainer.bukkit.gui.FlagListGUI;
 import com.epicnicity322.terrainer.bukkit.util.CommandUtil;
 import com.epicnicity322.terrainer.core.terrain.Flag;
 import com.epicnicity322.terrainer.core.terrain.Flags;
@@ -58,7 +58,7 @@ public final class FlagCommand extends Command {
 
         if (flagArgs.length == 0) {
             if (sender instanceof HumanEntity player) {
-                new ListGUI.FlagListGUI(player, terrain).open(player);
+                new FlagListGUI(player, terrain).open(player);
             } else {
                 lang.send(sender, lang.get("Invalid Arguments.Error").replace("<label>", label).replace("<label2>", args[0])
                         .replace("<args>", lang.get("Invalid Arguments.Flag") + " " + lang.get("Invalid Arguments.Flag Values") + " --t " + lang.get("Invalid Arguments.Terrain")));

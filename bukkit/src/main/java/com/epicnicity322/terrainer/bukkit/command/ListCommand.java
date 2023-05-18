@@ -23,7 +23,7 @@ import com.epicnicity322.epicpluginlib.bukkit.command.CommandRunnable;
 import com.epicnicity322.epicpluginlib.bukkit.lang.MessageSender;
 import com.epicnicity322.epicpluginlib.core.util.ObjectUtils;
 import com.epicnicity322.terrainer.bukkit.TerrainerPlugin;
-import com.epicnicity322.terrainer.bukkit.gui.ListGUI;
+import com.epicnicity322.terrainer.bukkit.gui.TerrainListGUI;
 import com.epicnicity322.terrainer.bukkit.util.CommandUtil;
 import com.epicnicity322.terrainer.core.config.Configurations;
 import com.epicnicity322.terrainer.core.terrain.Terrain;
@@ -137,7 +137,7 @@ public final class ListCommand extends Command {
             }
         } else {
             String title = who.equals(lang.get("Target.You")) ? lang.getColored("Terrain List.GUI.Title.Default") : lang.getColored("Terrain List.GUI.Title.Other").replace("<other>", who);
-            new ListGUI.TerrainListGUI(terrains, title).open(player);
+            new TerrainListGUI(terrains, title).open(player);
         }
     }
 }
