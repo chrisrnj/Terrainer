@@ -117,7 +117,7 @@ public final class Configurations {
                 Effects:
                   Material: BEACON
                 Enemy Harm:
-                  Material: SHIELD
+                  Material: BONE
                 Enter:
                   Material: LIME_WOOL
                 Enter Vehicles:
@@ -128,10 +128,14 @@ public final class Configurations {
                   Material: LEAD
                 Explosion Damage:
                   Material: TNT
-                Farmland Trample:
-                  Material: FARMLAND
                 Fire Damage:
                   Material: FIRE_CHARGE
+                Fly:
+                  Material: FEATHER
+                Frost Walk:
+                  Material: PACKED_ICE
+                Glide:
+                  Material: ELYTRA
                 Interactions:
                   Material: FLINT_AND_STEEL
                 Item Drop:
@@ -176,6 +180,8 @@ public final class Configurations {
                   Material: DARK_OAK_SIGN
                 Spawners:
                   Material: SPAWNER
+                Trample:
+                  Material: FARMLAND
                 Vulnerability:
                   Material: TOTEM_OF_UNDYING""".replace("#VERSION#", TerrainerVersion.VERSION_STRING));
     public static final ConfigurationHolder LANG_EN_US = new ConfigurationHolder(DATA_FOLDER.resolve("Language").resolve("Language EN-US.yml"), """
@@ -238,6 +244,8 @@ public final class Configurations {
               Enter Vehicles: '<cooldown=2000> &4You''re not allowed to enter vehicles here.'
               Entity Interactions: '<cooldown=2000> &4You''re not allowed to interact with entities here.'
               Farmland Trampling: '<cooldown=2000> &4You''re not allowed to trample farmland here.'
+              Fly: '<cooldown=2000> &4You''re not allowed to fly here.'
+              Glide: '<cooldown=2000> &4You''re not allowed to glide here.'
               Harm: '<cooldown=2000> &4You''re not allowed to harm entities here.'
               Interactions: '<cooldown=2000> &4You''re not allowed to use this here.'
               Item Frames: '<cooldown=2000> &4You''re not allowed to use item frames here.'
@@ -320,7 +328,7 @@ public final class Configurations {
                 Can Not Take: '&cCan''t take more limit because limit is already 0!'
                         
             Description:
-              Default: 'A protected area.'
+              Default: 'A protected area'
               Max: '&cThe value must be <max> characters long max!'
                         
             Invalid Arguments:
@@ -498,16 +506,27 @@ public final class Configurations {
                     State: <var0>
                     <line>Allows blocks being damaged from
                     <line>explosives.
-                Farmland Trample:
-                  Display Name: '&x&2&E&1&5&0&3&lFarmland Trample'
-                  Lore: >-
-                    State: <var0>
-                    <line>Allows everyone to trample on farmland.
                 Fire Damage:
                   Display Name: '&6&lFire Damage'
                   Lore: >-
                     State: <var0>
                     <line>Allows blocks being damaged by fire.
+                Fly:
+                  Display Name: 'Fly'
+                  Lore: >-
+                    State: <var0>
+                    <line>Allows players with fly permission to fly.
+                Frost Walk:
+                  Display Name: 'Frost Walk'
+                  Lore: >-
+                    State: <var0>
+                    <line>Allows players to form ice using frost
+                    <line>walk enchanted boots.
+                Glide:
+                  Display Name: 'Glide'
+                  Lore: >-
+                    State: <var0>
+                    <line>Allows players to glide using elytras.
                 Interactions:
                   Display Name: '&a&lInteractions'
                   Lore: >-
@@ -560,19 +579,18 @@ public final class Configurations {
                   Lore: >-
                     State: <var0>
                     <line>The location where the enter and leave
-                    <line>messages will be. It can be: NONE
-                    <line>ACTIONBAR, BOSSBAR, and TITLE. By default,
-                    <line>it is displayed in chat.
+                    <line>messages will be. It can be: &7NONE&5&0,
+                    <line>&7ACTIONBAR&5&0, &7BOSSBAR&5&0, and &7TITLE&5&0.
                     <line>The description of the terrain is used
-                    <line>as enter message, and you can set a leave
-                    <line>message using the 'Leave Message' flag.
+                    <line>as enter message, to set a leave message,
+                    <line>use the 'Leave Message' flag.
                 Mob Spawn:
                   Display Name: '&x&4&D&7&E&3&A&lMob Spawn'
                   Lore: >-
                     State: <var0>
                     <line>Prevents mobs from spawning within the
                     <line>terrain. Spawner mobs are controlled by
-                    <line>'Prevent Spawners' flag.
+                    <line>'Spawners' flag.
                 Mods Can Edit Flags:
                   Display Name: 'Mods Can Edit Flags'
                   Lore: >-
@@ -640,6 +658,11 @@ public final class Configurations {
                     State: <var0>
                     <line>Prevents mobs from mob spawners within the
                     <line>terrain from spawning.
+                Trample:
+                  Display Name: '&x&2&E&1&5&0&3&lTrample'
+                  Lore: >-
+                    State: <var0>
+                    <line>Allows everyone to trample on farmland.
                 Vulnerability:
                   Display Name: '&x&F&F&C&C&0&0&lVulnerability'
                   Lore: >-

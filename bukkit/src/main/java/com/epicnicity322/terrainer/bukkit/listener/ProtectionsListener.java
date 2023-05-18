@@ -349,7 +349,7 @@ public final class ProtectionsListener implements Listener {
                             message = "Protections.Pressure Plates";
                         }
                         case "FARMLAND" -> {
-                            flag = Flags.FARMLAND_TRAMPLE;
+                            flag = Flags.TRAMPLE;
                             message = "Protections.Farmland Trampling";
                         }
                         default -> {
@@ -905,10 +905,25 @@ public final class ProtectionsListener implements Listener {
         Terrain terrain = event.terrain();
         Player player = event.player();
 
-        if (player.hasPermission("terrainer.bypass.enter")) return;
-        if (!TerrainerPlugin.getPlayerUtil().hasAnyRelations(player, terrain) && deny(terrain, Flags.ENTER)) {
-            event.setCancelled(true);
-            lang.send(player, lang.get("Protections.Enter"));
+        if (!player.hasPermission("terrainer.bypass.enter")) {
+            if (!TerrainerPlugin.getPlayerUtil().hasAnyRelations(player, terrain) && deny(terrain, Flags.ENTER)) {
+                event.setCancelled(true);
+                lang.send(player, lang.get("Protections.Enter"));
+                return;
+            }
+        }
+        if (player.isFlying() && !player.hasPermission("terrainer.bypass.fly")) {
+            if (!TerrainerPlugin.getPlayerUtil().hasAnyRelations(player, terrain) && deny(terrain, Flags.FLY)) {
+                event.setCancelled(true);
+                lang.send(player, lang.get("Protections.Fly"));
+                return;
+            }
+        }
+        if (player.isGliding() && !player.hasPermission("terrainer.bypass.glide")) {
+            if (!TerrainerPlugin.getPlayerUtil().hasAnyRelations(player, terrain) && deny(terrain, Flags.GLIDE)) {
+                event.setCancelled(true);
+                lang.send(player, lang.get("Protections.Glide"));
+            }
         }
     }
 
@@ -924,13 +939,13 @@ public final class ProtectionsListener implements Listener {
         }
     }
 
-    @EventHandler(priority = EventPriority.LOWEST)
+    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
     public void onMount(EntityMountEvent event) {
         if (event.getEntity().hasPermission("terrainer.bypass.entervehicles")) return;
         handleProtection(event, event.getEntity(), event.getMount().getLocation(), Flags.ENTER_VEHICLES, "Protections.Enter Vehicles");
     }
 
-    @EventHandler(priority = EventPriority.LOWEST)
+    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
     public void onDispense(BlockDispenseEvent event) {
         Block block = event.getBlock();
         Block frontBlock = block.getRelative(((Directional) block.getBlockData()).getFacing());
@@ -949,7 +964,7 @@ public final class ProtectionsListener implements Listener {
         }
     }
 
-    @EventHandler(priority = EventPriority.LOWEST)
+    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
     public void onVehicleDestroy(VehicleDestroyEvent event) {
         //TODO: check if attacker is explosive.
         Entity attacker = event.getAttacker();
@@ -958,7 +973,7 @@ public final class ProtectionsListener implements Listener {
         handleProtection(event, attacker, event.getVehicle().getLocation(), Flags.BUILD_VEHICLES, "Protections.Build Vehicles");
     }
 
-    @EventHandler(priority = EventPriority.LOWEST)
+    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
     public void onProjectileHit(ProjectileHitEvent event) {
         if (!getOriginMethod) return;
 
@@ -985,7 +1000,7 @@ public final class ProtectionsListener implements Listener {
         }
     }
 
-    @EventHandler(priority = EventPriority.LOWEST)
+    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
     public void onProjectileLaunch(ProjectileLaunchEvent event) {
         Player shooter = event.getEntity().getShooter() instanceof Player p ? p : null;
         if (shooter == null) {
@@ -997,10 +1012,26 @@ public final class ProtectionsListener implements Listener {
         }
     }
 
-    @EventHandler(priority = EventPriority.LOWEST)
+    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
     public void onSignChange(SignChangeEvent event) {
         if (event.getPlayer().hasPermission("terrainer.bypass.signedit")) return;
         handleProtection(event, event.getPlayer(), event.getBlock().getLocation(), Flags.SIGN_EDIT, "Protections.Sign Edit");
+    }
+
+    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
+    public void onToggleFlight(PlayerToggleFlightEvent event) {
+        if (!event.isFlying()) return;
+        Player player = event.getPlayer();
+        if (player.hasPermission("terrainer.bypass.fly")) return;
+        handleProtection(event, player, player.getLocation(), Flags.FLY, "Protections.Fly");
+    }
+
+    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
+    public void onToggleGlide(EntityToggleGlideEvent event) {
+        if (!event.isGliding() || event.getEntityType() != EntityType.PLAYER) return;
+        Entity player = event.getEntity();
+        if (player.hasPermission("terrainer.bypass.glide")) return;
+        handleProtection(event, player, player.getLocation(), Flags.GLIDE, "Protections.Glide");
     }
 
     @SuppressWarnings("deprecation")

@@ -69,6 +69,10 @@ public final class Flags {
      */
     public static final @NotNull Flag<Boolean> ENEMY_HARM = Flag.newBooleanFlag("Enemy Harm", true);
     /**
+     * Allows everyone to enter the terrain.
+     */
+    public static final @NotNull Flag<Boolean> ENTER = Flag.newBooleanFlag("Enter", true);
+    /**
      * Allows everyone to enter vehicles.
      */
     public static final @NotNull Flag<Boolean> ENTER_VEHICLES = Flag.newBooleanFlag("Enter Vehicles", false);
@@ -81,27 +85,27 @@ public final class Flags {
      */
     public static final @NotNull Flag<Boolean> ENTITY_INTERACTIONS = Flag.newBooleanFlag("Entity Interactions", false);
     /**
-     * Allows everyone to enter the terrain.
-     */
-    public static final @NotNull Flag<Boolean> ENTER = Flag.newBooleanFlag("Enter", true);
-    /**
      * Allows blocks being damaged by explosives.
      */
     public static final @NotNull Flag<Boolean> EXPLOSION_DAMAGE = Flag.newBooleanFlag("Explosion Damage", true);
-    /**
-     * Allows everyone to trample farmland blocks.
-     */
-    public static final @NotNull Flag<Boolean> FARMLAND_TRAMPLE = Flag.newBooleanFlag("Farmland Trample", false);
     /**
      * Allows blocks being burned by fire.
      */
     public static final @NotNull Flag<Boolean> FIRE_DAMAGE = Flag.newBooleanFlag("Fire Damage", true);
     /**
+     * Prevents players from flying.
+     */
+    public static final @NotNull Flag<Boolean> FLY = Flag.newBooleanFlag("Fly", true);
+    /**
      * Allows everyone to freeze water using frost walker enchanted boots.
      */
     public static final @NotNull Flag<Boolean> FROST_WALK = Flag.newBooleanFlag("Frost Walk", false);
     /**
-     * Allows non-members interacting in the terrain with any item or any block (for example: flint and steel, hoes, repeaters etc).
+     * Prevents players from gliding using elytras.
+     */
+    public static final @NotNull Flag<Boolean> GLIDE = Flag.newBooleanFlag("Glide", true);
+    /**
+     * Allows non-members interacting in the terrain with any item or any block (flint and steel, hoes, repeaters etc).
      */
     public static final @NotNull Flag<Boolean> INTERACTIONS = Flag.newBooleanFlag("Interactions", false);
     /**
@@ -203,6 +207,10 @@ public final class Flags {
      */
     public static final @NotNull Flag<Boolean> SPAWNERS = Flag.newBooleanFlag("Spawners", true);
     /**
+     * Allows everyone to trample farmland blocks.
+     */
+    public static final @NotNull Flag<Boolean> TRAMPLE = Flag.newBooleanFlag("Trample", false);
+    /**
      * Do not freeze player's health and saturation.
      */
     public static final @NotNull Flag<Boolean> VULNERABILITY = Flag.newBooleanFlag("Vulnerability", true);
@@ -211,10 +219,10 @@ public final class Flags {
     private static final @NotNull HashSet<Flag<?>> customValues = new HashSet<>();
     private static final @NotNull Set<Flag<?>> values = Set.of(ARMOR_STANDS, BUILD, BUILD_VEHICLES, BUTTONS, CONTAINERS,
             DISPENSERS, DOORS, EFFECTS, ENEMY_HARM, ENTER, ENTER_VEHICLES, ENTITY_HARM, ENTITY_INTERACTIONS,
-            EXPLOSION_DAMAGE, FARMLAND_TRAMPLE, FIRE_DAMAGE, INTERACTIONS, ITEM_DROP, ITEM_FRAMES, ITEM_PICKUP,
+            EXPLOSION_DAMAGE, FIRE_DAMAGE, FLY, FROST_WALK, GLIDE, INTERACTIONS, ITEM_DROP, ITEM_FRAMES, ITEM_PICKUP,
             LEAF_DECAY, LEAVE, LEAVE_MESSAGE, LIQUID_FLOW, MESSAGE_LOCATION, MOB_SPAWN, MODS_CAN_EDIT_FLAGS,
             MODS_CAN_MANAGE_MODS, OUTSIDE_DISPENSERS, OUTSIDE_PISTONS, OUTSIDE_PROJECTILES, PISTONS, PRESSURE_PLATES,
-            PROJECTILES, PVP, SIGN_CLICK, SIGN_EDIT, SPAWNERS, VULNERABILITY);
+            PROJECTILES, PVP, SIGN_CLICK, SIGN_EDIT, SPAWNERS, TRAMPLE, VULNERABILITY);
 
     private Flags() {
     }
