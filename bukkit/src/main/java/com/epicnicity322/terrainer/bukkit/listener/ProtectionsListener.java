@@ -30,10 +30,7 @@ import com.epicnicity322.terrainer.core.terrain.TerrainManager;
 import net.md_5.bungee.api.ChatMessageType;
 import net.md_5.bungee.api.chat.TextComponent;
 import org.apache.commons.lang3.mutable.Mutable;
-import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
-import org.bukkit.Location;
-import org.bukkit.Material;
+import org.bukkit.*;
 import org.bukkit.block.*;
 import org.bukkit.block.data.Directional;
 import org.bukkit.boss.BarColor;
@@ -51,6 +48,7 @@ import org.bukkit.event.player.*;
 import org.bukkit.event.vehicle.VehicleDestroyEvent;
 import org.bukkit.event.world.StructureGrowEvent;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scheduler.BukkitTask;
@@ -68,9 +66,11 @@ public final class ProtectionsListener implements Listener {
     private static final @NotNull HashMap<UUID, BossBarTask> bossBarTasks = new HashMap<>();
     private final @NotNull MessageSender lang = TerrainerPlugin.getLanguage();
     private final @NotNull TerrainerPlugin plugin;
+    private final @NotNull NamespacedKey resetFly;
 
     public ProtectionsListener(@NotNull TerrainerPlugin plugin) {
         this.plugin = plugin;
+        resetFly = new NamespacedKey(plugin, "reset-fly-on-leave");
     }
 
     /**
@@ -912,11 +912,13 @@ public final class ProtectionsListener implements Listener {
                 return;
             }
         }
-        if (player.isFlying() && !player.hasPermission("terrainer.bypass.fly")) {
+        if ((player.isFlying() || player.getAllowFlight()) && !player.hasPermission("terrainer.bypass.fly")) {
             if (!TerrainerPlugin.getPlayerUtil().hasAnyRelations(player, terrain) && deny(terrain, Flags.FLY)) {
-                event.setCancelled(true);
+                if (player.getAllowFlight()) {
+                    player.getPersistentDataContainer().set(resetFly, PersistentDataType.INTEGER, 1);
+                }
+                player.setAllowFlight(false);
                 lang.send(player, lang.get("Protections.Fly"));
-                return;
             }
         }
         if (player.isGliding() && !player.hasPermission("terrainer.bypass.glide")) {
@@ -936,6 +938,12 @@ public final class ProtectionsListener implements Listener {
         if (!TerrainerPlugin.getPlayerUtil().hasAnyRelations(player, terrain) && deny(terrain, Flags.LEAVE)) {
             event.setCancelled(true);
             lang.send(player, lang.get("Protections.Leave"));
+            return;
+        }
+
+        if (player.getPersistentDataContainer().has(resetFly)) {
+            player.getPersistentDataContainer().remove(resetFly);
+            player.setAllowFlight(true);
         }
     }
 
@@ -1023,7 +1031,12 @@ public final class ProtectionsListener implements Listener {
         if (!event.isFlying()) return;
         Player player = event.getPlayer();
         if (player.hasPermission("terrainer.bypass.fly")) return;
-        handleProtection(event, player, player.getLocation(), Flags.FLY, "Protections.Fly");
+        if (handleProtection(event, player, player.getLocation(), Flags.FLY, "Protections.Fly")) {
+            if (player.getAllowFlight()) {
+                player.getPersistentDataContainer().set(resetFly, PersistentDataType.INTEGER, 1);
+            }
+            player.setAllowFlight(false);
+        }
     }
 
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
