@@ -33,6 +33,11 @@ import java.util.Set;
  */
 public final class Flags {
     /**
+     * Allows everyone to use anvils.
+     */
+    //TODO:
+    public static final @NotNull Flag<Boolean> ANVILS = Flag.newBooleanFlag("Anvils", false);
+    /**
      * Allows everyone to use armor stands.
      */
     public static final @NotNull Flag<Boolean> ARMOR_STANDS = Flag.newBooleanFlag("Armor Stands", false);
@@ -105,7 +110,8 @@ public final class Flags {
      */
     public static final @NotNull Flag<Boolean> GLIDE = Flag.newBooleanFlag("Glide", true);
     /**
-     * Allows non-members interacting in the terrain with any item or any block (flint and steel, hoes, repeaters etc).
+     * Allows non-members interacting with any interactable block, such as beacons, dragon eggs, flower pots, jukeboxes,
+     * noteblocks, respawn anchors etc.
      */
     public static final @NotNull Flag<Boolean> INTERACTIONS = Flag.newBooleanFlag("Interactions", false);
     /**
@@ -182,6 +188,12 @@ public final class Flags {
      * Allows pistons inside the terrain moving blocks.
      */
     public static final @NotNull Flag<Boolean> PISTONS = Flag.newBooleanFlag("Pistons", true);
+    /**
+     * Allows everyone to use preparing blocks, such as cartography tables, crafting tables, enchanting tables,
+     * grindstones, looms, smithing tables, and stonecutters.
+     */
+    //TODO:
+    public static final @NotNull Flag<Boolean> PREPARE = Flag.newBooleanFlag("Prepare", true);
     /**
      * Allows everyone to press pressure plates.
      */

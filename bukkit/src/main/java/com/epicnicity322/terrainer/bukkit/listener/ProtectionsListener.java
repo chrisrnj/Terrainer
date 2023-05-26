@@ -109,6 +109,14 @@ public final class ProtectionsListener implements Listener {
         };
     }
 
+    private static boolean isPrepareBlock(@NotNull Material type) {
+        return switch (type) {
+            case CARTOGRAPHY_TABLE, CRAFTING_TABLE, ENCHANTING_TABLE, GRINDSTONE, LOOM, SMITHING_TABLE, STONECUTTER ->
+                    true;
+            default -> false;
+        };
+    }
+
     private static @NotNull Location getOrigin(@NotNull Entity entity) {
         if (getOriginMethod) {
             return entity.getOrigin() == null ? entity.getLocation() : entity.getOrigin();
