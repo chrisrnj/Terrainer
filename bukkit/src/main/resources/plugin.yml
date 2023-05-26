@@ -25,6 +25,8 @@ permissions:
       terrainer.bypass.build: true
       terrainer.bypass.limit.claims: true
       terrainer.bypass.limit.blocks: true
+      terrainer.define: true
+      terrainer.flag.*: true
       terrainer.limit.others: true
       terrainer.limit.blocks: true
       terrainer.limit.claims: true
@@ -35,17 +37,86 @@ permissions:
       terrainer.select.command.3d.coordinates: true
       terrainer.select.command.coordinates: true
       terrainer.wand: true
+      terrainer.teleport: true
       terrainer.reload: true
 
   terrainer.player:
     description: Recommended player permissions.
-    default: true
+    default: false
     children:
       terrainer.claim: true
-      terrainer.flag: true
+      terrainer.delete: true
+      terrainer.grant: true
+      terrainer.help: true
+      terrainer.info: true
+      terrainer.limit.blocks.default: true
+      terrainer.limit: true
+      terrainer.list: true
+      terrainer.player.flags: true
+      terrainer.rename: true
+      terrainer.resize: true
+      terrainer.revoke: true
       terrainer.select.command: true
       terrainer.select.wand: true
-      terrainer.world.*: true
+      terrainer.sell: true
+      terrainer.shop: true
+      terrainer.world.world: true
+
+  terrainer.player.flags:
+    description: Recommended flags for players.
+    default: false
+    children:
+      terrainer.flag: true
+      terrainer.flag.anvils: true
+      terrainer.flag.armorstands: true
+      terrainer.flag.build: true
+      terrainer.flag.buildvehicles: true
+      terrainer.flag.buttons: true
+      terrainer.flag.containers: true
+      terrainer.flag.dispensers: true
+      terrainer.flag.doors: true
+      terrainer.flag.entervehicles: true
+      terrainer.flag.entityharm: true
+      terrainer.flag.entityinteractions: true
+      terrainer.flag.frostwalk: true
+      terrainer.flag.interactions: true
+      terrainer.flag.itemdrop: true
+      terrainer.flag.itemframes: true
+      terrainer.flag.itempickup: true
+      terrainer.flag.leavemessage: true
+      terrainer.flag.messagelocation: true
+      terrainer.flag.mobspawn: true
+      terrainer.flag.modscaneditflags: true
+      terrainer.flag.modscanmanagemods: true
+      terrainer.flag.outsidedispensers: true
+      terrainer.flag.outsidepistons: true
+      terrainer.flag.outsideprojectiles: true
+      terrainer.flag.pistons: true
+      terrainer.flag.pressureplates: true
+      terrainer.flag.projectiles: true
+      terrainer.flag.pvp: true
+      terrainer.flag.signclick: true
+      terrainer.flag.signedit: true
+      terrainer.flag.spawners: true
+      terrainer.flag.trample: true
+
+  terrainer.flag.*:
+    description: Permission for all flags of terrainer.
+    default: false
+    children:
+      terrainer.flag.effects: true
+      terrainer.flag.enemyharm: true
+      terrainer.flag.enter: true
+      terrainer.flag.explosiondamage: true
+      terrainer.flag.firedamage: true
+      terrainer.flag.fly: true
+      terrainer.flag.glide: true
+      terrainer.flag.leafdecay: true
+      terrainer.flag.leave: true
+      terrainer.flag.liquidflow: true
+      terrainer.flag.prepare: true
+      terrainer.flag.vulnerability: true
+      terrainer.player.flag: true
 
   terrainer.claim:
     description: Allows users to use the command '/tr claim [name]', to claim terrains from their selection.
@@ -169,7 +240,7 @@ permissions:
       terrainer.limit: true
 
   terrainer.limit.take:
-    description: Allows users to lower their own limits with  '/tr limit <player> take <block|claim> <value>'.
+    description: Allows users to lower their own limits with  '/tr limit <player> take <blocks|claims> <value>'.
     default: false
     children:
       terrainer.limit: true
