@@ -24,10 +24,16 @@ import com.epicnicity322.terrainer.bukkit.util.CommandUtil;
 import org.bukkit.command.CommandSender;
 import org.jetbrains.annotations.NotNull;
 
+//TODO:
 public final class HelpCommand extends Command {
     @Override
     public @NotNull String getName() {
         return "help";
+    }
+
+    @Override
+    public @NotNull String getPermission() {
+        return "terrainer.help";
     }
 
     @Override

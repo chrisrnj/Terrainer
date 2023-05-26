@@ -6,8 +6,8 @@ import com.epicnicity322.terrainer.bukkit.util.CommandUtil;
 import org.bukkit.command.CommandSender;
 import org.jetbrains.annotations.NotNull;
 
-//TODO: shop command
-public final class ShopCommand extends Command {
+//TODO:
+public final class ResizeCommand extends Command {
     @Override
     public @NotNull String getName() {
         return "shop";

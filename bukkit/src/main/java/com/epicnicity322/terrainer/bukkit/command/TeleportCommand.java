@@ -6,16 +6,21 @@ import com.epicnicity322.terrainer.bukkit.util.CommandUtil;
 import org.bukkit.command.CommandSender;
 import org.jetbrains.annotations.NotNull;
 
-//TODO: shop command
-public final class ShopCommand extends Command {
+//TODO
+public final class TeleportCommand extends Command {
     @Override
     public @NotNull String getName() {
-        return "shop";
+        return "teleport";
+    }
+
+    @Override
+    public int getMinArgsAmount() {
+        return 2;
     }
 
     @Override
     public @NotNull String getPermission() {
-        return "terrainer.shop";
+        return "terrainer.teleport";
     }
 
     @Override
