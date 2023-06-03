@@ -67,7 +67,7 @@ public final class TerrainerPlugin extends JavaPlugin {
         lang.addLanguage("ES_LA", Configurations.LANG_EN_US);
     }
 
-    private final @NotNull Set<Command> commands = Set.of(new ClaimCommand(), new ConfirmCommand(), new DefineCommand(), new DeleteCommand(), new FlagCommand(), new PermissionCommand.GrantCommand(), new PermissionCommand.RevokeCommand(), new InfoCommand(), new LimitCommand(), new ListCommand(), new PosCommand.Pos1Command(), new PosCommand.Pos2Command(), new Pos3DCommand.Pos13DCommand(), new Pos3DCommand.Pos23DCommand(), new ReloadCommand());
+    private final @NotNull Set<Command> commands = Set.of(new ClaimCommand(), new ConfirmCommand(), new DefineCommand(), new DeleteCommand(), new FlagCommand(), new PermissionCommand.GrantCommand(), new PermissionCommand.RevokeCommand(), new InfoCommand(), new LimitCommand(), new ListCommand(), new PosCommand.Pos1Command(), new PosCommand.Pos2Command(), new Pos3DCommand.Pos13DCommand(), new Pos3DCommand.Pos23DCommand(), new ReloadCommand(), new ShopCommand());
     private final @NotNull BukkitPlayerUtil playerUtil = new BukkitPlayerUtil(this);
     private final @NotNull PreLoginListener preLoginListener = new PreLoginListener();
 
@@ -93,14 +93,13 @@ public final class TerrainerPlugin extends JavaPlugin {
      * @return If every config loaded successfully.
      */
     public static boolean reload() {
-        if (instance == null) return false;
-
         ConsoleLogger<?> logger = Terrainer.logger();
         HashMap<ConfigurationHolder, Exception> exceptions = Configurations.loader().loadConfigurations();
 
         exceptions.forEach((config, exception) -> {
             logger.log("Unable to load " + config.getPath().getFileName() + " configuration:", ConsoleLogger.Level.ERROR);
             exception.printStackTrace();
+            logger.log("Default values will be used!", ConsoleLogger.Level.ERROR);
         });
 
         Configuration config = Configurations.CONFIG.getConfiguration();
@@ -132,8 +131,6 @@ public final class TerrainerPlugin extends JavaPlugin {
         }
         PlayerUtil.setDefaultClaimLimits(defaultClaimLimits);
 
-        instance.loadCommands();
-
         return exceptions.isEmpty();
     }
 
@@ -154,9 +151,10 @@ public final class TerrainerPlugin extends JavaPlugin {
 
     @Override
     public void onEnable() {
-        reload();
+        if (reload()) logger.log("Configurations loaded successfully.");
 
         PluginManager pm = getServer().getPluginManager();
+
         pm.registerEvents(new EnterLeaveListener(), this);
         pm.registerEvents(new FlagListener(), this);
         pm.registerEvents(new ProtectionsListener(this), this);
@@ -183,12 +181,14 @@ public final class TerrainerPlugin extends JavaPlugin {
         });
 
         loadCommands();
+
         // Terrains might have data of other plugins, so they load when the server is done loading.
         getServer().getScheduler().runTask(this, () -> {
             try {
                 TerrainManager.load();
+                logger.log(TerrainManager.terrains().size() + " terrains loaded.");
             } catch (IOException e) {
-                Terrainer.logger().log("Unable to load terrains due to exception:", ConsoleLogger.Level.ERROR);
+                logger.log("Unable to load terrains due to exception:", ConsoleLogger.Level.ERROR);
                 e.printStackTrace();
             }
             HandlerList.unregisterAll(preLoginListener);
@@ -201,7 +201,7 @@ public final class TerrainerPlugin extends JavaPlugin {
         TerrainManager.save();
         var players = Bukkit.getOnlinePlayers();
         if (!players.isEmpty()) {
-            Terrainer.logger().log("Terrainer will kick all players to prevent damage to terrains.");
+            logger.log("Terrainer will kick all players to prevent damage to terrains.");
         }
         for (Player p : players) {
             p.kickPlayer(lang.getColored("Protections.Kick Message").replace("<default>", Objects.requireNonNullElse(getServer().getShutdownMessage(), "Server stopped")));
@@ -211,7 +211,7 @@ public final class TerrainerPlugin extends JavaPlugin {
     private void loadCommands() {
         PluginCommand main = getCommand("terrainer");
         if (main == null) {
-            Terrainer.logger().log("Unable to get 'terrainer' command. Commands will not be loaded.", ConsoleLogger.Level.ERROR);
+            logger.log("Unable to get 'terrainer' command. Commands will not be loaded.", ConsoleLogger.Level.ERROR);
             return;
         }
         CommandManager.registerCommand(main, commands);

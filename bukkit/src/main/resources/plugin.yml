@@ -4,6 +4,7 @@ depend: [ EpicPluginLib ]
 description: A fast and simple terrain claiming plugin.
 main: com.epicnicity322.terrainer.bukkit.TerrainerPlugin
 name: Terrainer
+softdepend: [ Vault ]
 version: '1.0'
 
 commands:
@@ -28,11 +29,7 @@ permissions:
       terrainer.define: true
       terrainer.flag.*: true
       terrainer.limit.others: true
-      terrainer.limit.blocks: true
-      terrainer.limit.claims: true
-      terrainer.limit.give: true
-      terrainer.limit.set: true
-      terrainer.limit.take: true
+      terrainer.limit.edit: true
       terrainer.select.command.3d: true
       terrainer.select.command.3d.coordinates: true
       terrainer.select.command.coordinates: true
@@ -42,7 +39,7 @@ permissions:
 
   terrainer.player:
     description: Recommended player permissions.
-    default: false
+    default: true
     children:
       terrainer.claim: true
       terrainer.delete: true
@@ -60,6 +57,8 @@ permissions:
       terrainer.select.wand: true
       terrainer.sell: true
       terrainer.shop: true
+      terrainer.shop.blocks: true
+      terrainer.shop.claims: true
       terrainer.world.world: true
 
   terrainer.player.flags:

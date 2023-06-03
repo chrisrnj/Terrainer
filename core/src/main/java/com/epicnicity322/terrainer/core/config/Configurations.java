@@ -59,6 +59,49 @@ public final class Configurations {
               Staff: 30
             # Additionally, you can use the command '/tr limit <player> claims give <amount>' to give more claims to a specific player.
                         
+            # Players can buy additional limits using '/tr shop'. You can edit the prices here.
+            Shop:
+              Blocks:
+                Enabled: true
+                # The prices will increase according to how many blocks the player already has. The prices set below are
+                #the default ones, and the inflation will be added to them.
+                Inflation:
+                  Enabled: true
+                  Divide: 1000 # Divide the amount of blocks a player has by this value.
+                  Multiplier: 200.0 # Multiply the divided amount of blocks by this value, this will be the inflation.
+                  # If a player has 10,000 blocks, the blocks will be divided by 1,000, and the result (10) will be multiplied
+                  #by 200, so if they want to buy 1,000 more blocks, the price will be 10 x 200 (or 2,000$).
+                Option 1:
+                  Amount: 1000
+                  Price: 2000
+                  Material: 'IRON_BLOCK'
+                Option 2:
+                  Amount: 5000
+                  Price: 9800 # 2% off
+                  Material: 'GOLD_BLOCK'
+                Option 3:
+                  Amount: 12100
+                  Price: 22990 # 5% off
+                  Material: 'DIAMOND_BLOCK'
+              Claims:
+                Enabled: true
+                Inflation:
+                  Enabled: true
+                  Divide: 1
+                  Multiplier: 100.0 # For every claim limit the player already has, the price will increase by 100.
+                Option 1:
+                  Amount: 1
+                  Price: 2000
+                  Material: 'SMALL_AMETHYST_BUD'
+                Option 2:
+                  Amount: 5
+                  Price: 9800 # 2% off
+                  Material: 'LARGE_AMETHYST_BUD'
+                Option 3:
+                  Amount: 15
+                  Price: 28500 # 5% off
+                  Material: 'AMETHYST_CLUSTER'
+                        
             Input:
               # Whether an anvil should be used to get inputs from the player. If disabled, the input will be get from chat.
               Anvil GUI:
@@ -364,6 +407,52 @@ public final class Configurations {
                   Does Not Contain: '&4<who> is not a member of <terrain>&4!'
                 Granted: '&aGranted member role for &f<who>&a in terrain &f<terrain>&a.'
                 Revoked: '&7Revoked member role of &f<who>&7 in terrain &f<terrain>&7.'
+                        
+            Shop:
+              Blocks:
+                Option 1:
+                  Display Name: '&7&l<var0> BLOCKS'
+                  Lore: >-
+                    &8Buy &7<var0>&8 blocks for
+                    <line>&8only &6<var1>$
+                Option 2:
+                  Display Name: '&6&l<var0> BLOCKS'
+                  Lore: >-
+                    &8Buy &7<var0>&8 blocks for
+                    <line>&8only &6<var1>$
+                    <line>&82% off
+                Option 3:
+                  Display Name: '&b&l<var0> BLOCKS'
+                  Lore: >-
+                    &8Buy &7<var0>&8 blocks for
+                    <line>&8only &6<var1>$
+                    <line>&85% off
+              Claims:
+                Option 1:
+                  Display Name: '&4&l<var0> CLAIMS'
+                  Lore: >-
+                    &8Buy &7<var0>&8 claim for
+                    <line>&8only &6<var1>$
+                Option 2:
+                  Display Name: '&4&l<var0> CLAIMS'
+                  Lore: >-
+                    &8Buy &7<var0>&8 claims for
+                    <line>&8only &6<var1>$
+                    <line>&82% off
+                Option 3:
+                  Display Name: '&4&l<var0> CLAIMS'
+                  Lore: >-
+                    &8Buy &7<var0>&8 claims for
+                    <line>&8only &6<var1>$
+                    <line>&85% off
+              Error:
+                Disabled: '&4Shop is disabled.'
+                Transaction: '&4You don''t have enough money to buy this.'
+                Vault: '&4An economy plugin was not found.'
+              Success:
+                Blocks: '&aYou''ve successfully bought an additional limit of &7<amount>&a blocks for &6<price>$!'
+                Claims: '&aYou''ve successfully bought an additional limit of &7<amount>&a claims for &6<price>$!'
+              Title: '&6&nLimits Shop'
                         
             List:
               GUI Items:
