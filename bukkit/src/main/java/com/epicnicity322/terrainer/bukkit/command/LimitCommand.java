@@ -108,12 +108,12 @@ public final class LimitCommand extends Command {
                     try {
                         value = Long.parseLong(args[4]);
                     } catch (NumberFormatException e) {
-                        lang.send(sender, lang.get("General.Not A Number").replace("<value>", args[3]));
+                        lang.send(sender, lang.get("General.Not A Number").replace("<value>", args[4]));
                         return;
                     }
 
                     BukkitPlayerUtil util = TerrainerPlugin.getPlayerUtil();
-                    long current = blocksType ? util.getMaxBlockLimit(who) : util.getMaxClaimLimit(who);
+                    long current = blocksType ? util.getAdditionalMaxBlockLimit(who) : util.getAdditionalMaxClaimLimit(who);
                     long finalValue;
 
                     if (operation.equalsIgnoreCase("give")) {
@@ -131,7 +131,7 @@ public final class LimitCommand extends Command {
                         }
                         finalValue = current - value;
                     } else {
-                        lang.send(sender, lang.get("General.Invalid Arguments").replace("<label>", label).replace("<label2>", args[0]).
+                        lang.send(sender, lang.get("Invalid Arguments.Error").replace("<label>", label).replace("<label2>", args[0]).
                                 replace("<args>", "<give|set|take> <claims|blocks> <value>"));
                         return;
                     }
@@ -145,17 +145,17 @@ public final class LimitCommand extends Command {
 
                     if (blocksType) {
                         util.setAdditionalMaxBlockLimit(who, finalValue);
-                        lang.send(sender, lang.get("Limits.Edit.Blocks").replace("<player>", who.getName()).replace("<value>", Long.toString(finalValue)));
+                        lang.send(sender, lang.get("Limits.Edit.Blocks").replace("<player>", who.getName()).replace("<value>", Long.toString(util.getMaxBlockLimit(who))));
                     } else {
                         if (finalValue > Integer.MAX_VALUE) finalValue = Integer.MAX_VALUE;
                         util.setAdditionalMaxClaimLimit(who, (int) finalValue);
-                        lang.send(sender, lang.get("Limits.Edit.Blocks").replace("<player>", who.getName()).replace("<value>", Long.toString(finalValue)));
+                        lang.send(sender, lang.get("Limits.Edit.Claims").replace("<player>", who.getName()).replace("<value>", Long.toString(util.getMaxClaimLimit(who))));
                     }
                     return;
                 }
             }
 
-            lang.send(sender, lang.get("General.Invalid Arguments").replace("<label>", label).replace("<label2>", args[0]).
+            lang.send(sender, lang.get("Invalid Arguments.Error").replace("<label>", label).replace("<label2>", args[0]).
                     replace("<args>", "<give|set|take> <claims|blocks> <value>"));
         }
     }
