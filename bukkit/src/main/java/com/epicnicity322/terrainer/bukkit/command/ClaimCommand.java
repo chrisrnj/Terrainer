@@ -80,9 +80,10 @@ public final class ClaimCommand extends Command {
         String name;
 
         if (args.length > 1) {
-            name = ChatColor.translateAlternateColorCodes('&', args[1]);
-            int length = ChatColor.stripColor(name).length();
-            if (length == 0 || length > maxNameLength) {
+            name = ChatColor.translateAlternateColorCodes('&', CommandUtil.join(args, 1)).trim();
+            String stripped = ChatColor.stripColor(name);
+
+            if (stripped.isBlank() || stripped.length() > maxNameLength) {
                 lang.send(sender, lang.get("Rename.Error.Name Length").replace("<max>", Integer.toString(maxNameLength)));
                 return;
             }
