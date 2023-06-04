@@ -27,6 +27,7 @@ permissions:
       terrainer.bypass.limit.claims: true
       terrainer.bypass.limit.blocks: true
       terrainer.define: true
+      terrainer.description.others: true
       terrainer.flag.*: true
       terrainer.limit.others: true
       terrainer.limit.edit: true
@@ -43,6 +44,7 @@ permissions:
     children:
       terrainer.claim: true
       terrainer.delete: true
+      terrainer.description: true
       terrainer.grant: true
       terrainer.help: true
       terrainer.info: true

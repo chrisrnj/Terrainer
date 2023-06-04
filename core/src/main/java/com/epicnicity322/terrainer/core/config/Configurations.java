@@ -372,7 +372,10 @@ public final class Configurations {
                         
             Description:
               Default: 'A protected area'
-              Max: '&cThe value must be <max> characters long max!'
+              Error:
+                Length: '&cThe value must be <max> characters long max!'
+              Reset: '&aDescription of terrain &7<terrain>&a was reset to default.'
+              Set: '&aDescription of terrain &7<terrain>&a set to: &e<description>&a.'
                         
             Invalid Arguments:
               Error: '&4Invalid syntax! Use: &7/<label> <label2> <args>&4.'
