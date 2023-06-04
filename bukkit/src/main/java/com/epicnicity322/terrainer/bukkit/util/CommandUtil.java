@@ -218,6 +218,15 @@ public class CommandUtil {
         }
     }
 
+    public static @NotNull String join(@NotNull String[] args, int start) {
+        StringBuilder name = new StringBuilder();
+        for (int i = start; i < args.length; ++i) {
+            name.append(args[i]);
+            if (i != (args.length - 1)) name.append(" ");
+        }
+        return name.toString();
+    }
+
     public record CommandArguments(@NotNull String[] preceding, @NotNull Terrain terrain) {
     }
 

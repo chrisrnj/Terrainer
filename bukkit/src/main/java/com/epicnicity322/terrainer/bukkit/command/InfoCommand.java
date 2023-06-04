@@ -72,13 +72,10 @@ public final class InfoCommand extends Command {
 
             if (id == null) {
                 terrains = new HashSet<>();
-                StringBuilder name = new StringBuilder();
-                for (int i = 1; i < args.length; ++i) {
-                    name.append(args[i]);
-                    if (i != (args.length - 1)) name.append(" ");
-                }
+                String name = CommandUtil.join(args, 1);
+
                 for (Terrain t : TerrainManager.terrains()) {
-                    if (ChatColor.stripColor(t.name()).contentEquals(name)) terrains.add(t);
+                    if (ChatColor.stripColor(t.name()).equals(name)) terrains.add(t);
                 }
             } else {
                 terrains = new HashSet<>(2);
@@ -113,15 +110,7 @@ public final class InfoCommand extends Command {
             Coordinate min = t.minDiagonal();
             Coordinate max = t.maxDiagonal();
 
-            lang.send(sender, lang.get("Info.Text").replace("<name>", t.name()).replace("<id>", t.id().toString())
-                    .replace("<owner>", util.getOwnerName(t.owner())).replace("<desc>", t.description())
-                    .replace("<date>", t.creationDate().format(DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm:ss"))).replace("<area>", Double.toString(t.area()))
-                    .replace("<world>", worldName).replace("<x1>", Double.toString(min.x())).replace("<y1>", Double.toString(min.y()))
-                    .replace("<z1>", Double.toString(min.z())).replace("<x2>", Double.toString(max.x())).replace("<y2>", Double.toString(max.y()))
-                    .replace("<z2>", Double.toString(max.z()))
-                    .replace("<mods>", TerrainerUtil.listToString(t.moderators().view(), util::getOwnerName))
-                    .replace("<members>", TerrainerUtil.listToString(t.members().view(), util::getOwnerName))
-                    .replace("<flags>", TerrainerUtil.listToString(t.flags().view().keySet(), id -> id)));
+            lang.send(sender, lang.get("Info.Text").replace("<name>", t.name()).replace("<id>", t.id().toString()).replace("<owner>", util.getOwnerName(t.owner())).replace("<desc>", t.description()).replace("<date>", t.creationDate().format(DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm:ss"))).replace("<area>", Double.toString(t.area())).replace("<world>", worldName).replace("<x1>", Double.toString(min.x())).replace("<y1>", Double.toString(min.y())).replace("<z1>", Double.toString(min.z())).replace("<x2>", Double.toString(max.x())).replace("<y2>", Double.toString(max.y())).replace("<z2>", Double.toString(max.z())).replace("<mods>", TerrainerUtil.listToString(t.moderators().view(), util::getOwnerName)).replace("<members>", TerrainerUtil.listToString(t.members().view(), util::getOwnerName)).replace("<flags>", TerrainerUtil.listToString(t.flags().view().keySet(), id -> id)));
         }
     }
 
