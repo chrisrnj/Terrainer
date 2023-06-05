@@ -118,6 +118,8 @@ public final class Configurations {
               Max Viewing: 20
               # The particle type, find more here: https://hub.spigotmc.org/javadocs/spigot/org/bukkit/Particle.html
               Particle: CLOUD
+              # Add this to the Y coordinate where the particle will spawn.
+              Y OffSet: 0.5
               # Time in ticks to repeat the particles while showing the border.
               Frequency: 5
               # The total amount of time in ticks to show the border.

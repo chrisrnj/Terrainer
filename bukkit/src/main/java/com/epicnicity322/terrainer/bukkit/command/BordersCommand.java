@@ -57,8 +57,10 @@ public class BordersCommand extends Command {
         stopShowingBorders(player);
         if (!player.hasPermission("terrainer.borders.show")) return;
         Configuration config = Configurations.CONFIG.getConfiguration();
+        if (!config.getBoolean("Borders.Enabled").orElse(false)) return;
         if (viewers.size() >= config.getNumber("Borders.Max Viewing").orElse(20).intValue()) return;
         UUID world = player.getWorld().getUID();
+        double yOffSet = config.getNumber("Borders.Y OffSet").orElse(0.5).doubleValue();
 
         BukkitRunnable runnable = new BukkitRunnable() {
             private @Nullable BukkitTask stopper;
@@ -70,7 +72,7 @@ public class BordersCommand extends Command {
                     return;
                 }
 
-                double y = player.getLocation().getY();
+                double y = player.getLocation().getY() + yOffSet;
 
                 for (Terrain t : terrains) {
                     double finalY = y;
