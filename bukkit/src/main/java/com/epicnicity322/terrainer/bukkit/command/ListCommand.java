@@ -40,7 +40,12 @@ import org.jetbrains.annotations.NotNull;
 import java.util.*;
 
 public final class ListCommand extends Command {
-    private static final @NotNull Comparator<Terrain> comparator = Comparator.comparing(Terrain::name);
+    private static final @NotNull Comparator<Terrain> comparator = (t1, t2) -> {
+        int i = t1.name().compareTo(t2.name());
+        // Allow terrains with repeated names.
+        if (i == 0) return t1.id().compareTo(t2.id());
+        return i;
+    };
 
     @Override
     public @NotNull String getName() {
