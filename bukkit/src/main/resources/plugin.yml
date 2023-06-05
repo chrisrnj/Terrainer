@@ -42,6 +42,8 @@ permissions:
     description: Recommended player permissions.
     default: true
     children:
+      terrainer.borders: true
+      terrainer.borders.show: true
       terrainer.claim: true
       terrainer.delete: true
       terrainer.description: true

@@ -41,6 +41,7 @@ import com.epicnicity322.terrainer.core.util.PlayerUtil;
 import com.epicnicity322.yamlhandler.Configuration;
 import com.epicnicity322.yamlhandler.ConfigurationSection;
 import org.bukkit.Bukkit;
+import org.bukkit.Particle;
 import org.bukkit.command.PluginCommand;
 import org.bukkit.entity.Player;
 import org.bukkit.event.HandlerList;
@@ -67,7 +68,8 @@ public final class TerrainerPlugin extends JavaPlugin {
         lang.addLanguage("ES_LA", Configurations.LANG_EN_US);
     }
 
-    private final @NotNull Set<Command> commands = Set.of(new ClaimCommand(), new ConfirmCommand(), new DefineCommand(), new DeleteCommand(), new DescriptionCommand(), new FlagCommand(), new PermissionCommand.GrantCommand(), new PermissionCommand.RevokeCommand(), new InfoCommand(), new LimitCommand(), new ListCommand(), new PosCommand.Pos1Command(), new PosCommand.Pos2Command(), new Pos3DCommand.Pos13DCommand(), new Pos3DCommand.Pos23DCommand(), new ReloadCommand(), new ShopCommand());
+    private final @NotNull BordersCommand bordersCommand = new BordersCommand(this);
+    private final @NotNull Set<Command> commands = Set.of(bordersCommand, new ClaimCommand(), new ConfirmCommand(), new DefineCommand(), new DeleteCommand(), new DescriptionCommand(), new FlagCommand(), new PermissionCommand.GrantCommand(), new PermissionCommand.RevokeCommand(), new InfoCommand(bordersCommand), new LimitCommand(), new ListCommand(), new PosCommand.Pos1Command(), new PosCommand.Pos2Command(), new Pos3DCommand.Pos13DCommand(), new Pos3DCommand.Pos23DCommand(), new ReloadCommand(), new ShopCommand());
     private final @NotNull BukkitPlayerUtil playerUtil = new BukkitPlayerUtil(this);
     private final @NotNull PreLoginListener preLoginListener = new PreLoginListener();
 
@@ -131,6 +133,14 @@ public final class TerrainerPlugin extends JavaPlugin {
         }
         PlayerUtil.setDefaultClaimLimits(defaultClaimLimits);
 
+        if (instance == null) return false;
+        String particleName = config.getString("Borders.Particle").orElse("CLOUD").toUpperCase(Locale.ROOT);
+        try {
+            instance.bordersCommand.setParticle(Particle.valueOf(particleName));
+        } catch (IllegalArgumentException e) {
+            logger.log("A particle with name '" + particleName + "' was not found. Using CLOUD as particle for borders.");
+            instance.bordersCommand.setParticle(Particle.CLOUD);
+        }
         return exceptions.isEmpty();
     }
 
@@ -157,7 +167,7 @@ public final class TerrainerPlugin extends JavaPlugin {
 
         pm.registerEvents(new EnterLeaveListener(), this);
         pm.registerEvents(new FlagListener(), this);
-        pm.registerEvents(new ProtectionsListener(this), this);
+        pm.registerEvents(new ProtectionsListener(this, bordersCommand), this);
 
         TerrainManager.setOnTerrainAddListener(event -> {
             var add = new TerrainAddEvent(event.terrain());

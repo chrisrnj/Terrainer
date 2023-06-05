@@ -21,8 +21,10 @@ package com.epicnicity322.terrainer.bukkit.listener;
 import com.epicnicity322.epicpluginlib.bukkit.lang.MessageSender;
 import com.epicnicity322.epicpluginlib.bukkit.reflection.ReflectionUtil;
 import com.epicnicity322.terrainer.bukkit.TerrainerPlugin;
+import com.epicnicity322.terrainer.bukkit.command.BordersCommand;
 import com.epicnicity322.terrainer.bukkit.event.terrain.TerrainEnterEvent;
 import com.epicnicity322.terrainer.bukkit.event.terrain.TerrainLeaveEvent;
+import com.epicnicity322.terrainer.core.config.Configurations;
 import com.epicnicity322.terrainer.core.terrain.Flag;
 import com.epicnicity322.terrainer.core.terrain.Flags;
 import com.epicnicity322.terrainer.core.terrain.Terrain;
@@ -66,10 +68,12 @@ public final class ProtectionsListener implements Listener {
     private static final @NotNull HashMap<UUID, BossBarTask> bossBarTasks = new HashMap<>();
     private final @NotNull MessageSender lang = TerrainerPlugin.getLanguage();
     private final @NotNull TerrainerPlugin plugin;
+    private final @NotNull BordersCommand bordersCommand;
     private final @NotNull NamespacedKey resetFly;
 
-    public ProtectionsListener(@NotNull TerrainerPlugin plugin) {
+    public ProtectionsListener(@NotNull TerrainerPlugin plugin, @NotNull BordersCommand bordersCommand) {
         this.plugin = plugin;
+        this.bordersCommand = bordersCommand;
         resetFly = new NamespacedKey(plugin, "reset-fly-on-leave");
     }
 
@@ -1081,6 +1085,10 @@ public final class ProtectionsListener implements Listener {
                 case "title" ->
                         player.sendTitle(ChatColor.GOLD + ChatColor.translateAlternateColorCodes('&', terrain.name()), ChatColor.GRAY + ChatColor.translateAlternateColorCodes('&', terrain.description()));
             }
+        }
+
+        if (!terrain.borders().isEmpty() && Configurations.CONFIG.getConfiguration().getBoolean("Borders.On Enter").orElse(false)) {
+            bordersCommand.showBorders(player, Collections.singleton(terrain));
         }
     }
 

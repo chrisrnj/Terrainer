@@ -42,6 +42,12 @@ import java.util.Set;
 import java.util.UUID;
 
 public final class InfoCommand extends Command {
+    private final @NotNull BordersCommand bordersCommand;
+
+    public InfoCommand(@NotNull BordersCommand bordersCommand) {
+        this.bordersCommand = bordersCommand;
+    }
+
     @Override
     public @NotNull String getName() {
         return "info";
@@ -104,14 +110,19 @@ public final class InfoCommand extends Command {
             }
         }
 
+        boolean showBorders = false;
+
         for (Terrain t : terrains) {
             World w = Bukkit.getWorld(t.world());
             String worldName = w == null ? t.world().toString() : w.getName();
             Coordinate min = t.minDiagonal();
             Coordinate max = t.maxDiagonal();
+            if (!t.borders().isEmpty()) showBorders = true;
 
             lang.send(sender, lang.get("Info.Text").replace("<name>", t.name()).replace("<id>", t.id().toString()).replace("<owner>", util.getOwnerName(t.owner())).replace("<desc>", t.description()).replace("<date>", t.creationDate().format(DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm:ss"))).replace("<area>", Double.toString(t.area())).replace("<world>", worldName).replace("<x1>", Double.toString(min.x())).replace("<y1>", Double.toString(min.y())).replace("<z1>", Double.toString(min.z())).replace("<x2>", Double.toString(max.x())).replace("<y2>", Double.toString(max.y())).replace("<z2>", Double.toString(max.z())).replace("<mods>", TerrainerUtil.listToString(t.moderators().view(), util::getOwnerName)).replace("<members>", TerrainerUtil.listToString(t.members().view(), util::getOwnerName)).replace("<flags>", TerrainerUtil.listToString(t.flags().view().keySet(), id -> id)));
         }
+
+        if (showBorders && sender instanceof Player player) bordersCommand.showBorders(player, terrains);
     }
 
 }

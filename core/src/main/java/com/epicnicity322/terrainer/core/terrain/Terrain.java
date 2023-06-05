@@ -23,6 +23,7 @@ import com.epicnicity322.epicpluginlib.core.util.PathUtils;
 import com.epicnicity322.terrainer.core.Coordinate;
 import com.epicnicity322.terrainer.core.Terrainer;
 import com.epicnicity322.terrainer.core.WorldCoordinate;
+import com.epicnicity322.terrainer.core.config.Configurations;
 import com.epicnicity322.yamlhandler.Configuration;
 import com.epicnicity322.yamlhandler.ConfigurationSection;
 import com.epicnicity322.yamlhandler.YamlConfigurationLoader;
@@ -42,7 +43,7 @@ import java.util.stream.Collectors;
  */
 public class Terrain implements Serializable {
     @Serial
-    private static final long serialVersionUID = -1763009442941586418L;
+    private static final long serialVersionUID = 2466171685939540939L;
     private static final @NotNull YamlConfigurationLoader loader = new YamlConfigurationLoader();
     final @NotNull UUID world;
     final @NotNull UUID id;
@@ -53,6 +54,7 @@ public class Terrain implements Serializable {
     @Nullable UUID owner;
     @NotNull Coordinate minDiagonal;
     @NotNull Coordinate maxDiagonal;
+    @NotNull Set<Coordinate> borders;
     @NotNull String name;
     @Nullable String description;
     /**
@@ -89,6 +91,7 @@ public class Terrain implements Serializable {
     public Terrain(@NotNull Coordinate first, @NotNull Coordinate second, @NotNull UUID world, @NotNull UUID id, @NotNull String name, @Nullable String description, @NotNull ZonedDateTime creationDate, @Nullable UUID owner, @Nullable Collection<UUID> moderators, @Nullable Collection<UUID> members, @Nullable HashMap<String, Object> flags) {
         this.minDiagonal = findMinMax(first, second, true);
         this.maxDiagonal = findMinMax(first, second, false);
+        this.borders = findBorders(minDiagonal, maxDiagonal);
         this.name = name;
         this.id = id;
         this.world = world;
@@ -109,7 +112,7 @@ public class Terrain implements Serializable {
      */
     public Terrain(@NotNull Coordinate first, @NotNull Coordinate second, @NotNull UUID world) {
         this(first, second, world, UUID.randomUUID(), "", null, ZonedDateTime.now(), null, null, null, null);
-        this.name = id.toString().substring(0, id.toString().indexOf("-"));
+        this.name = id.toString().substring(0, id.toString().indexOf('-'));
     }
 
     /**
@@ -237,6 +240,41 @@ public class Terrain implements Serializable {
     }
 
     /**
+     * Finds the borders of the terrain, used for showing particles.
+     *
+     * @param minDiagonal The min edge of the terrain.
+     * @param maxDiagonal The max edge of the terrain.
+     * @return The coordinates of where border particles should spawn.
+     */
+    private static @NotNull Set<Coordinate> findBorders(@NotNull Coordinate minDiagonal, @NotNull Coordinate maxDiagonal) {
+        Configuration config = Configurations.CONFIG.getConfiguration();
+        double area = (maxDiagonal.x() - (minDiagonal.x() - 1)) * (maxDiagonal.z() - (minDiagonal.z() - 1));
+
+        if (!config.getBoolean("Borders.Enabled").orElse(false) || area > config.getNumber("Borders.Max Area").orElse(2500).doubleValue()) {
+            return Collections.emptySet();
+        }
+
+        var border = new HashSet<Coordinate>();
+
+        double startX = minDiagonal.x();
+        double endX = maxDiagonal.x() + 1d;
+        double startZ = minDiagonal.z();
+        double endZ = maxDiagonal.z() + 1d;
+
+        for (double x = startX; x <= endX; ++x) {
+            border.add(new Coordinate(x, 0, startZ));
+            border.add(new Coordinate(x, 0, endZ));
+        }
+
+        for (double z = startZ; z <= endZ; ++z) {
+            border.add(new Coordinate(startX, 0, z));
+            border.add(new Coordinate(endX, 0, z));
+        }
+
+        return Collections.unmodifiableSet(border);
+    }
+
+    /**
      * If this terrain has changed, and it's marked to automatically save, then call {@link TerrainManager#loadAutoSave()} method.
      * <p>
      * This should be called after the property has changed, and avoid redundant calls that attempt to change to the
@@ -267,6 +305,7 @@ public class Terrain implements Serializable {
         if (first.equals(minDiagonal)) return;
         minDiagonal = findMinMax(first, maxDiagonal, true);
         maxDiagonal = findMinMax(first, maxDiagonal, false);
+        borders = findBorders(minDiagonal, maxDiagonal);
         reloadIfAutoSave();
     }
 
@@ -290,7 +329,18 @@ public class Terrain implements Serializable {
         if (second.equals(maxDiagonal)) return;
         minDiagonal = findMinMax(minDiagonal, second, true);
         maxDiagonal = findMinMax(minDiagonal, second, false);
+        borders = findBorders(minDiagonal, maxDiagonal);
         reloadIfAutoSave();
+    }
+
+    /**
+     * Gets the borders of this terrain.
+     *
+     * @return A set with the exact coordinates of the borders of the terrain.
+     * Empty if borders are disabled or the terrain's area exceeds the limit.
+     */
+    public @NotNull Set<Coordinate> borders() {
+        return borders;
     }
 
     /**

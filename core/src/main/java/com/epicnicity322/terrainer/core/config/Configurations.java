@@ -102,6 +102,27 @@ public final class Configurations {
                   Price: 28500 # 5% off
                   Material: 'AMETHYST_CLUSTER'
                         
+            # Players can see borders of terrains by using '/tr info' or walking in to them, as long as they have the
+            #permission 'terrainer.borders.show'.
+            # They can toggle borders on and off using '/tr borders'.
+            Borders:
+              # Whether to show borders of terrains to players.
+              Enabled: true
+              # Whether to show the border everytime a player enters a terrain.
+              On Enter: true
+              # Whether to spawn the particles asynchronously.
+              Async: true
+              # Terrains with area larger than this will not show borders.
+              Max Area: 2500
+              # The maximum amount of players viewing borders at the same time.
+              Max Viewing: 20
+              # The particle type, find more here: https://hub.spigotmc.org/javadocs/spigot/org/bukkit/Particle.html
+              Particle: CLOUD
+              # Time in ticks to repeat the particles while showing the border.
+              Frequency: 5
+              # The total amount of time in ticks to show the border.
+              Time: 200
+                        
             Input:
               # Whether an anvil should be used to get inputs from the player. If disabled, the input will be get from chat.
               Anvil GUI:
