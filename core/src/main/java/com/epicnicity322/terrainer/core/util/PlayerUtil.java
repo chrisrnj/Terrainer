@@ -49,6 +49,7 @@ public abstract class PlayerUtil<P extends R, R> {
      * The default permission based claim limits set up on config.
      */
     private static final @NotNull HashMap<String, Integer> defaultClaimLimits = new HashMap<>(8);
+    private static final @NotNull HashMap<UUID, Integer[]> markers = new HashMap<>();
     private final @NotNull LanguageHolder<?, R> lang;
 
     protected PlayerUtil(@NotNull LanguageHolder<?, R> lang) {
@@ -316,4 +317,56 @@ public abstract class PlayerUtil<P extends R, R> {
 
         return true;
     }
+
+    /**
+     * Sends a visual marker
+     *
+     * @param player The player to remove the marker.
+     * @param first  If the first or second marker should be removed.
+     */
+    public final void removeMarker(@NotNull P player, boolean first) {
+        UUID playerId = getUniqueId(player);
+        Integer[] markersIDs = markers.get(playerId);
+        if (markersIDs == null) return;
+        Integer markerId = markersIDs[first ? 0 : 1];
+        markersIDs[first ? 0 : 1] = null;
+        if (markerId == null) return;
+
+        killMarker(player, markerId);
+
+        if (markersIDs[0] == null && markersIDs[1] == null) markers.remove(playerId);
+    }
+
+    /**
+     * Sends a visual marker to the player using a fake entity with glow effect.
+     *
+     * @param player The player to show the marker to.
+     * @param first  If this is the first or second selection.
+     * @param x      X coordinate.
+     * @param y      Y coordinate.
+     * @param z      Z coordinate.
+     */
+    public final void showMarker(@NotNull P player, boolean first, int x, int y, int z) {
+        removeMarker(player, first);
+        markers.computeIfAbsent(getUniqueId(player), k -> new Integer[2])[first ? 0 : 1] = spawnMarker(player, x, y, z);
+    }
+
+    /**
+     * Send a packet to the player to kill the marker entity with provided ID.
+     *
+     * @param player The player to kill the marker entity.
+     * @param id     The ID of the marker entity.
+     */
+    protected abstract void killMarker(@NotNull P player, int id);
+
+    /**
+     * Send a packet to the player to spawn an entity with glow effect in the location.
+     *
+     * @param player The player to send the packet.
+     * @param x      X coordinate.
+     * @param y      Y coordinate.
+     * @param z      Z coordinate.
+     * @return The marker's entity ID.
+     */
+    protected abstract int spawnMarker(@NotNull P player, int x, int y, int z);
 }

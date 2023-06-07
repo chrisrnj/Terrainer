@@ -50,6 +50,7 @@ permissions:
       terrainer.grant: true
       terrainer.help: true
       terrainer.info: true
+      terrainer.info.wand: true
       terrainer.limit.blocks.default: true
       terrainer.limit: true
       terrainer.list: true

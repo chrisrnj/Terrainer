@@ -143,8 +143,37 @@ public final class Configurations {
             #player from the server.
             # Use %p for the player's name, and %t for the terrain's ID.
             Commands When TerrainEnterEvent Cancelled on Join or Create:
-            - 'spawn %p'
+            - 'tp %p 0 64 0'
+            #- 'spawn %p'
             #- 'kick %p You tried to join in a terrain where ENTRY is denied.'
+                        
+            # The item for selecting positions to claim terrains.
+            # Can be obtained/bought with '/tr wand'
+            Selector Wand:
+              Material: GOLDEN_SHOVEL
+              Glowing: false
+              # If false, all golden shovels (or the set material) will pass as a selector wand.
+              # If true, the item can only be obtained by '/tr wand' command.
+              Unique: true
+              # If false, position #1 and #2 alternates by using just right-click.
+              # If true, use left-click for position #1 and right-click for position #2.
+              Left And Right Click: false
+              # Price for buying the item with '/tr wand'. Recommended only if 'Unique' is true.
+              # Buy permission: terrainer.wand.selector
+              # Free Bypass: terrainer.wand.selector.free
+              Price: 100
+                        
+            # The item for seeing information about terrains in the location.
+            # Can be obtained/bought with '/tr wand info'
+            Info Wand:
+              Material: PAPER
+              Glowing: false
+              Unique: false
+              # Since 'Unique' is false, the command is just going to sell a piece of paper (with custom name).
+              # It's recommended to only give permission to buy if the item is unique.
+              # Buy permission: terrainer.wand.info
+              # Free Bypass: terrainer.wand.info.free
+              Price: 50
                         
             List:
               Chat:
@@ -256,9 +285,11 @@ public final class Configurations {
             General:
               Player Not Found: '&cA player with name "&7<value>&c" could not be found.'
               Prefix: '&8[&cTerrains&8] '
+              No Economy: '&4An economy plugin was not found.'
               No Permission: '&4You don''t have permission to do this.'
               No Permission Others: '&4You can not do this with other players.'
               Not A Number: '&cThe value "&7<value>&c" is not a number.'
+              Not Enough Money: '&4This costs &6<value>$&4 and you don''t have enough money to buy it.'
               World Not Found: '&cA world with name "&7<value>&c" was not found.'
                         
             # Translations of command arguments.
@@ -266,6 +297,9 @@ public final class Configurations {
               Confirm:
                 Confirm: 'confirm'
                 List: 'list'
+              Wand:
+                Info: 'info'
+                Selector: 'selector'
                         
             Confirm:
               Arguments: '[<id>|list] [page]'
@@ -346,6 +380,21 @@ public final class Configurations {
                 Second: '&6Second position selected in world &7<world>&6 at &7<coord>&6.'
                 Suggest: '&ePositions were selected successfully. Now, to create a terrain, use the command &7&n/<label> claim [name]&e.'
                         
+            Selector Wand:
+              Display Name: '&6&l&nClaim Selection Wand'
+              Lore: >-
+                &7Click with the selection wand on the
+                <line>&7ground to mark the two diagonals of
+                <line>&7your terrain. Once marked, use &f&n/tr claim
+                <line>&7to claim and protect your terrain!
+                        
+            Info Wand:
+              Display Name: '&7&l&nTerrain Info Wand'
+              Lore: >-
+                &7Click with the info wand on the ground
+                <line>&7to check information about any existing
+                <line>&7terrains in the location.
+                        
             Info:
               Error:
                 No Terrains: '&7No terrains could be found.'
@@ -405,6 +454,7 @@ public final class Configurations {
               Flag: '<flag>'
               Flag Values: '[values]'
               Player: '<player>'
+              Player Optional: '[player]'
               Terrain: '<terrain>'
               World: 'world'
                         
@@ -433,6 +483,11 @@ public final class Configurations {
                   Does Not Contain: '&4<who> is not a member of <terrain>&4!'
                 Granted: '&aGranted member role for &f<who>&a in terrain &f<terrain>&a.'
                 Revoked: '&7Revoked member role of &f<who>&7 in terrain &f<terrain>&7.'
+                        
+            Wand:
+              Bought: '&aYou''ve bought a &7<type>&a for &6<price>$&a.'
+              Given: '&aGave &7<player>&a a &7<type>&a for &6<price>$&a.'
+              Received: '&aYou''ve received a &7<type>&a from &7<player>&a.'
                         
             Shop:
               Blocks:
@@ -473,8 +528,6 @@ public final class Configurations {
                     <line>&85% off
               Error:
                 Disabled: '&4Shop is disabled.'
-                Transaction: '&4You don''t have enough money to buy this.'
-                Vault: '&4An economy plugin was not found.'
               Success:
                 Blocks: '&aYou''ve successfully bought an additional limit of &7<amount>&a blocks for &6<price>$!'
                 Claims: '&aYou''ve successfully bought an additional limit of &7<amount>&a claims for &6<price>$!'

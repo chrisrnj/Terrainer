@@ -92,4 +92,15 @@ public final class BukkitPlayerUtil extends PlayerUtil<Player, CommandSender> {
             player.getPersistentDataContainer().set(claimLimitKey, PersistentDataType.INTEGER, claimLimit);
         }
     }
+
+    //TODO:
+    @Override
+    protected void killMarker(@NotNull Player player, int id) {
+
+    }
+
+    @Override
+    protected int spawnMarker(@NotNull Player player, int x, int y, int z) {
+        return 0;
+    }
 }
