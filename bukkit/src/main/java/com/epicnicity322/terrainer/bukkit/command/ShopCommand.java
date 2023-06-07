@@ -9,7 +9,6 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
-//TODO: shop command
 public final class ShopCommand extends Command {
     @Override
     public @NotNull String getName() {
