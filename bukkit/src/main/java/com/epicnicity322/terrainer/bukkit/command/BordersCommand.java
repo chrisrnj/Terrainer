@@ -25,7 +25,7 @@ import java.util.concurrent.ConcurrentHashMap;
 /**
  * A command that toggles the showing of border particles to the player.
  */
-public class BordersCommand extends Command {
+public final class BordersCommand extends Command {
     private static final @NotNull ConcurrentHashMap<UUID, BukkitRunnable> viewers = new ConcurrentHashMap<>();
     private final @NotNull TerrainerPlugin plugin;
     private @NotNull Particle particle = Particle.CLOUD;
