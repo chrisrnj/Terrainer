@@ -29,11 +29,10 @@ import com.epicnicity322.terrainer.bukkit.event.flag.FlagSetEvent;
 import com.epicnicity322.terrainer.bukkit.event.flag.FlagUnsetEvent;
 import com.epicnicity322.terrainer.bukkit.event.terrain.TerrainAddEvent;
 import com.epicnicity322.terrainer.bukkit.event.terrain.TerrainRemoveEvent;
-import com.epicnicity322.terrainer.bukkit.listener.EnterLeaveListener;
-import com.epicnicity322.terrainer.bukkit.listener.FlagListener;
-import com.epicnicity322.terrainer.bukkit.listener.PreLoginListener;
-import com.epicnicity322.terrainer.bukkit.listener.ProtectionsListener;
+import com.epicnicity322.terrainer.bukkit.hook.VaultHook;
+import com.epicnicity322.terrainer.bukkit.listener.*;
 import com.epicnicity322.terrainer.bukkit.util.BukkitPlayerUtil;
+import com.epicnicity322.terrainer.bukkit.util.EconomyHandler;
 import com.epicnicity322.terrainer.core.Terrainer;
 import com.epicnicity322.terrainer.core.config.Configurations;
 import com.epicnicity322.terrainer.core.terrain.TerrainManager;
@@ -41,6 +40,7 @@ import com.epicnicity322.terrainer.core.util.PlayerUtil;
 import com.epicnicity322.yamlhandler.Configuration;
 import com.epicnicity322.yamlhandler.ConfigurationSection;
 import org.bukkit.Bukkit;
+import org.bukkit.NamespacedKey;
 import org.bukkit.Particle;
 import org.bukkit.command.PluginCommand;
 import org.bukkit.entity.Player;
@@ -58,6 +58,7 @@ public final class TerrainerPlugin extends JavaPlugin {
     private static final @NotNull MessageSender lang = new MessageSender(() -> Configurations.CONFIG.getConfiguration().getString("Language").orElse("EN_US"), Configurations.LANG_EN_US.getDefaultConfiguration());
     private static final @NotNull Logger logger = new Logger(Terrainer.logger().getPrefix());
     private static @Nullable TerrainerPlugin instance;
+    private static @Nullable EconomyHandler economyHandler;
 
     static {
         Terrainer.setLang(lang);
@@ -69,9 +70,11 @@ public final class TerrainerPlugin extends JavaPlugin {
     }
 
     private final @NotNull BordersCommand bordersCommand = new BordersCommand(this);
-    private final @NotNull Set<Command> commands = Set.of(bordersCommand, new ClaimCommand(), new ConfirmCommand(), new DefineCommand(), new DeleteCommand(), new DescriptionCommand(), new FlagCommand(), new PermissionCommand.GrantCommand(), new PermissionCommand.RevokeCommand(), new InfoCommand(bordersCommand), new LimitCommand(), new ListCommand(), new PosCommand.Pos1Command(), new PosCommand.Pos2Command(), new Pos3DCommand.Pos13DCommand(), new Pos3DCommand.Pos23DCommand(), new ReloadCommand(), new ShopCommand());
+    private final @NotNull Set<Command> commands = Set.of(bordersCommand, new ClaimCommand(), new ConfirmCommand(), new DefineCommand(), new DeleteCommand(), new DescriptionCommand(), new FlagCommand(), new PermissionCommand.GrantCommand(), new PermissionCommand.RevokeCommand(), new InfoCommand(bordersCommand), new LimitCommand(), new ListCommand(), new PosCommand.Pos1Command(), new PosCommand.Pos2Command(), new Pos3DCommand.Pos13DCommand(), new Pos3DCommand.Pos23DCommand(), new ReloadCommand(), new ShopCommand(), new WandCommand());
     private final @NotNull BukkitPlayerUtil playerUtil = new BukkitPlayerUtil(this);
     private final @NotNull PreLoginListener preLoginListener = new PreLoginListener();
+    private final @NotNull NamespacedKey selectorWandKey = new NamespacedKey(this, "selector-wand");
+    private final @NotNull NamespacedKey infoWandKey = new NamespacedKey(this, "info-wand");
 
     public TerrainerPlugin() {
         instance = this;
@@ -87,6 +90,10 @@ public final class TerrainerPlugin extends JavaPlugin {
             throw new UnsupportedOperationException("TerrainerPlugin was not instantiated yet.");
         }
         return instance.playerUtil;
+    }
+
+    public static @Nullable EconomyHandler getEconomyHandler() {
+        return economyHandler;
     }
 
     /**
@@ -141,6 +148,8 @@ public final class TerrainerPlugin extends JavaPlugin {
             logger.log("A particle with name '" + particleName + "' was not found. Using CLOUD as particle for borders.");
             instance.bordersCommand.setParticle(Particle.CLOUD);
         }
+
+        SelectionListener.reloadItems(instance.selectorWandKey, instance.infoWandKey);
         return exceptions.isEmpty();
     }
 
@@ -165,9 +174,19 @@ public final class TerrainerPlugin extends JavaPlugin {
 
         PluginManager pm = getServer().getPluginManager();
 
+        if (pm.getPlugin("Vault") != null) {
+            try {
+                economyHandler = new VaultHook();
+                logger.log("Vault was found and hooked!");
+            } catch (Throwable t) {
+                logger.log("Vault was found, but there is no economy handling plugin.", ConsoleLogger.Level.WARN);
+            }
+        }
+
         pm.registerEvents(new EnterLeaveListener(), this);
         pm.registerEvents(new FlagListener(), this);
         pm.registerEvents(new ProtectionsListener(this, bordersCommand), this);
+        pm.registerEvents(new SelectionListener(selectorWandKey, infoWandKey, bordersCommand), this);
 
         TerrainManager.setOnTerrainAddListener(event -> {
             var add = new TerrainAddEvent(event.terrain());

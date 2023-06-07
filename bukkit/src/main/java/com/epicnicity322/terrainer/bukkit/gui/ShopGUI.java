@@ -6,23 +6,18 @@ import com.epicnicity322.terrainer.bukkit.TerrainerPlugin;
 import com.epicnicity322.terrainer.bukkit.util.BukkitPlayerUtil;
 import com.epicnicity322.terrainer.core.config.Configurations;
 import com.epicnicity322.yamlhandler.Configuration;
-import net.milkbowl.vault.economy.Economy;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.Inventory;
-import org.bukkit.plugin.RegisteredServiceProvider;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 import java.util.HashMap;
 import java.util.function.Consumer;
 
 public class ShopGUI {
     private static final int @NotNull [] slots = new int[]{10, 13, 16, 28, 31, 34};
-    private static @Nullable Boolean vault = null;
-    private static Economy econ = null;
 
     /**
      * Creates and opens a GUI that allows the player to buy more blocks and claims. The GUI changes depending on the
@@ -31,17 +26,11 @@ public class ShopGUI {
      * @param player The player to open the inventory to.
      */
     public ShopGUI(@NotNull Player player) {
-        if (vault == null) {
-            // Prevent #vault boolean being set before all plugins are loaded.
-            if (!Bukkit.getPluginManager().isPluginEnabled("Terrainer")) return;
-            vault = setupEconomy();
-        }
-
         MessageSender lang = TerrainerPlugin.getLanguage();
         Configuration config = Configurations.CONFIG.getConfiguration();
 
-        if (!vault) {
-            lang.send(player, lang.get("Shop.Error.Vault"));
+        if (TerrainerPlugin.getEconomyHandler() == null) {
+            lang.send(player, lang.get("General.No Economy"));
             return;
         }
 
@@ -78,16 +67,6 @@ public class ShopGUI {
         InventoryUtils.openInventory(inventory, buttons, player);
     }
 
-    private boolean setupEconomy() {
-        if (Bukkit.getPluginManager().getPlugin("Vault") == null) return false;
-
-        RegisteredServiceProvider<Economy> rsp = Bukkit.getServicesManager().getRegistration(Economy.class);
-        if (rsp == null) return false;
-
-        econ = rsp.getProvider();
-        return true;
-    }
-
     private void setItem(@NotNull Inventory inventory, int slot, boolean claims, @NotNull String option, @NotNull HashMap<Integer, Consumer<InventoryClickEvent>> buttons, @NotNull Player player) {
         MessageSender lang = TerrainerPlugin.getLanguage();
         Configuration config = Configurations.CONFIG.getConfiguration();
@@ -102,7 +81,8 @@ public class ShopGUI {
             // Inflation needs to be calculated again because changes might have been made before the player clicked the button.
             double finalPrice = price + inflation(player, claims, amount);
 
-            if (econ.withdrawPlayer(whoCLicked, finalPrice).transactionSuccess()) {
+            assert TerrainerPlugin.getEconomyHandler() != null;
+            if (TerrainerPlugin.getEconomyHandler().withdrawPlayer(whoCLicked, finalPrice)) {
                 BukkitPlayerUtil util = TerrainerPlugin.getPlayerUtil();
 
                 if (claims) {
@@ -115,7 +95,7 @@ public class ShopGUI {
                 // Close because a new inventory with new inflation prices needs to be calculated.
                 whoCLicked.closeInventory();
             } else {
-                lang.send(whoCLicked, lang.get("Shop.Error.Transaction"));
+                lang.send(whoCLicked, lang.get("General.Not Enough Money").replace("<value>", Double.toString(finalPrice)));
             }
         });
     }
