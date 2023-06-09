@@ -85,6 +85,10 @@ public final class DefineCommand extends Command {
         // Clearing selections.
         selection[0] = null;
         selection[1] = null;
+        if (sender instanceof Player player) {
+            TerrainerPlugin.getPlayerUtil().removeMarker(player, true);
+            TerrainerPlugin.getPlayerUtil().removeMarker(player, false);
+        }
 
         var terrain = new Terrain(first, second, world);
         if (name != null) terrain.setName(name);

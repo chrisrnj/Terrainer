@@ -19,23 +19,29 @@
 package com.epicnicity322.terrainer.bukkit.util;
 
 import com.epicnicity322.terrainer.bukkit.TerrainerPlugin;
+import com.epicnicity322.terrainer.core.config.Configurations;
 import com.epicnicity322.terrainer.core.util.PlayerUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.NamespacedKey;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.persistence.PersistentDataType;
+import org.bukkit.scheduler.BukkitTask;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.HashMap;
 import java.util.UUID;
 
 public final class BukkitPlayerUtil extends PlayerUtil<Player, CommandSender> {
+    private static final @NotNull HashMap<UUID, BukkitTask> markerKillTasks = new HashMap<>();
+    private final @NotNull TerrainerPlugin plugin;
     private final @NotNull NamespacedKey blockLimitKey;
     private final @NotNull NamespacedKey claimLimitKey;
 
     public BukkitPlayerUtil(@NotNull TerrainerPlugin plugin) {
         super(TerrainerPlugin.getLanguage());
+        this.plugin = plugin;
         blockLimitKey = new NamespacedKey(plugin, "block-limit");
         claimLimitKey = new NamespacedKey(plugin, "claim-limit");
     }
@@ -93,14 +99,26 @@ public final class BukkitPlayerUtil extends PlayerUtil<Player, CommandSender> {
         }
     }
 
-    //TODO:
     @Override
-    protected void killMarker(@NotNull Player player, int id) {
-
+    protected void killMarker(@NotNull Player player, int id) throws Throwable {
+        TerrainerPlugin.getNMSHandler().killEntity(player, id);
+        BukkitTask task = markerKillTasks.remove(player.getUniqueId());
+        if (task != null) task.cancel();
     }
 
     @Override
-    protected int spawnMarker(@NotNull Player player, int x, int y, int z) {
-        return 0;
+    protected int spawnMarker(@NotNull Player player, int x, int y, int z) throws Throwable {
+        int id = TerrainerPlugin.getNMSHandler().spawnMarkerEntity(player, x, y, z);
+        long showTime = Configurations.CONFIG.getConfiguration().getNumber("Markers.Show Time").orElse(1200).longValue();
+
+        if (showTime != 0) {
+            BukkitTask previous = markerKillTasks.put(player.getUniqueId(), Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                removeMarker(player, true);
+                removeMarker(player, false);
+            }, showTime));
+            if (previous != null) previous.cancel();
+        }
+
+        return id;
     }
 }

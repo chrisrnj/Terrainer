@@ -19,6 +19,7 @@
 package com.epicnicity322.terrainer.core.util;
 
 import com.epicnicity322.epicpluginlib.core.lang.LanguageHolder;
+import com.epicnicity322.terrainer.core.Terrainer;
 import com.epicnicity322.terrainer.core.WorldCoordinate;
 import com.epicnicity322.terrainer.core.config.Configurations;
 import com.epicnicity322.terrainer.core.event.terrain.ITerrainAddEvent;
@@ -332,8 +333,12 @@ public abstract class PlayerUtil<P extends R, R> {
         markersIDs[first ? 0 : 1] = null;
         if (markerId == null) return;
 
-        killMarker(player, markerId);
-
+        try {
+            killMarker(player, markerId);
+        } catch (Throwable t) {
+            Terrainer.logger().log("Could not kill marker with entity ID: " + markerId + " for player: " + getOwnerName(playerId));
+            t.printStackTrace();
+        }
         if (markersIDs[0] == null && markersIDs[1] == null) markers.remove(playerId);
     }
 
@@ -347,8 +352,15 @@ public abstract class PlayerUtil<P extends R, R> {
      * @param z      Z coordinate.
      */
     public final void showMarker(@NotNull P player, boolean first, int x, int y, int z) {
+        if (!Configurations.CONFIG.getConfiguration().getBoolean("Markers.Enabled").orElse(false)) return;
         removeMarker(player, first);
-        markers.computeIfAbsent(getUniqueId(player), k -> new Integer[2])[first ? 0 : 1] = spawnMarker(player, x, y, z);
+        try {
+            int marker = spawnMarker(player, x, y, z);
+            markers.computeIfAbsent(getUniqueId(player), k -> new Integer[2])[first ? 0 : 1] = marker;
+        } catch (Throwable t) {
+            Terrainer.logger().log("Could not spawn marker at X:" + x + " Y:" + y + " Z:" + z + " for player: " + getOwnerName(getUniqueId(player)));
+            t.printStackTrace();
+        }
     }
 
     /**
@@ -357,7 +369,7 @@ public abstract class PlayerUtil<P extends R, R> {
      * @param player The player to kill the marker entity.
      * @param id     The ID of the marker entity.
      */
-    protected abstract void killMarker(@NotNull P player, int id);
+    protected abstract void killMarker(@NotNull P player, int id) throws Throwable;
 
     /**
      * Send a packet to the player to spawn an entity with glow effect in the location.
@@ -368,5 +380,5 @@ public abstract class PlayerUtil<P extends R, R> {
      * @param z      Z coordinate.
      * @return The marker's entity ID.
      */
-    protected abstract int spawnMarker(@NotNull P player, int x, int y, int z);
+    protected abstract int spawnMarker(@NotNull P player, int x, int y, int z) throws Throwable;
 }

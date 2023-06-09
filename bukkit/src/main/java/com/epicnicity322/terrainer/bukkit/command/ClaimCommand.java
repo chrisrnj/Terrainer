@@ -23,6 +23,7 @@ import com.epicnicity322.epicpluginlib.bukkit.command.CommandRunnable;
 import com.epicnicity322.epicpluginlib.bukkit.lang.MessageSender;
 import com.epicnicity322.terrainer.bukkit.TerrainerPlugin;
 import com.epicnicity322.terrainer.bukkit.event.terrain.UserCreateTerrainEvent;
+import com.epicnicity322.terrainer.bukkit.util.BukkitPlayerUtil;
 import com.epicnicity322.terrainer.bukkit.util.CommandUtil;
 import com.epicnicity322.terrainer.core.Coordinate;
 import com.epicnicity322.terrainer.core.WorldCoordinate;
@@ -89,13 +90,19 @@ public final class ClaimCommand extends Command {
             }
         } else name = null;
 
+        BukkitPlayerUtil util = TerrainerPlugin.getPlayerUtil();
+
         // Clearing selections.
         selection[0] = null;
         selection[1] = null;
+        if (player != null) {
+            util.removeMarker(player, true);
+            util.removeMarker(player, false);
+        }
 
         var terrain = new Terrain(first, second, world);
         if (name != null) terrain.setName(name);
-        if (TerrainerPlugin.getPlayerUtil().claimTerrain(player, terrain)) {
+        if (util.claimTerrain(player, terrain)) {
             var create = new UserCreateTerrainEvent(terrain, sender, false);
             Bukkit.getPluginManager().callEvent(create);
         }

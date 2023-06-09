@@ -29,10 +29,12 @@ import com.epicnicity322.terrainer.bukkit.event.flag.FlagSetEvent;
 import com.epicnicity322.terrainer.bukkit.event.flag.FlagUnsetEvent;
 import com.epicnicity322.terrainer.bukkit.event.terrain.TerrainAddEvent;
 import com.epicnicity322.terrainer.bukkit.event.terrain.TerrainRemoveEvent;
-import com.epicnicity322.terrainer.bukkit.hook.VaultHook;
+import com.epicnicity322.terrainer.bukkit.hook.economy.VaultHook;
+import com.epicnicity322.terrainer.bukkit.hook.nms.ReflectionHook;
 import com.epicnicity322.terrainer.bukkit.listener.*;
 import com.epicnicity322.terrainer.bukkit.util.BukkitPlayerUtil;
 import com.epicnicity322.terrainer.bukkit.util.EconomyHandler;
+import com.epicnicity322.terrainer.bukkit.util.NMSHandler;
 import com.epicnicity322.terrainer.core.Terrainer;
 import com.epicnicity322.terrainer.core.config.Configurations;
 import com.epicnicity322.terrainer.core.terrain.TerrainManager;
@@ -59,6 +61,16 @@ public final class TerrainerPlugin extends JavaPlugin {
     private static final @NotNull Logger logger = new Logger(Terrainer.logger().getPrefix());
     private static @Nullable TerrainerPlugin instance;
     private static @Nullable EconomyHandler economyHandler;
+    private static @NotNull NMSHandler nmsHandler = new NMSHandler() {
+        @Override
+        public int spawnMarkerEntity(@NotNull Player player, int x, int y, int z) {
+            return 0;
+        }
+
+        @Override
+        public void killEntity(@NotNull Player player, int entityID) {
+        }
+    };
 
     static {
         Terrainer.setLang(lang);
@@ -94,6 +106,10 @@ public final class TerrainerPlugin extends JavaPlugin {
 
     public static @Nullable EconomyHandler getEconomyHandler() {
         return economyHandler;
+    }
+
+    public static @NotNull NMSHandler getNMSHandler() {
+        return nmsHandler;
     }
 
     /**
@@ -183,7 +199,15 @@ public final class TerrainerPlugin extends JavaPlugin {
             }
         }
 
+        try {
+            nmsHandler = new ReflectionHook();
+        } catch (Throwable t) {
+            logger.log("Unknown issue happened while using reflection. Markers will not work!", ConsoleLogger.Level.WARN);
+            t.printStackTrace();
+        }
+
         pm.registerEvents(new EnterLeaveListener(), this);
+        pm.registerEvents(new PaperListener(), this);
         pm.registerEvents(new FlagListener(), this);
         pm.registerEvents(new ProtectionsListener(this, bordersCommand), this);
         pm.registerEvents(new SelectionListener(selectorWandKey, infoWandKey, bordersCommand), this);

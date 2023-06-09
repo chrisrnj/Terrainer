@@ -163,6 +163,12 @@ public final class Configurations {
               # Free Bypass: terrainer.wand.selector.free
               Price: 100
                         
+            # Markers that show up when a player selects a position.
+            Markers:
+              Enabled: true
+              # How long in ticks the marker should be shown.
+              Show Time: 1200
+                        
             # The item for seeing information about terrains in the location.
             # Can be obtained/bought with '/tr wand info'
             Info Wand:

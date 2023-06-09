@@ -106,9 +106,13 @@ public final class SelectionListener implements Listener {
             event.setCancelled(true);
 
             WorldCoordinate[] selections = TerrainManager.getSelection(player.getUniqueId());
+            BukkitPlayerUtil util = TerrainerPlugin.getPlayerUtil();
 
             if (!leftAndRight && selections[0] != null && selections[1] != null) {
                 selections[0] = null;
+                selections[1] = null;
+                util.removeMarker(player, true);
+                util.removeMarker(player, false);
             }
 
             boolean first = leftAndRight ? left : selections[0] == null;
@@ -116,7 +120,15 @@ public final class SelectionListener implements Listener {
             MessageSender lang = TerrainerPlugin.getLanguage();
 
             selections[first ? 0 : 1] = new WorldCoordinate(block.getWorld().getUID(), new Coordinate(x, y, z));
-            TerrainerPlugin.getPlayerUtil().showMarker(player, first, x, y, z);
+
+            //Showing markers
+            util.showMarker(player, first, x, block.getY(), z);
+            WorldCoordinate other = selections[first ? 1 : 0];
+            if (other != null) {
+                int otherY = (int) other.coordinate().y();
+                util.showMarker(player, !first, (int) other.coordinate().x(), otherY == (!first ? Integer.MIN_VALUE : Integer.MAX_VALUE) ? block.getY() : otherY, (int) other.coordinate().z());
+            }
+
             lang.send(player, lang.get("Select.Success." + (first ? "First" : "Second")).replace("<world>", block.getWorld().getName()).replace("<coord>", "X: " + x + ", Z: " + z));
 
             if (selections[0] != null && selections[1] != null) {
@@ -134,7 +146,7 @@ public final class SelectionListener implements Listener {
         if (unique) {
             ItemMeta meta = hand.getItemMeta();
             if (meta == null) return false;
-            return meta.getPersistentDataContainer().has(key);
+            return meta.getPersistentDataContainer().has(key, PersistentDataType.INTEGER);
         } else {
             return hand.getType() == item.getType();
         }
