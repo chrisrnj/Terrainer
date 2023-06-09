@@ -953,7 +953,7 @@ public final class ProtectionsListener implements Listener {
             return;
         }
 
-        if (player.getPersistentDataContainer().has(resetFly)) {
+        if (player.getPersistentDataContainer().has(resetFly, PersistentDataType.INTEGER)) {
             player.getPersistentDataContainer().remove(resetFly);
             player.setAllowFlight(true);
         }
