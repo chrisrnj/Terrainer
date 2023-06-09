@@ -1,4 +1,4 @@
-package com.epicnicity322.terrainer.bukkit.hook;
+package com.epicnicity322.terrainer.bukkit.hook.economy;
 
 import com.epicnicity322.terrainer.bukkit.util.EconomyHandler;
 import net.milkbowl.vault.economy.Economy;
