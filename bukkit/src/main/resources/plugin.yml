@@ -24,34 +24,41 @@ permissions:
     children:
       terrainer.player: true
       terrainer.bypass.build: true
-      terrainer.bypass.limit.claims: true
       terrainer.bypass.limit.blocks: true
+      terrainer.bypass.limit.claims: true
       terrainer.define: true
       terrainer.description.others: true
       terrainer.flag.*: true
-      terrainer.limit.others: true
+      terrainer.info.console: true
       terrainer.limit.edit: true
-      terrainer.select.command.3d: true
-      terrainer.select.command.3d.coordinates: true
-      terrainer.select.command.coordinates: true
-      terrainer.wand: true
-      terrainer.teleport: true
+      terrainer.limit.others: true
       terrainer.reload: true
+      terrainer.select.command.3d.coordinates: true
+      terrainer.select.command.3d: true
+      terrainer.select.command.coordinates: true
+      terrainer.teleport: true
+      terrainer.wand.info.free: true
+      terrainer.wand.info.nocooldown: true
+      terrainer.wand.info: true
+      terrainer.wand.selector.free: true
+      terrainer.wand.selector.nocooldown: true
 
   terrainer.player:
     description: Recommended player permissions.
     default: true
     children:
-      terrainer.borders: true
       terrainer.borders.show: true
+      terrainer.borders: true
       terrainer.claim: true
       terrainer.delete: true
       terrainer.description: true
       terrainer.grant: true
       terrainer.help: true
-      terrainer.info: true
+      terrainer.info.others: true
       terrainer.info.wand: true
+      terrainer.info: true
       terrainer.limit.blocks.default: true
+      terrainer.limit.claims.default: true
       terrainer.limit: true
       terrainer.list: true
       terrainer.player.flags: true
@@ -61,9 +68,12 @@ permissions:
       terrainer.select.command: true
       terrainer.select.wand: true
       terrainer.sell: true
-      terrainer.shop: true
       terrainer.shop.blocks: true
       terrainer.shop.claims: true
+      terrainer.shop: true
+      terrainer.wand.others: true
+      terrainer.wand.selector: true
+      terrainer.wand: true
       terrainer.world.world: true
 
   terrainer.player.flags:

@@ -102,12 +102,15 @@ public final class InfoCommand extends Command {
 
         BukkitPlayerUtil util = TerrainerPlugin.getPlayerUtil();
 
+        if (!sender.hasPermission("terrainer.info.console")) {
+            terrains.removeIf(terrain -> terrain.owner() == null);
+        }
         if (!sender.hasPermission("terrainer.info.others") && sender instanceof Player player) {
             terrains.removeIf(terrain -> !util.hasAnyRelations(player.getUniqueId(), terrain));
-            if (terrains.isEmpty()) {
-                lang.send(sender, lang.get("Info.Error.No Relating Terrains"));
-                return;
-            }
+        }
+        if (terrains.isEmpty()) {
+            lang.send(sender, lang.get("Info.Error.No Relating Terrains"));
+            return;
         }
 
         boolean showBorders = false;

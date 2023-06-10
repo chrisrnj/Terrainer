@@ -89,7 +89,7 @@ public final class SelectionListener implements Listener {
         }
     }
 
-    @EventHandler(priority = EventPriority.LOW, ignoreCancelled = true)
+    @EventHandler(priority = EventPriority.LOW)
     public void onInteract(PlayerInteractEvent event) {
         ItemStack hand = event.getItem();
         if (hand == null) return;
@@ -102,7 +102,7 @@ public final class SelectionListener implements Listener {
         Block block = event.getClickedBlock();
         if (block == null) return;
 
-        if (isWand(hand, selector, selectorUnique, selectorWandKey) && player.hasPermission("terrainer.select.wand")) {
+        if (!event.isCancelled() && isWand(hand, selector, selectorUnique, selectorWandKey) && player.hasPermission("terrainer.select.wand")) {
             event.setCancelled(true);
 
             WorldCoordinate[] selections = TerrainManager.getSelection(player.getUniqueId());
@@ -136,7 +136,7 @@ public final class SelectionListener implements Listener {
             }
         }
 
-        if (isWand(hand, info, infoUnique, infoWandKey) && player.hasPermission("terrainer.info.wand")) {
+        if (!left && isWand(hand, info, infoUnique, infoWandKey) && player.hasPermission("terrainer.info.wand")) {
             event.setCancelled(true);
             sendInfo(player, block);
         }
@@ -160,14 +160,16 @@ public final class SelectionListener implements Listener {
             lang.send(player, lang.get("Info.Error.No Terrains"));
             return;
         }
-
+        if (!player.hasPermission("terrainer.info.console")) {
+            terrains.removeIf(t -> t.owner() == null);
+        }
         if (!player.hasPermission("terrainer.info.others")) {
             UUID playerId = player.getUniqueId();
             terrains.removeIf(t -> !TerrainerPlugin.getPlayerUtil().hasAnyRelations(playerId, t));
-            if (terrains.isEmpty()) {
-                lang.send(player, lang.get("Info.Error.No Relating Terrains"));
-                return;
-            }
+        }
+        if (terrains.isEmpty()) {
+            lang.send(player, lang.get("Info.Error.No Relating Terrains"));
+            return;
         }
 
         boolean showBorders = false;
