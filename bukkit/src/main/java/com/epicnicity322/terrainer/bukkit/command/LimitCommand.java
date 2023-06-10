@@ -57,7 +57,7 @@ public final class LimitCommand extends Command {
         if (args.length > 1) {
             who = Bukkit.getPlayer(args[1]);
             if (who == null) {
-                lang.send(sender, lang.get("General.Player Not Found"));
+                lang.send(sender, lang.get("General.Player Not Found").replace("<value>", args[1]));
                 return;
             }
         } else {
