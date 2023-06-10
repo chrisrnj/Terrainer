@@ -8,12 +8,22 @@ import com.epicnicity322.terrainer.bukkit.listener.SelectionListener;
 import com.epicnicity322.terrainer.bukkit.util.CommandUtil;
 import com.epicnicity322.terrainer.core.config.Configurations;
 import org.bukkit.Bukkit;
+import org.bukkit.NamespacedKey;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.persistence.PersistentDataType;
 import org.jetbrains.annotations.NotNull;
 
 public final class WandCommand extends Command {
+    private final @NotNull NamespacedKey selectorWandKey;
+    private final @NotNull NamespacedKey infoWandKey;
+
+    public WandCommand(@NotNull NamespacedKey selectorWandKey, @NotNull NamespacedKey infoWandKey) {
+        this.selectorWandKey = selectorWandKey;
+        this.infoWandKey = infoWandKey;
+    }
+
     @Override
     public @NotNull String getName() {
         return "wand";
@@ -51,50 +61,72 @@ public final class WandCommand extends Command {
             return;
         }
 
-        ItemStack item = info ? SelectionListener.getInfoWand() : SelectionListener.getSelectorWand();
         double price = Configurations.CONFIG.getConfiguration().getNumber((info ? "Info " : "Selector ") + "Wand.Price").orElse(50).doubleValue();
+        Player player = sender instanceof Player p ? p : null;
+        Player to = player;
+        long currentTime = System.currentTimeMillis();
 
-        if (!sender.hasPermission("terrainer.wand." + (info ? "info" : "selector") + ".free") && sender instanceof Player player) {
-            if (price != 0) {
-                if (TerrainerPlugin.getEconomyHandler() == null) {
-                    lang.send(sender, lang.get("General.No Economy"));
-                    return;
-                }
-                if (!TerrainerPlugin.getEconomyHandler().withdrawPlayer(player, price)) {
-                    lang.send(sender, lang.get("General.Not Enough Money"));
+        if (player != null) {
+            if (!sender.hasPermission("terrainer.wand." + (info ? "info" : "selector") + ".nocooldown")) {
+                long cooldown = Configurations.CONFIG.getConfiguration().getNumber((info ? "Info " : "Selector ") + "Wand.Cooldown").orElse(0).longValue() * 1000;
+                Long lastCall = player.getPersistentDataContainer().get(info ? infoWandKey : selectorWandKey, PersistentDataType.LONG);
+
+                if (lastCall != null && cooldown != 0 && currentTime - lastCall <= cooldown) {
+                    lang.send(sender, lang.get("Wand.Cooldown").replace("<remaining>", Long.toString(currentTime - lastCall / 1000)));
                     return;
                 }
             }
-        } else {
-            price = 0;
+            if (!sender.hasPermission("terrainer.wand." + (info ? "info" : "selector") + ".free")) {
+                if (price != 0) {
+                    if (TerrainerPlugin.getEconomyHandler() == null) {
+                        lang.send(sender, lang.get("General.No Economy"));
+                        return;
+                    }
+                    if (!TerrainerPlugin.getEconomyHandler().withdrawPlayer(to, price)) {
+                        lang.send(sender, lang.get("General.Not Enough Money"));
+                        return;
+                    }
+                }
+            } else {
+                price = 0;
+            }
         }
 
+        ItemStack item = info ? SelectionListener.getInfoWand() : SelectionListener.getSelectorWand();
+        boolean given = false;
+
         if (args.length > 2 && sender.hasPermission("terrainer.wand.others")) {
-            Player player = Bukkit.getPlayer(args[2]);
-            if (player == null) {
+            to = Bukkit.getPlayer(args[2]);
+            if (to == null) {
                 lang.send(sender, lang.get("General.Player Not Found").replace("<value>", args[2]));
                 return;
             }
-            if (!player.getInventory().addItem(item).isEmpty()) {
-                player.getWorld().dropItem(player.getLocation(), item);
-            }
-            lang.send(sender, lang.get("Wand.Given").replace("<type>", item.getItemMeta().getDisplayName())
-                    .replace("<player>", player.getName())
-                    .replace("<price>", Double.toString(price)));
-            lang.send(player, lang.get("Wand.Received").replace("<player>", sender.getName()).replace("<type>", item.getItemMeta().getDisplayName()));
-            return;
+            given = to != sender;
         }
 
-        if (!(sender instanceof Player player)) {
+        if (to == null) {
             lang.send(sender, lang.get("General.Not A Player"));
             return;
         }
 
-        if (!player.getInventory().addItem(item).isEmpty()) {
-            player.getWorld().dropItem(player.getLocation(), item);
+        if (player != null) {
+            player.getPersistentDataContainer().set(info ? infoWandKey : selectorWandKey, PersistentDataType.LONG, currentTime);
         }
 
-        lang.send(sender, lang.get("Wand.Bought").replace("<type>", item.getItemMeta().getDisplayName())
-                .replace("<price>", Double.toString(price)));
+        if (!to.getInventory().addItem(item).isEmpty()) {
+            to.getWorld().dropItem(to.getLocation(), item);
+        }
+
+        String itemName = item.getItemMeta().getDisplayName();
+
+        if (given) {
+            lang.send(sender, lang.get("Wand.Given").replace("<type>", itemName)
+                    .replace("<player>", to.getName())
+                    .replace("<price>", Double.toString(price)));
+            lang.send(to, lang.get("Wand.Received").replace("<player>", sender.getName()).replace("<type>", itemName));
+        } else {
+            lang.send(sender, lang.get("Wand.Bought").replace("<type>", itemName)
+                    .replace("<price>", Double.toString(price)));
+        }
     }
 }

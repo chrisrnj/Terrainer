@@ -162,6 +162,9 @@ public final class Configurations {
               # Buy permission: terrainer.wand.selector
               # Free Bypass: terrainer.wand.selector.free
               Price: 100
+              # A cooldown to prevent players from getting a lot of wands in a short amount of time.
+              # Bypass: terrainer.wand.selector.nocooldown
+              Cooldown: 7200 #seconds
                         
             # Markers that show up when a player selects a position.
             Markers:
@@ -180,6 +183,8 @@ public final class Configurations {
               # Buy permission: terrainer.wand.info
               # Free Bypass: terrainer.wand.info.free
               Price: 50
+              # Bypass: terrainer.wand.info.nocooldown
+              Cooldown: 3600 #seconds
                         
             List:
               Chat:
@@ -366,7 +371,7 @@ public final class Configurations {
               Pressure Plates: '<cooldown=2000> &4You''re not allowed to use pressure plates here.'
               Projectiles: '<cooldown=2000> &4You''re not allowed to shoot projectiles here.'
               PvP: '<cooldown=2000> &4You''re not allowed to engage in combat here.'
-              Signs: '<cooldown=2000> &4You''re not allowed to interact with signs here.'
+              Sign Click: '<cooldown=2000> &4You''re not allowed to interact with signs here.'
               Sign Edit: '<cooldown=2000> &4You''re not allowed to edit signs here.'
                         
             Reload:
@@ -384,7 +389,7 @@ public final class Configurations {
               Success:
                 First: '&6First position selected in world &7<world>&6 at &7<coord>&6.'
                 Second: '&6Second position selected in world &7<world>&6 at &7<coord>&6.'
-                Suggest: '&ePositions were selected successfully. Now, to create a terrain, use the command &7&n/<label> claim [name]&e.'
+                Suggest: '<cooldown=30000> &ePositions were selected successfully. Now, to create a terrain, use the command &7&n/<label> claim [name]&e.'
                         
             Selector Wand:
               Display Name: '&6&l&nClaim Selection Wand'
@@ -492,6 +497,7 @@ public final class Configurations {
                         
             Wand:
               Bought: '&aYou''ve bought a &7<type>&a for &6<price>$&a.'
+              Cooldown: '&4You must wait <remaining> seconds to buy this again.'
               Given: '&aGave &7<player>&a a &7<type>&a for &6<price>$&a.'
               Received: '&aYou''ve received a &7<type>&a from &7<player>&a.'
                         
