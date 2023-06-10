@@ -25,6 +25,7 @@ import com.epicnicity322.terrainer.bukkit.TerrainerPlugin;
 import com.epicnicity322.terrainer.bukkit.util.CommandUtil;
 import com.epicnicity322.terrainer.core.terrain.Flags;
 import com.epicnicity322.terrainer.core.terrain.Terrain;
+import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
@@ -153,6 +154,10 @@ public abstract class PermissionCommand extends Command implements Permission {
                 terrain.members().remove(toAdd);
                 terrain.moderators().add(toAdd);
                 lang.send(sender, lang.get("Permission.Moderator.Granted").replace("<who>", who).replace("<terrain>", terrain.name()));
+                Player toAddPlayer = Bukkit.getPlayer(toAdd);
+                if (toAddPlayer != null) {
+                    lang.send(toAddPlayer, lang.get("Permission.Moderator.Notify").replace("<terrain>", terrain.name()));
+                }
             } else {
                 if (terrain.moderators().view().contains(toAdd) && !PermissionCommand.canManageModerators(sender, terrain)) {
                     lang.send(sender, lang.get("Permission.Error.Mods Can Manage Mods Denied"));
@@ -165,6 +170,10 @@ public abstract class PermissionCommand extends Command implements Permission {
                 terrain.moderators().remove(toAdd);
                 terrain.members().add(toAdd);
                 lang.send(sender, lang.get("Permission.Member.Granted").replace("<who>", who).replace("<terrain>", terrain.name()));
+                Player toAddPlayer = Bukkit.getPlayer(toAdd);
+                if (toAddPlayer != null) {
+                    lang.send(toAddPlayer, lang.get("Permission.Member.Notify").replace("<terrain>", terrain.name()));
+                }
             }
         }
     }

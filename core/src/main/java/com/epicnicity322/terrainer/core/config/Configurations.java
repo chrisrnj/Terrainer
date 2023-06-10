@@ -325,13 +325,13 @@ public final class Configurations {
                         
             Create:
               Error:
-                Different Worlds: '&cTerrain could not be created because the selections are in different worlds!'
-                No Block Limit: '&cThis terrain has an area of &7<area>&c blocks and you have only &7<used>&c blocks left! To increase your block limit, buy in the &7&n/tr shop&c.'
-                No Claim Limit: '&cYou can''t create more than &7<max>&c terrains! To increase your claim limit, buy in the &7&n/tr shop&c.'
-                Not Selected: '&eYou need to make a selection before creating a terrain. You can select with the command &f&n/<label> pos1 and pos2&e or with the selection wand: &f&n/<label> wand&e.'
-                Overlap: '&cThis terrain would overlap &7<other>&c terrain! You can only overlap your own terrains.'
-                Too Small: '&cArea too small! Terrains must have at least &7<min>&c blocks.'
-                Unknown: '&cAn unknown error occurred while creating this terrain.'
+                Different Worlds: '&4Terrain could not be created because the selections are in different worlds!'
+                No Block Limit: '&4This terrain has an area of &7<area>&4 blocks and you have only &7<used>&c blocks left! To increase your block limit, buy in the &7&n/tr shop&4.'
+                No Claim Limit: '&4You can''t create more than &7<max>&4 terrains! To increase your claim limit, buy in the &7&n/tr shop&4.'
+                Not Selected: '&eYou need to make a selection before creating a terrain. You can select with the command &f&n/<label> pos1&e and &f&n/<label> pos2&e or with the selection wand: &f&n/<label> wand&e.'
+                Overlap: '&4This terrain would overlap &7<other>&4 terrain! You can only overlap your own terrains.'
+                Too Small: '&4Area too small! Terrains must have at least &7<min>&4 blocks.'
+                Unknown: '&4An unknown error occurred while creating this terrain.'
               Success: '&2Terrain ''&a<name>&2'' claimed successfully! Used block limit: &7<used>&f/&7<max>'
               Define: '&2Terrain ''&a<name>&2'' defined successfully with all protection flags!'
                         
@@ -408,8 +408,8 @@ public final class Configurations {
                         
             Info:
               Error:
-                No Terrains: '&7No terrains could be found.'
-                No Relating Terrains: '&7No terrains that you have relations could be found.'
+                No Terrains: '<cooldown=1000> &7No terrains could be found.'
+                No Relating Terrains: '<cooldown=1000> &7No terrains that you have relations could be found.'
               Text: |-
                 &8Information of &f<name>&8:
                 &7ID: &f<id>
@@ -488,12 +488,14 @@ public final class Configurations {
                   Does Not Contain: '&4<who> is not a moderator of <terrain>&4!'
                 Granted: '&aGranted moderator role for &f<who>&a in terrain &f<terrain>&a.'
                 Revoked: '&7Revoked moderator role of &f<who>&7 in terrain &f<terrain>&7.'
+                Notify: '&aYou were granted a moderator role in the terrain &f<terrain>&a!'
               Member:
                 Error:
                   Contains: '&4<who> already is a member of <terrain>&4!'
                   Does Not Contain: '&4<who> is not a member of <terrain>&4!'
                 Granted: '&aGranted member role for &f<who>&a in terrain &f<terrain>&a.'
                 Revoked: '&7Revoked member role of &f<who>&7 in terrain &f<terrain>&7.'
+                Notify: '&aYou were granted a member role in the terrain &f<terrain>&a!'
                         
             Wand:
               Bought: '&aYou''ve bought a &7<type>&a for &6<price>$&a.'
