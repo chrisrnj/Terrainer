@@ -83,7 +83,7 @@ public final class WandCommand extends Command {
                         return;
                     }
                     if (!TerrainerPlugin.getEconomyHandler().withdrawPlayer(to, price)) {
-                        lang.send(sender, lang.get("General.Not Enough Money"));
+                        lang.send(sender, lang.get("General.Not Enough Money").replace("<value>", Double.toString(price)));
                         return;
                     }
                 }
