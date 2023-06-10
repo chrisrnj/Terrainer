@@ -103,7 +103,9 @@ public final class SelectionListener implements Listener {
         if (block == null) return;
 
         if (!event.isCancelled() && isWand(hand, selector, selectorUnique, selectorWandKey) && player.hasPermission("terrainer.select.wand")) {
-            event.setCancelled(true);
+            if (Configurations.CONFIG.getConfiguration().getBoolean("Selector Wand.Cancel Interaction").orElse(false)) {
+                event.setCancelled(true);
+            }
 
             WorldCoordinate[] selections = TerrainManager.getSelection(player.getUniqueId());
             BukkitPlayerUtil util = TerrainerPlugin.getPlayerUtil();
@@ -137,7 +139,9 @@ public final class SelectionListener implements Listener {
         }
 
         if (!left && isWand(hand, info, infoUnique, infoWandKey) && player.hasPermission("terrainer.info.wand")) {
-            event.setCancelled(true);
+            if (Configurations.CONFIG.getConfiguration().getBoolean("Info Wand.Cancel Interaction").orElse(false)) {
+                event.setCancelled(true);
+            }
             sendInfo(player, block);
         }
     }

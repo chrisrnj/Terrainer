@@ -155,6 +155,9 @@ public final class Configurations {
               # If false, all golden shovels (or the set material) will pass as a selector wand.
               # If true, the item can only be obtained by '/tr wand' command.
               Unique: true
+              # Makes so the action of right clicking using this item (golden shovel by default) is cancelled, and the
+              #item is not used.
+              Cancel Interaction: true
               # If false, position #1 and #2 alternates by using just right-click.
               # If true, use left-click for position #1 and right-click for position #2.
               Left And Right Click: false
@@ -178,6 +181,7 @@ public final class Configurations {
               Material: PAPER
               Glowing: false
               Unique: false
+              Cancel Interaction: false
               # Since 'Unique' is false, the command is just going to sell a piece of paper (with custom name).
               # It's recommended to only give permission to buy if the item is unique.
               # Buy permission: terrainer.wand.info
