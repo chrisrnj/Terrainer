@@ -72,7 +72,7 @@ public final class WandCommand extends Command {
                 Long lastCall = player.getPersistentDataContainer().get(info ? infoWandKey : selectorWandKey, PersistentDataType.LONG);
 
                 if (lastCall != null && cooldown != 0 && currentTime - lastCall <= cooldown) {
-                    lang.send(sender, lang.get("Wand.Cooldown").replace("<remaining>", Long.toString(currentTime - lastCall / 1000)));
+                    lang.send(sender, lang.get("Wand.Cooldown").replace("<remaining>", Long.toString((cooldown - (currentTime - lastCall)) / 1000)));
                     return;
                 }
             }

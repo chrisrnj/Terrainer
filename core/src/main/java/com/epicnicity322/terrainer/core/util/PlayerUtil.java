@@ -112,7 +112,7 @@ public abstract class PlayerUtil<P extends R, R> {
                 double minArea = Configurations.CONFIG.getConfiguration().getNumber("Min Area").orElse(25.0).doubleValue();
 
                 if (area < minArea) {
-                    lang.send(player, lang.get("Create.Error.Too Small"));
+                    lang.send(player, lang.get("Create.Error.Too Small").replace("<min>", Double.toString(minArea)));
                     return false;
                 }
                 if ((area + (usedBlocks = getUsedBlockLimit(playerID))) > (maxBlocks = getMaxBlockLimit(player))) {
