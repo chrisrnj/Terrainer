@@ -336,6 +336,7 @@ public final class Configurations {
                 Overlap: '&4This terrain would overlap &7<other>&4 terrain! You can only overlap your own terrains.'
                 Too Small: '&4Area too small! Terrains must have at least &7<min>&4 blocks.'
                 Unknown: '&4An unknown error occurred while creating this terrain.'
+                World No Longer Exists: '&4The world in your selections no longer exists.'
               Success: '&2Terrain ''&a<name>&2'' claimed successfully! Used block limit: &7<used>&f/&7<max>'
               Define: '&2Terrain ''&a<name>&2'' defined successfully with all protection flags!'
                         

@@ -31,10 +31,12 @@ import com.epicnicity322.terrainer.core.terrain.Terrain;
 import com.epicnicity322.terrainer.core.terrain.TerrainManager;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
+import org.bukkit.World;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.Locale;
 import java.util.UUID;
 
 public final class ClaimCommand extends Command {
@@ -77,7 +79,17 @@ public final class ClaimCommand extends Command {
 
         Coordinate first = selection[0].coordinate();
         Coordinate second = selection[1].coordinate();
-        UUID world = selection[0].world();
+        World world = Bukkit.getWorld(selection[0].world());
+
+        if (world == null) {
+            lang.send(sender, lang.get("Create.Error.World No Longer Exists"));
+            return;
+        }
+        if (!sender.hasPermission("terrainer.world." + world.getName().toLowerCase(Locale.ROOT))) {
+            lang.send(sender, lang.get("Select.Error.World"));
+            return;
+        }
+
         String name;
 
         if (args.length > 1) {
@@ -100,7 +112,7 @@ public final class ClaimCommand extends Command {
             util.removeMarker(player, false);
         }
 
-        var terrain = new Terrain(first, second, world);
+        var terrain = new Terrain(first, second, world.getUID());
         if (name != null) terrain.setName(name);
         if (util.claimTerrain(player, terrain)) {
             var create = new UserCreateTerrainEvent(terrain, sender, false);

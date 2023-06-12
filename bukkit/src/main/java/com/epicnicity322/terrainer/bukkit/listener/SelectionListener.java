@@ -30,6 +30,7 @@ import org.jetbrains.annotations.NotNull;
 
 import java.time.format.DateTimeFormatter;
 import java.util.HashSet;
+import java.util.Locale;
 import java.util.UUID;
 
 public final class SelectionListener implements Listener {
@@ -107,34 +108,39 @@ public final class SelectionListener implements Listener {
                 event.setCancelled(true);
             }
 
-            WorldCoordinate[] selections = TerrainManager.getSelection(player.getUniqueId());
-            BukkitPlayerUtil util = TerrainerPlugin.getPlayerUtil();
-
-            if (!leftAndRight && selections[0] != null && selections[1] != null) {
-                selections[0] = null;
-                selections[1] = null;
-                util.removeMarker(player, true);
-                util.removeMarker(player, false);
-            }
-
-            boolean first = leftAndRight ? left : selections[0] == null;
-            int x = block.getX(), y = first ? Integer.MIN_VALUE : Integer.MAX_VALUE, z = block.getZ();
             MessageSender lang = TerrainerPlugin.getLanguage();
 
-            selections[first ? 0 : 1] = new WorldCoordinate(block.getWorld().getUID(), new Coordinate(x, y, z));
+            if (!player.hasPermission("terrainer.world." + block.getWorld().getName().toLowerCase(Locale.ROOT))) {
+                lang.send(player, lang.get("Select.Error.World"));
+            } else {
+                WorldCoordinate[] selections = TerrainManager.getSelection(player.getUniqueId());
+                BukkitPlayerUtil util = TerrainerPlugin.getPlayerUtil();
 
-            //Showing markers
-            util.showMarker(player, first, x, block.getY(), z);
-            WorldCoordinate other = selections[first ? 1 : 0];
-            if (other != null) {
-                int otherY = (int) other.coordinate().y();
-                util.showMarker(player, !first, (int) other.coordinate().x(), otherY == (!first ? Integer.MIN_VALUE : Integer.MAX_VALUE) ? block.getY() : otherY, (int) other.coordinate().z());
-            }
+                if (!leftAndRight && selections[0] != null && selections[1] != null) {
+                    selections[0] = null;
+                    selections[1] = null;
+                    util.removeMarker(player, true);
+                    util.removeMarker(player, false);
+                }
 
-            lang.send(player, lang.get("Select.Success." + (first ? "First" : "Second")).replace("<world>", block.getWorld().getName()).replace("<coord>", "X: " + x + ", Z: " + z));
+                boolean first = leftAndRight ? left : selections[0] == null;
+                int x = block.getX(), y = first ? Integer.MIN_VALUE : Integer.MAX_VALUE, z = block.getZ();
 
-            if (selections[0] != null && selections[1] != null) {
-                lang.send(player, lang.get("Select.Success.Suggest").replace("<label>", "tr"));
+                selections[first ? 0 : 1] = new WorldCoordinate(block.getWorld().getUID(), new Coordinate(x, y, z));
+
+                //Showing markers
+                util.showMarker(player, first, x, block.getY(), z);
+                WorldCoordinate other = selections[first ? 1 : 0];
+                if (other != null) {
+                    int otherY = (int) other.coordinate().y();
+                    util.showMarker(player, !first, (int) other.coordinate().x(), otherY == (!first ? Integer.MIN_VALUE : Integer.MAX_VALUE) ? block.getY() : otherY, (int) other.coordinate().z());
+                }
+
+                lang.send(player, lang.get("Select.Success." + (first ? "First" : "Second")).replace("<world>", block.getWorld().getName()).replace("<coord>", "X: " + x + ", Z: " + z));
+
+                if (selections[0] != null && selections[1] != null) {
+                    lang.send(player, lang.get("Select.Success.Suggest").replace("<label>", "tr"));
+                }
             }
         }
 
