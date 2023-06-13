@@ -19,6 +19,7 @@
 package com.epicnicity322.terrainer.core.util;
 
 import com.epicnicity322.epicpluginlib.core.lang.LanguageHolder;
+import com.epicnicity322.terrainer.core.Coordinate;
 import com.epicnicity322.terrainer.core.Terrainer;
 import com.epicnicity322.terrainer.core.WorldCoordinate;
 import com.epicnicity322.terrainer.core.config.Configurations;
@@ -110,9 +111,16 @@ public abstract class PlayerUtil<P extends R, R> {
             if (!hasPermission(player, "terrainer.bypass.limit.blocks")) {
                 double area = terrain.area();
                 double minArea = Configurations.CONFIG.getConfiguration().getNumber("Min Area").orElse(25.0).doubleValue();
+                double minDimensions = Configurations.CONFIG.getConfiguration().getNumber("Min Dimensions").orElse(5.0).doubleValue();
+                Coordinate max = terrain.maxDiagonal();
+                Coordinate min = terrain.minDiagonal();
 
                 if (area < minArea) {
                     lang.send(player, lang.get("Create.Error.Too Small").replace("<min>", Double.toString(minArea)));
+                    return false;
+                }
+                if (max.x() - (min.x() - 1) < minDimensions || max.z() - (min.z() - 1) < minDimensions) {
+                    lang.send(player, lang.get("Create.Error.Dimensions").replace("<min>", Double.toString(minDimensions)));
                     return false;
                 }
                 if ((area + (usedBlocks = getUsedBlockLimit(playerID))) > (maxBlocks = getMaxBlockLimit(player))) {
