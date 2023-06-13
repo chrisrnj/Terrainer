@@ -46,6 +46,7 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.block.*;
 import org.bukkit.event.entity.*;
 import org.bukkit.event.hanging.HangingBreakByEntityEvent;
+import org.bukkit.event.inventory.InventoryOpenEvent;
 import org.bukkit.event.player.*;
 import org.bukkit.event.vehicle.VehicleDestroyEvent;
 import org.bukkit.event.world.StructureGrowEvent;
@@ -910,6 +911,35 @@ public final class ProtectionsListener implements Listener {
                 return;
             }
         }
+    }
+
+    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
+    public void onInventoryOpen(InventoryOpenEvent event) {
+        Location loc = event.getInventory().getLocation();
+        HumanEntity player = event.getPlayer();
+        if (loc == null || player.hasPermission("terrainer.bypass.containers")) return;
+
+        if (event.getInventory().getHolder() instanceof DoubleChest doubleChest) {
+            Location side = null;
+            Chest left = (Chest) doubleChest.getLeftSide();
+            Chest right = (Chest) doubleChest.getRightSide();
+
+            // Getting the other side of the chest.
+            if (left != null && loc.equals(left.getLocation())) {
+                if (right != null) side = right.getLocation();
+            } else if (right != null && loc.equals(right.getLocation())) {
+                if (left != null) side = left.getLocation();
+            }
+
+            if (side != null) {
+                // Checking if it's allowed for the other side.
+                if (handleProtection(event, player, side, Flags.CONTAINERS, "Protections.Containers")) {
+                    return;
+                }
+            }
+        }
+
+        handleProtection(event, player, loc, Flags.CONTAINERS, "Protections.Containers");
     }
 
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
