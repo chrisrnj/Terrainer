@@ -5,14 +5,13 @@ import com.epicnicity322.epicpluginlib.bukkit.command.CommandRunnable;
 import com.epicnicity322.epicpluginlib.bukkit.lang.MessageSender;
 import com.epicnicity322.terrainer.bukkit.TerrainerPlugin;
 import com.epicnicity322.terrainer.bukkit.util.CommandUtil;
+import com.epicnicity322.terrainer.core.config.Configurations;
 import com.epicnicity322.terrainer.core.terrain.Terrain;
 import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
 import org.jetbrains.annotations.NotNull;
 
 public class DescriptionCommand extends Command {
-    private int maxDescriptionLength = 100;
-
     @Override
     public @NotNull String getName() {
         return "description";
@@ -26,10 +25,6 @@ public class DescriptionCommand extends Command {
     @Override
     protected @NotNull CommandRunnable getNoPermissionRunnable() {
         return CommandUtil.noPermissionRunnable();
-    }
-
-    public void setMaxDescriptionLength(int maxDescriptionLength) {
-        this.maxDescriptionLength = maxDescriptionLength;
     }
 
     @Override
@@ -46,20 +41,21 @@ public class DescriptionCommand extends Command {
             return;
         }
 
-        String description = CommandUtil.join(args, 0);
+        String description = ChatColor.translateAlternateColorCodes('&', CommandUtil.join(args, 0)).trim();
+        String stripped = ChatColor.stripColor(description);
 
-        if (description.isBlank()) {
+        if (stripped.isBlank()) {
             terrain.setDescription(null);
             lang.send(sender, lang.get("Description.Reset").replace("<terrain>", terrain.name()));
             return;
         }
-
-        if (description.length() > maxDescriptionLength) {
+        int maxDescriptionLength = Configurations.CONFIG.getConfiguration().getNumber("Max Description Length").orElse(100).intValue();
+        if (stripped.length() > maxDescriptionLength) {
             lang.send(sender, lang.get("Description.Error.Length").replace("<max>", Integer.toString(maxDescriptionLength)));
             return;
         }
 
-        terrain.setDescription(ChatColor.translateAlternateColorCodes('&', description));
+        terrain.setDescription(description);
         lang.send(sender, lang.get("Description.Set").replace("<description>", description).replace("<terrain>", terrain.name()));
     }
 }

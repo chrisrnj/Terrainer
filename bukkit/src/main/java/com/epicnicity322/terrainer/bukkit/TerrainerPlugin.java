@@ -84,7 +84,7 @@ public final class TerrainerPlugin extends JavaPlugin {
     private final @NotNull BordersCommand bordersCommand = new BordersCommand(this);
     private final @NotNull NamespacedKey selectorWandKey = new NamespacedKey(this, "selector-wand");
     private final @NotNull NamespacedKey infoWandKey = new NamespacedKey(this, "info-wand");
-    private final @NotNull Set<Command> commands = Set.of(bordersCommand, new ClaimCommand(), new ConfirmCommand(), new DefineCommand(), new DeleteCommand(), new DescriptionCommand(), new FlagCommand(), new PermissionCommand.GrantCommand(), new PermissionCommand.RevokeCommand(), new InfoCommand(bordersCommand), new LimitCommand(), new ListCommand(), new PosCommand.Pos1Command(), new PosCommand.Pos2Command(), new Pos3DCommand.Pos13DCommand(), new Pos3DCommand.Pos23DCommand(), new ReloadCommand(), new ShopCommand(), new WandCommand(selectorWandKey, infoWandKey));
+    private final @NotNull Set<Command> commands = Set.of(bordersCommand, new ClaimCommand(), new ConfirmCommand(), new DefineCommand(), new DeleteCommand(), new DescriptionCommand(), new FlagCommand(), new PermissionCommand.GrantCommand(), new PermissionCommand.RevokeCommand(), new InfoCommand(bordersCommand), new LimitCommand(), new ListCommand(), new PosCommand.Pos1Command(), new PosCommand.Pos2Command(), new Pos3DCommand.Pos13DCommand(), new Pos3DCommand.Pos23DCommand(), new ReloadCommand(), new RenameCommand(), new ShopCommand(), new WandCommand(selectorWandKey, infoWandKey));
     private final @NotNull BukkitPlayerUtil playerUtil = new BukkitPlayerUtil(this);
     private final @NotNull PreLoginListener preLoginListener = new PreLoginListener();
 

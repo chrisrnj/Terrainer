@@ -27,6 +27,7 @@ import com.epicnicity322.terrainer.bukkit.util.BukkitPlayerUtil;
 import com.epicnicity322.terrainer.bukkit.util.CommandUtil;
 import com.epicnicity322.terrainer.core.Coordinate;
 import com.epicnicity322.terrainer.core.WorldCoordinate;
+import com.epicnicity322.terrainer.core.config.Configurations;
 import com.epicnicity322.terrainer.core.terrain.Terrain;
 import com.epicnicity322.terrainer.core.terrain.TerrainManager;
 import org.bukkit.Bukkit;
@@ -40,15 +41,9 @@ import java.util.Locale;
 import java.util.UUID;
 
 public final class ClaimCommand extends Command {
-    private int maxNameLength = 26;
-
     @Override
     public @NotNull String getName() {
         return "claim";
-    }
-
-    public void setMaxNameLength(int maxNameLength) {
-        this.maxNameLength = maxNameLength;
     }
 
     @Override
@@ -95,7 +90,7 @@ public final class ClaimCommand extends Command {
         if (args.length > 1) {
             name = ChatColor.translateAlternateColorCodes('&', CommandUtil.join(args, 1)).trim();
             String stripped = ChatColor.stripColor(name);
-
+            int maxNameLength = Configurations.CONFIG.getConfiguration().getNumber("Max Name Length").orElse(26).intValue();
             if (stripped.isBlank() || stripped.length() > maxNameLength) {
                 lang.send(sender, lang.get("Rename.Error.Name Length").replace("<max>", Integer.toString(maxNameLength)));
                 return;

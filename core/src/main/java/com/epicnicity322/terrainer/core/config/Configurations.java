@@ -36,10 +36,16 @@ public final class Configurations {
             Language: EN_US
                         
             # The minimum of area in blocks a terrain must have to be claimed.
-            Min Area: 9
+            Min Area: 25.0
+                        
+            # The minimum dimensions an area needs to be allowed to be claimed.
+            Min Dimensions: 5.0 # Areas smaller than 5x5 will not be allowed.
                         
             # The maximum length a description or leave message of a terrain can have.
-            Max Description Length: 30
+            Max Description Length: 100
+                        
+            # The maximum length a terrain's name can be.
+            Max Name Length: 26
                         
             # You can set a group's default block limits through this setting.
             # You can add you own limits and use them in groups through the permission 'terrainer.limit.blocks.<group>'
@@ -330,11 +336,12 @@ public final class Configurations {
             Create:
               Error:
                 Different Worlds: '&4Terrain could not be created because the selections are in different worlds!'
-                No Block Limit: '&4This terrain has an area of &7<area>&4 blocks and you have only &7<used>&c blocks left! To increase your block limit, buy in the &7&n/tr shop&4.'
-                No Claim Limit: '&4You can''t create more than &7<max>&4 terrains! To increase your claim limit, buy in the &7&n/tr shop&4.'
+                Dimensions: '&4Terrains must have at least &6<min>&4 blocks in &7width&4 and &7length&4!'
+                No Block Limit: '&4This terrain has an area of &6<area>&4 blocks and you have only &6<used>&c blocks left! To increase your block limit, buy in the &7&n/tr shop&4.'
+                No Claim Limit: '&4You can''t create more than &6<max>&4 terrains! To increase your claim limit, buy in the &7&n/tr shop&4.'
                 Not Selected: '&eYou need to make a selection before creating a terrain. You can select with the command &f&n/<label> pos1&e and &f&n/<label> pos2&e or with the selection wand: &f&n/<label> wand&e.'
                 Overlap: '&4This terrain would overlap &7<other>&4 terrain! You can only overlap your own terrains.'
-                Too Small: '&4Area too small! Terrains must have at least &7<min>&4 blocks.'
+                Too Small: '&4Area too small! Terrains must have at least &6<min>&4 blocks.'
                 Unknown: '&4An unknown error occurred while creating this terrain.'
                 World No Longer Exists: '&4The world in your selections no longer exists.'
               Success: '&2Terrain ''&a<name>&2'' claimed successfully! Used block limit: &7<used>&f/&7<max>'
@@ -385,7 +392,9 @@ public final class Configurations {
                         
             Rename:
               Error:
-                Name Length: '&cTerrain names must have at least 1 character and &7<max>&c characters max!'
+                Name Length: '&4Terrain names must have at least 1 character and &7<max>&4 characters max!'
+              Reset: '&aTerrain &7<old>&a had its name reset to default: &7<new>'
+              Renamed: '&aTerrain &7<old>&a was renamed successfully to &7<new>&a.'
                         
             Select:
               Error:
