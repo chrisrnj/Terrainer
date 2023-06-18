@@ -513,7 +513,7 @@ public final class Configurations {
                 Notify: '&aYou were granted a member role in the terrain &f<terrain>&a!'
                         
             Transfer:
-              Confirmation: 'Accept ownership of <terrain>'
+              Confirmation Description: 'Accept ownership of <terrain>'
               Error:
                 Low Block Limit: '&7<player>&7 does not have enough block limit to accept this terrain.'
                 Low Claim Limit: '&7<player>&7 does not have enough claim limit to accept this terrain.'

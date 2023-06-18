@@ -110,7 +110,7 @@ public final class TransferCommand extends Command {
                 terrain.setOwner(newOwner.getUniqueId());
                 lang.send(sender, lang.get("Transfer.Success").replace("<terrain>", name).replace("<who>", who));
                 lang.send(newOwner, lang.get("Transfer.Success").replace("<terrain>", name).replace("<who>", lang.get("Target.You").toLowerCase(Locale.ROOT)));
-            }, () -> lang.get("Transfer.Confirmation").replace("<terrain>", name), confirmationHash);
+            }, () -> lang.get("Transfer.Confirmation Description").replace("<terrain>", name), confirmationHash);
         }
     }
 }
