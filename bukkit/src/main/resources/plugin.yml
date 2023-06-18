@@ -34,6 +34,7 @@ permissions:
       terrainer.limit.others: true
       terrainer.reload: true
       terrainer.transfer.console: true
+      terrainer.transfer.force: true
       terrainer.transfer.others: true
       terrainer.transfer.toconsole: true
       terrainer.select.command.3d.coordinates: true

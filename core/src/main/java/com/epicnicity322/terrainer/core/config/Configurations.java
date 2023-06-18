@@ -318,6 +318,8 @@ public final class Configurations {
               Confirm:
                 Confirm: 'confirm'
                 List: 'list'
+              Transfer:
+                Force: '-force'
               Wand:
                 Info: 'info'
                 Selector: 'selector'
