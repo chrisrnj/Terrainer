@@ -30,12 +30,11 @@ public final class ConfirmCommand extends Command {
      * @param player      The command sender to ask the confirmation.
      * @param onConfirm   The runnable to run when they confirm.
      * @param description The description to show the player when listing their confirmations.
-     * @param identifier  The object to compare, so the same confirmation is not set twice.
-     * @return The identifier of this request, used for cancelling on {@link #cancelConfirmation(CommandSender, UUID)}.
-     * Null if there was already a request with the same identifier.
+     * @param hash        The hash of the confirmation, to avoid multiple confirmations that do the same thing.
+     * @return Whether if there was no other confirmation for this player with this hash.
      */
-    public static @Nullable UUID requestConfirmation(@NotNull CommandSender player, @NotNull Runnable onConfirm, @NotNull Supplier<String> description, @NotNull Object identifier) {
-        return requestConfirmation(player instanceof Player p ? p.getUniqueId() : null, onConfirm, description, identifier);
+    public static boolean requestConfirmation(@NotNull CommandSender player, @NotNull Runnable onConfirm, @NotNull Supplier<String> description, int hash) {
+        return requestConfirmation(player instanceof Player p ? p.getUniqueId() : null, onConfirm, description, hash);
     }
 
     /**
@@ -44,11 +43,10 @@ public final class ConfirmCommand extends Command {
      * @param player      The ID of the player to ask the confirmation. Null for console.
      * @param onConfirm   The runnable to run when they confirm.
      * @param description The description to show the player when listing their confirmations.
-     * @param identifier  The object to compare, so the same confirmation is not set twice.
-     * @return The identifier of this request, used for cancelling on {@link #cancelConfirmation(CommandSender, UUID)}.
-     * Null if there was already a request with the same identifier.
+     * @param hash        The hash of the confirmation, to avoid multiple confirmations that do the same thing.
+     * @return Whether if there was no other confirmation for this player with this hash.
      */
-    public static @Nullable UUID requestConfirmation(@Nullable UUID player, @NotNull Runnable onConfirm, @NotNull Supplier<String> description, @NotNull Object identifier) {
+    public static boolean requestConfirmation(@Nullable UUID player, @NotNull Runnable onConfirm, @NotNull Supplier<String> description, int hash) {
         if (player == null) player = console;
         ArrayList<PendingConfirmation> onConfirmList = requests.get(player);
 
@@ -57,51 +55,40 @@ public final class ConfirmCommand extends Command {
             requests.put(player, onConfirmList);
         } else {
             for (PendingConfirmation confirmation : onConfirmList) {
-                if (confirmation.identifier.equals(identifier)) return null;
+                if (confirmation.hash == hash) return false;
             }
         }
 
-        UUID requestID = UUID.randomUUID();
-        onConfirmList.add(new PendingConfirmation(requestID, onConfirm, description, identifier));
-        return requestID;
+        onConfirmList.add(new PendingConfirmation(onConfirm, description, hash));
+        return true;
     }
 
     /**
-     * Cancels the request for a confirmation of a player.
+     * Cancels all confirmations that have this hash from all players.
      *
-     * @param player       The player to remove the request.
-     * @param confirmation The ID of the request to cancel.
-     * @return Whether a confirmation with the ID was present.
+     * @param hash The hash to cancel confirmations.
      */
-    public static boolean cancelConfirmation(@NotNull CommandSender player, @NotNull UUID confirmation) {
-        return cancelConfirmation(player instanceof Player p ? p.getUniqueId() : null, confirmation);
+    public static void cancelConfirmations(int hash) {
+        requests.entrySet().removeIf(entry -> {
+            entry.getValue().removeIf(confirmation -> confirmation.hash == hash);
+            return entry.getValue().isEmpty();
+        });
     }
 
     /**
-     * Cancels the request for a confirmation of a player.
+     * Cancel a confirmation that has this hash from a player.
      *
-     * @param player       The ID of the player to remove the request. Null for console.
-     * @param confirmation The ID of the request to cancel.
-     * @return Whether a confirmation with the ID was present.
+     * @param player The ID of the player to cancel the confirmations. Null for console.
+     * @param hash   The hash of the confirmation.
+     * @return Whether any confirmation was cancelled.
      */
-    public static boolean cancelConfirmation(@Nullable UUID player, @NotNull UUID confirmation) {
+    public static boolean cancelConfirmation(@Nullable UUID player, int hash) {
         if (player == null) player = console;
         ArrayList<PendingConfirmation> confirmations = requests.get(player);
-        try {
-            return confirmations.removeIf(pendingConfirmation -> pendingConfirmation.requestID().equals(confirmation));
-        } finally {
-            if (confirmations.isEmpty()) requests.remove(player);
-        }
-    }
-
-    /**
-     * Cancels all requests of confirmations of a player.
-     *
-     * @param player The player to cancel the confirmations.
-     * @return Whether the player had any confirmations.
-     */
-    public static boolean cancelConfirmations(@NotNull CommandSender player) {
-        return cancelConfirmations(player instanceof Player p ? p.getUniqueId() : null);
+        if (confirmations == null) return false;
+        boolean anyRemoved = confirmations.removeIf(confirmation -> confirmation.hash == hash);
+        if (confirmations.isEmpty()) requests.remove(player);
+        return anyRemoved;
     }
 
     /**
@@ -222,7 +209,6 @@ public final class ConfirmCommand extends Command {
         }
     }
 
-    private record PendingConfirmation(@NotNull UUID requestID, @NotNull Runnable onConfirm,
-                                       @NotNull Supplier<String> description, @NotNull Object identifier) {
+    private record PendingConfirmation(@NotNull Runnable onConfirm, @NotNull Supplier<String> description, int hash) {
     }
 }

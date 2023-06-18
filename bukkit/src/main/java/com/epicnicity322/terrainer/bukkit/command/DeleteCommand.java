@@ -28,6 +28,8 @@ import com.epicnicity322.terrainer.core.terrain.TerrainManager;
 import org.bukkit.command.CommandSender;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.Objects;
+
 public final class DeleteCommand extends Command {
     @Override
     public @NotNull String getName() {
@@ -52,10 +54,14 @@ public final class DeleteCommand extends Command {
         Terrain terrain = commandArguments.terrain();
 
         lang.send(sender, lang.get("Delete.Confirmation").replace("<label>", label).replace("<label2>", lang.get("Commands.Confirm.Confirm")).replace("<name>", terrain.name()));
+
+        int confirmationHash = Objects.hash("delete", terrain.id());
+
         ConfirmCommand.requestConfirmation(sender, () -> {
             if (TerrainManager.remove(terrain)) {
                 lang.send(sender, lang.get("Delete.Success").replace("<name>", terrain.name()));
+                ConfirmCommand.cancelConfirmations(confirmationHash);
             }
-        }, () -> lang.getColored("Delete.Confirmation Description").replace("<name>", terrain.name()), terrain.id());
+        }, () -> lang.getColored("Delete.Confirmation Description").replace("<name>", terrain.name()), confirmationHash);
     }
 }
