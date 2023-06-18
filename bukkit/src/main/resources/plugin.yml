@@ -33,6 +33,9 @@ permissions:
       terrainer.limit.edit: true
       terrainer.limit.others: true
       terrainer.reload: true
+      terrainer.transfer.console: true
+      terrainer.transfer.others: true
+      terrainer.transfer.toconsole: true
       terrainer.select.command.3d.coordinates: true
       terrainer.select.command.3d: true
       terrainer.select.command.coordinates: true
@@ -71,6 +74,7 @@ permissions:
       terrainer.shop.blocks: true
       terrainer.shop.claims: true
       terrainer.shop: true
+      terrainer.transfer: true
       terrainer.wand.others: true
       terrainer.wand.selector: true
       terrainer.wand: true

@@ -394,7 +394,7 @@ public final class Configurations {
               Error:
                 Name Length: '&4Terrain names must have at least 1 character and &7<max>&4 characters max!'
               Reset: '&aTerrain &7<old>&a had its name reset to default: &7<new>'
-              Renamed: '&aTerrain &7<old>&a was renamed successfully to &7<new>&a.'
+              Renamed: '&aTerrain &7<old>&a was successfully renamed to &7<new>&a.'
                         
             Select:
               Error:
@@ -481,6 +481,7 @@ public final class Configurations {
               Player: '<player>'
               Player Optional: '[player]'
               Terrain: '<terrain>'
+              Terrain Optional: '[--t <terrain>]'
               World: 'world'
                         
             Target:
@@ -510,6 +511,18 @@ public final class Configurations {
                 Granted: '&aGranted member role for &f<who>&a in terrain &f<terrain>&a.'
                 Revoked: '&7Revoked member role of &f<who>&7 in terrain &f<terrain>&7.'
                 Notify: '&aYou were granted a member role in the terrain &f<terrain>&a!'
+                        
+            Transfer:
+              Confirmation: 'Accept ownership of <terrain>'
+              Error:
+                Low Block Limit: '&7<player>&7 does not have enough block limit to accept this terrain.'
+                Low Claim Limit: '&7<player>&7 does not have enough claim limit to accept this terrain.'
+                Not Allowed: '&4You''re not allowed to transfer this terrain.'
+                Not Online: '&4You can''t transfer the terrain to &7<player>&4 because they are not online!'
+                Nothing Changed: '&4Player already owns this terrain, nothing changed.'
+              Request: '&f<player>&7 wants to transfer the terrain &f<terrain>&7 to you. To accept, use &f&n/tr confirm&7.'
+              Requested: '&7A request was sent to &f<who>&7 to accept the terrain.'
+              Success: '&aTerrain &7<terrain>&a was transferred successfully to &7<who>&a.'
                         
             Wand:
               Bought: '&aYou''ve bought a &7<type>&a for &6<price>$&a.'
