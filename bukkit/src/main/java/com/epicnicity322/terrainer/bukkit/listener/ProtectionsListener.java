@@ -39,6 +39,7 @@ import org.bukkit.boss.BarColor;
 import org.bukkit.boss.BarStyle;
 import org.bukkit.boss.BossBar;
 import org.bukkit.entity.*;
+import org.bukkit.entity.minecart.ExplosiveMinecart;
 import org.bukkit.event.Cancellable;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -586,7 +587,7 @@ public final class ProtectionsListener implements Listener {
             if (handleVulnerability(event, null)) return;
             handleEntityExplosion(event, damager.getLocation(), victim);
             return;
-        } else if (damager instanceof Explosive) {
+        } else if (damager instanceof Explosive || damager instanceof ExplosiveMinecart) {
             if (handleVulnerability(event, null)) return;
             handleEntityExplosion(event, getOrigin(damager), victim);
             return;
@@ -686,7 +687,7 @@ public final class ProtectionsListener implements Listener {
         if (remover.getType() == EntityType.CREEPER) {
             handleEntityExplosion(event, remover.getLocation(), victim);
             return;
-        } else if (remover instanceof Explosive) {
+        } else if (remover instanceof Explosive || remover instanceof ExplosiveMinecart) {
             handleEntityExplosion(event, getOrigin(remover), victim);
             return;
         } else if (!(remover instanceof Player)) {
