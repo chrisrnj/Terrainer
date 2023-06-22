@@ -47,7 +47,7 @@ public final class TransferCommand extends Command {
         }
 
         if (args.length == 0) {
-            lang.send(sender, lang.get("Invalid Arguments.Error").replace("<label>", label).replace("<label2>", label2).replace("<args>", lang.get("Invalid Arguments.Player") + " " + lang.get("Invalid Arguments.Terrain Optional")));
+            lang.send(sender, lang.get("Invalid Arguments.Error").replace("<label>", label).replace("<label2>", label2).replace("<args>", lang.get("Invalid Arguments.Player") + " " + lang.get("Invalid Arguments.Terrain Optional") + (sender.hasPermission("terrainer.transfer.force") ? " [" + lang.get("Commands.Transfer.Force") + "]" : "")));
             return;
         }
 
@@ -58,7 +58,7 @@ public final class TransferCommand extends Command {
         UUID newOwnerID;
 
         if (target == CommandUtil.TargetResponse.ALL) {
-            lang.send(sender, lang.get("Invalid Arguments.Error").replace("<label>", label).replace("<label2>", label2).replace("<args>", lang.get("Invalid Arguments.Player") + " " + lang.get("Invalid Arguments.Terrain Optional")));
+            lang.send(sender, lang.get("Invalid Arguments.Error").replace("<label>", label).replace("<label2>", label2).replace("<args>", lang.get("Invalid Arguments.Player") + " " + lang.get("Invalid Arguments.Terrain Optional") + (sender.hasPermission("terrainer.transfer.force") ? " [" + lang.get("Commands.Transfer.Force") + "]" : "")));
             return;
         }
 
@@ -77,11 +77,11 @@ public final class TransferCommand extends Command {
             newOwnerID = target.id();
 
             if (Objects.equals(terrain.owner(), newOwnerID)) {
-                lang.send(sender, lang.get("Transfer.Nothing Changed"));
+                lang.send(sender, lang.get("Transfer.Error.Nothing Changed"));
                 return;
             }
 
-            if (args.length > 1 && args[1].equalsIgnoreCase(lang.get("Commands.Transfer.Force")) && !sender.hasPermission("terrainer.transfer.force")) {
+            if (args.length > 1 && args[1].equalsIgnoreCase(lang.get("Commands.Transfer.Force")) && sender.hasPermission("terrainer.transfer.force")) {
                 newOwner = null;
             } else {
                 newOwner = Bukkit.getPlayer(newOwnerID);
