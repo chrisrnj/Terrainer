@@ -254,12 +254,13 @@ public final class EnterLeaveListener implements Listener {
     private boolean handleFromTo(@NotNull Location from, @NotNull Location to, @NotNull Player player, @NotNull TerrainEvent.EnterLeaveReason reason, boolean cancel) {
         int fromX = from.getBlockX(), fromY = from.getBlockY(), fromZ = from.getBlockZ();
         int toX = to.getBlockX(), toY = to.getBlockY(), toZ = to.getBlockZ();
-        UUID world = player.getWorld().getUID();
+        UUID fromWorld = from.getWorld().getUID();
+        UUID toWorld = to.getWorld().getUID();
 
         for (Terrain terrain : TerrainManager.terrains()) {
-            if (!terrain.world().equals(world)) continue;
-
-            boolean inFrom = terrain.isWithin(fromX, fromY, fromZ), inTo = terrain.isWithin(toX, toY, toZ);
+            UUID world = terrain.world();
+            boolean inFrom = world.equals(fromWorld) && terrain.isWithin(fromX, fromY, fromZ);
+            boolean inTo = world.equals(toWorld) && terrain.isWithin(toX, toY, toZ);
 
             if (inFrom && !inTo) {
                 var leave = new TerrainLeaveEvent(from, to, player, terrain, reason, cancel);
