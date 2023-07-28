@@ -478,8 +478,8 @@ public final class Configurations {
                         
             Invalid Arguments:
               Error: '&4Invalid syntax! Use: &7/<label> <label2> <args>&4.'
-              Flag: '<flag>'
-              Flag Values: '[values]'
+              Flag: '<flag> <values>'
+              Flag Optional: '<flag> [values]'
               Player: '<player>'
               Player Optional: '[player]'
               Terrain: '<terrain>'
@@ -629,8 +629,9 @@ public final class Configurations {
               Allow: '&a&lALLOW'
               Deny: '&c&lDENY'
               Undefined: '&7&lundefined'
-              Set: '&7Flag <flag>&7 set in the terrain &f<name>&7 with value ''&f<state>&7''.'
+              Set: '&7Flag <flag>&7 set in the terrain &f<name>&7 with value: &f<state>&7.'
               Unset: '&7Flag <flag>&7 removed from terrain &f<name>&7.'
+              Default Alert: '&7Terrain &f<name>&7 will now use the default value of <flag>&7: &f<state>&7.'
               Error:
                 Default: '&4Unable to set flag <flag>&4: &f<message>'
                 Message Location: '&4The only accepted values for message location are: &7ActionBar&4, &7BossBar&4, &7Chat&4, &7Title&4 or &7NONE&4.'
