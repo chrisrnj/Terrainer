@@ -20,6 +20,7 @@ package com.epicnicity322.terrainer.bukkit.command;
 
 import com.epicnicity322.epicpluginlib.bukkit.command.Command;
 import com.epicnicity322.epicpluginlib.bukkit.command.CommandRunnable;
+import com.epicnicity322.epicpluginlib.bukkit.command.TabCompleteRunnable;
 import com.epicnicity322.epicpluginlib.bukkit.lang.MessageSender;
 import com.epicnicity322.epicpluginlib.core.logger.ConsoleLogger;
 import com.epicnicity322.terrainer.bukkit.TerrainerPlugin;
@@ -36,6 +37,9 @@ import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.HumanEntity;
 import org.jetbrains.annotations.NotNull;
+
+import java.util.Locale;
+import java.util.Map;
 
 public final class FlagCommand extends Command {
     @Override
@@ -67,8 +71,7 @@ public final class FlagCommand extends Command {
             if (sender instanceof HumanEntity player) {
                 new FlagListGUI(player, terrain).open(player);
             } else {
-                lang.send(sender, lang.get("Invalid Arguments.Error").replace("<label>", label).replace("<label2>", label2)
-                        .replace("<args>", lang.get("Invalid Arguments.Flag Optional") + " --t " + lang.get("Invalid Arguments.Terrain")));
+                lang.send(sender, lang.get("Invalid Arguments.Error").replace("<label>", label).replace("<label2>", label2).replace("<args>", lang.get("Invalid Arguments.Flag Optional") + " --t " + lang.get("Invalid Arguments.Terrain")));
                 return;
             }
             return;
@@ -116,16 +119,18 @@ public final class FlagCommand extends Command {
             }
 
             // Boolean flags don't need input.
-            if (flag.defaultValue() instanceof Boolean bool) {
-                UserFlagSetEvent e = new UserFlagSetEvent(sender, terrain, flag, Boolean.toString(!bool), false);
+            if (Boolean.class.isAssignableFrom(flag.dataType())) {
+                Flag<Boolean> booleanFlag = (Flag<Boolean>) flag;
+                boolean newState = !booleanFlag.defaultValue();
+
+                UserFlagSetEvent e = new UserFlagSetEvent(sender, terrain, flag, Boolean.toString(newState), false);
                 Bukkit.getPluginManager().callEvent(e);
                 if (e.isCancelled()) return;
 
-                terrain.flags().putFlag((Flag<? super Boolean>) (Flag<?>) flag, !bool);
-                lang.send(sender, lang.get("Flags.Set").replace("<flag>", localized).replace("<name>", terrain.name()).replace("<state>", lang.get(!bool ? "Flags.Allow" : "Flags.Deny")));
+                terrain.flags().putFlag(booleanFlag, newState);
+                lang.send(sender, lang.get("Flags.Set").replace("<flag>", localized).replace("<name>", terrain.name()).replace("<state>", lang.get(newState ? "Flags.Allow" : "Flags.Deny")));
             } else {
-                lang.send(sender, lang.get("Invalid Arguments.Error").replace("<label>", label).replace("<label2>", label2)
-                        .replace("<args>", lang.get("Invalid Arguments.Flag Optional") + " " + lang.get("Invalid Arguments.Terrain Optional")));
+                lang.send(sender, lang.get("Invalid Arguments.Error").replace("<label>", label).replace("<label2>", label2).replace("<args>", lang.get("Invalid Arguments.Flag Optional") + " " + lang.get("Invalid Arguments.Terrain Optional")));
             }
             return;
         }
@@ -159,5 +164,42 @@ public final class FlagCommand extends Command {
             t.printStackTrace();
             lang.send(player, lang.get("Flags.Error.Unknown"));
         }
+    }
+
+    @Override
+    protected @NotNull TabCompleteRunnable getTabCompleteRunnable() {
+        return (completions, label, sender, args) -> {
+            switch (args.length) {
+                case 2 -> {
+                    String arg = args[1].toLowerCase(Locale.ROOT).replace('_', '-');
+
+                    for (Flag<?> flag : Flags.values()) {
+                        if (!sender.hasPermission(Flags.findPermission(flag))) continue;
+                        String id = flag.id().toLowerCase(Locale.ROOT).replace(' ', '-');
+                        if (id.startsWith(arg)) completions.add(id);
+                    }
+                    for (Flag<?> flag : Flags.customValues()) {
+                        if (!sender.hasPermission(Flags.findPermission(flag))) continue;
+                        String id = flag.id().toLowerCase(Locale.ROOT).replace(' ', '-');
+                        if (id.startsWith(arg)) completions.add(id);
+                    }
+                }
+                case 3 -> {
+                    Flag<?> flag = Flags.matchFlag(args[1]);
+                    if (flag == null) return;
+                    String arg = args[2].toLowerCase(Locale.ROOT);
+
+                    if (Boolean.class.isAssignableFrom(flag.dataType())) {
+                        if ("allow".startsWith(arg)) completions.add("allow");
+                        if ("deny".startsWith(arg)) completions.add("deny");
+                        if ("false".startsWith(arg)) completions.add("false");
+                        if ("true".startsWith(arg)) completions.add("true");
+                    } else if (Map.class.isAssignableFrom(flag.dataType())) {
+                        String suggestion = "Key1=A,Key2=B,Key3=C";
+                        if (suggestion.toLowerCase(Locale.ROOT).startsWith(arg)) completions.add(suggestion);
+                    }
+                }
+            }
+        };
     }
 }
