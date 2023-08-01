@@ -96,7 +96,7 @@ public class FlagListGUI extends ListGUI<FlagListGUI.FlagEntry> {
                 return;
             }
 
-            if (flag.defaultValue() instanceof Boolean) {
+            if (Boolean.class.isAssignableFrom(flag.dataType())) {
                 Flag<Boolean> conditionalFlag = (Flag<Boolean>) flag;
                 Boolean state = (state = terrain.flags().getData(conditionalFlag)) == null || state;
 

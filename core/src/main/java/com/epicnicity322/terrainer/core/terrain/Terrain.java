@@ -730,7 +730,7 @@ public class Terrain implements Serializable {
             if (map == null) return usesDefaultFlagValues() ? flag.defaultValue() : null;
             Object data = map.get(flag.id());
             if (data == null) return usesDefaultFlagValues() ? flag.defaultValue() : null;
-            if (flag.defaultValue().getClass().isAssignableFrom(data.getClass())) {
+            if (flag.dataType().isAssignableFrom(data.getClass())) {
                 return (T) data;
             } else {
                 return usesDefaultFlagValues() ? flag.defaultValue() : null;
@@ -772,7 +772,7 @@ public class Terrain implements Serializable {
             try {
                 Object previous = map.remove(flag.id());
                 if (previous == null) return null;
-                if (flag.defaultValue().getClass().isAssignableFrom(previous.getClass())) {
+                if (flag.dataType().isAssignableFrom(previous.getClass())) {
                     return (T) previous;
                 } else {
                     return null;

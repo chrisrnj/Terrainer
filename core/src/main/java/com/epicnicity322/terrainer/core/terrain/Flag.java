@@ -22,7 +22,6 @@ import com.epicnicity322.terrainer.core.Terrainer;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.io.Serializable;
 import java.util.*;
 import java.util.function.Function;
 import java.util.regex.Pattern;
@@ -40,19 +39,21 @@ import java.util.regex.Pattern;
  * "Flags.Values.FlagIDHere.Lore", and "Flags.Values.FlagIDHere.Material", respectfully.
  *
  * @param id           The ID of the flag, used in commands and to find localized names. Must match [a-zA-Z ] regex.
+ * @param dataType     The type of data to be saved by this flag.
  * @param defaultValue The default value used in terrains where the flag is undefined.
  * @param transformer  The transformer to obtain the data object from the player's input.
  * @param formatter    The formatter to show to the player the current set data of this flag.
  * @param <T>          The type of data this flag can hold.
  */
-public record Flag<T>(@NotNull String id, @NotNull T defaultValue, @NotNull Function<String, T> transformer,
-                      @NotNull Function<T, String> formatter) {
+public record Flag<T>(@NotNull String id, @NotNull Class<T> dataType, @NotNull T defaultValue,
+                      @NotNull Function<String, T> transformer, @NotNull Function<T, String> formatter) {
     private static final @NotNull Pattern ALLOWED_FLAG_ID_REGEX = Pattern.compile("^[a-zA-Z ]+$");
 
     private static final @NotNull Pattern comma = Pattern.compile(",");
     private static final @NotNull Function<String, Boolean> booleanTransformer = input -> input.equalsIgnoreCase("true") || input.equalsIgnoreCase("allow");
     private static final @NotNull Function<String, String> stringTransformer = input -> input;
     private static final @NotNull Function<String, Set<String>> setTransformer = input -> Set.of(comma.split(input));
+    private static final @NotNull Function<String, List<String>> listTransformer = input -> List.of(comma.split(input));
     private static final @NotNull Function<String, Integer> integerTransformer = input -> {
         try {
             return Integer.parseInt(input);
@@ -62,7 +63,7 @@ public record Flag<T>(@NotNull String id, @NotNull T defaultValue, @NotNull Func
     };
     private static final @NotNull Function<String, Map<String, String>> stringMapTransformer = input -> {
         String[] entries = comma.split(input);
-        Map<String, String> map = new HashMap<>((int) (entries.length / 0.75) + 1);
+        HashMap<String, String> map = new HashMap<>((int) (entries.length / 0.75) + 1);
 
         for (String s : entries) {
             int equalIndex = s.lastIndexOf('=');
@@ -76,7 +77,7 @@ public record Flag<T>(@NotNull String id, @NotNull T defaultValue, @NotNull Func
     };
     private static final @NotNull Function<String, Map<String, Integer>> integerMapTransformer = input -> {
         String[] entries = comma.split(input);
-        Map<String, Integer> map = new HashMap<>((int) (entries.length / 0.75) + 1);
+        HashMap<String, Integer> map = new HashMap<>((int) (entries.length / 0.75) + 1);
 
         for (String s : entries) {
             int equalIndex = s.lastIndexOf('=');
@@ -91,32 +92,30 @@ public record Flag<T>(@NotNull String id, @NotNull T defaultValue, @NotNull Func
     private static final @NotNull Function<Boolean, String> booleanFormatter = bool -> Terrainer.lang().get(bool ? "Flags.Allow" : "Flags.Deny");
 
     /**
-     * Creates a flag with default {@link #formatter()} transformer, which is essentially {@link Object#toString()}.
+     * Creates a flag with a default {@link #formatter()} function, which is essentially {@link Object#toString()}.
      *
      * @param id           The ID of the flag, used in commands and to find localized names. Must match [a-zA-Z ] regex.
      * @param defaultValue The default value used in terrains where the flag is undefined.
-     * @param stringToData The transformer to obtain the data object from the player's input.
-     * @throws IllegalArgumentException If the provided data type is not serializable, or if the ID does not match the [a-zA-Z ] regex.
-     * @see #Flag(String, Object, Function, Function)
+     * @param transformer  The transformer to obtain the data object from the player's input.
+     * @throws IllegalArgumentException If the ID does not match the [a-zA-Z ] regex.
+     * @see #Flag(String, Class, Object, Function, Function)
      */
-    public Flag(@NotNull String id, @NotNull T defaultValue, @NotNull Function<String, T> stringToData) {
-        this(id, defaultValue, stringToData, Object::toString);
+    @SuppressWarnings("unchecked")
+    public Flag(@NotNull String id, @NotNull T defaultValue, @NotNull Function<String, T> transformer) {
+        this(id, (Class<T>) defaultValue.getClass(), defaultValue, transformer, Object::toString);
     }
 
     /**
-     * @throws IllegalArgumentException If the provided data type is not serializable, or if the ID does not match the [a-zA-Z ] regex.
+     * @throws IllegalArgumentException If the ID does not match the [a-zA-Z ] regex.
      */
     public Flag {
-        if (!Serializable.class.isAssignableFrom(defaultValue.getClass())) {
-            throw new IllegalArgumentException("Flags must only contain serializable data types, and '" + defaultValue.getClass().getName() + "' is not serializable.");
-        }
         if (!ALLOWED_FLAG_ID_REGEX.matcher(id).matches()) {
             throw new IllegalArgumentException("Flag IDs must follow the regex [a-zA-Z ]. ID provided: '" + id + "'");
         }
     }
 
     public static @NotNull Flag<Boolean> newBooleanFlag(@NotNull String id, boolean defaultValue) {
-        return new Flag<>(id, defaultValue, booleanTransformer, booleanFormatter);
+        return new Flag<>(id, Boolean.class, defaultValue, booleanTransformer, booleanFormatter);
     }
 
     public static @NotNull Flag<Integer> newIntegerFlag(@NotNull String id, int defaultValue) {
@@ -127,26 +126,35 @@ public record Flag<T>(@NotNull String id, @NotNull T defaultValue, @NotNull Func
         return new Flag<>(id, defaultValue, stringTransformer);
     }
 
+    @SuppressWarnings("unchecked")
+    public static @NotNull Flag<List<String>> newListFlag(@NotNull String id, @Nullable List<String> defaultValue) {
+        if (defaultValue == null) defaultValue = Collections.emptyList();
+        return new Flag<>(id, (Class<List<String>>) (Class<?>) List.class, defaultValue, listTransformer, List::toString);
+    }
+
+    @SuppressWarnings("unchecked")
     public static @NotNull Flag<Set<String>> newSetFlag(@NotNull String id, @Nullable Set<String> defaultValue) {
         if (defaultValue == null) defaultValue = Collections.emptySet();
-        return new Flag<>(id, defaultValue, setTransformer);
+        return new Flag<>(id, (Class<Set<String>>) (Class<?>) Set.class, defaultValue, setTransformer, Set::toString);
     }
 
+    @SuppressWarnings("unchecked")
     public static @NotNull Flag<Map<String, String>> newStringMapFlag(@NotNull String id, @Nullable Map<String, String> defaultValue) {
         if (defaultValue == null) defaultValue = Collections.emptyMap();
-        return new Flag<>(id, defaultValue, stringMapTransformer);
+        return new Flag<>(id, (Class<Map<String, String>>) (Class<?>) Map.class, defaultValue, stringMapTransformer, Map::toString);
     }
 
+    @SuppressWarnings("unchecked")
     public static @NotNull Flag<Map<String, Integer>> newIntegerMapFlag(@NotNull String id, @Nullable Map<String, Integer> defaultValue) {
         if (defaultValue == null) defaultValue = Collections.emptyMap();
-        return new Flag<>(id, defaultValue, integerMapTransformer);
+        return new Flag<>(id, (Class<Map<String, Integer>>) (Class<?>) Map.class, defaultValue, integerMapTransformer, Map::toString);
     }
 
     /**
      * Whether the provided object has the same {@link #id()}.
      *
      * @param o The object to compare.
-     * @return true if the object is equal to this flag.
+     * @return true if the object is a flag with same ID.
      */
     @Override
     public boolean equals(@Nullable Object o) {
