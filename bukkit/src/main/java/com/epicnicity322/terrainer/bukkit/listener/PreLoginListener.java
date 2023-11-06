@@ -27,6 +27,6 @@ public final class PreLoginListener implements Listener {
     @EventHandler
     public void onAsyncPlayerPreLogin(AsyncPlayerPreLoginEvent event) {
         event.disallow(AsyncPlayerPreLoginEvent.Result.KICK_OTHER,
-                TerrainerPlugin.getLanguage().getColored("Protection Enforcement.Join Loading Server Message"));
+                TerrainerPlugin.getLanguage().getColored("Protections.Join Loading Server Message"));
     }
 }
