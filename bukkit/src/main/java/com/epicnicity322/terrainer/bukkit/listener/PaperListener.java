@@ -47,7 +47,7 @@ public final class PaperListener implements Listener {
 
         UUID world = from.getWorld().getUID();
 
-        for (Terrain terrain : TerrainManager.terrains()) {
+        for (Terrain terrain : TerrainManager.allTerrains()) {
             if (!terrain.world().equals(world)) continue;
 
             boolean inFrom = terrain.isWithin(fromX, fromY, fromZ), inTo = terrain.isWithin(toX, toY, toZ);

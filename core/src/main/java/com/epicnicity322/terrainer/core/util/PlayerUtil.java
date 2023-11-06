@@ -127,10 +127,10 @@ public abstract class PlayerUtil<P extends R, R> {
                     lang.send(player, lang.get("Create.Error.No Block Limit").replace("<area>", Double.toString(area)).replace("<used>", Long.toString(usedBlocks)));
                     return false;
                 }
-                usedBlocks += area;
+                usedBlocks += (long) area;
             }
             if (!hasPermission(player, "terrainer.bypass.overlap")) {
-                for (Terrain t1 : TerrainManager.terrains()) {
+                for (Terrain t1 : TerrainManager.allTerrains()) {
                     // Terrains can overlap if they are owned by the same person.
                     if (playerID.equals(t1.owner())) continue;
                     if (t1.isOverlapping(terrain)) {
@@ -161,9 +161,9 @@ public abstract class PlayerUtil<P extends R, R> {
      */
     public long getUsedBlockLimit(@Nullable UUID player) {
         long usedBlocks = 0;
-        for (Terrain terrain : TerrainManager.terrains()) {
+        for (Terrain terrain : TerrainManager.allTerrains()) {
             if (!Objects.equals(terrain.owner(), player)) continue;
-            usedBlocks += terrain.area();
+            usedBlocks += (long) terrain.area();
         }
 
         return usedBlocks;
@@ -214,7 +214,7 @@ public abstract class PlayerUtil<P extends R, R> {
      */
     public int getUsedClaimLimit(@Nullable UUID player) {
         int used = 0;
-        for (Terrain terrain : TerrainManager.terrains()) {
+        for (Terrain terrain : TerrainManager.allTerrains()) {
             if (Objects.equals(terrain.owner(), player)) {
                 used++;
             }
@@ -314,7 +314,7 @@ public abstract class PlayerUtil<P extends R, R> {
     public boolean isAllowedToSelect(@NotNull P player, @NotNull WorldCoordinate coordinate) {
         if (hasPermission(player, "terrainer.bypass.overlap")) return true;
 
-        for (Terrain terrain : TerrainManager.terrains()) {
+        for (Terrain terrain : TerrainManager.allTerrains()) {
             Boolean state;
             if (terrain instanceof WorldTerrain && (state = terrain.flags().getData(Flags.BUILD)) != null && !state) {
                 continue;

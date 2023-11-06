@@ -65,7 +65,7 @@ public final class EnterLeaveListener implements Listener {
         UUID world = player.getWorld().getUID();
         boolean wasCancelled = event.isCancelled();
 
-        for (Terrain terrain : TerrainManager.terrains()) {
+        for (Terrain terrain : TerrainManager.allTerrains()) {
             if (!terrain.world().equals(world)) continue;
 
             boolean inFrom = terrain.isWithin(fromX, fromY, fromZ), inTo = terrain.isWithin(toX, toY, toZ);
@@ -115,7 +115,7 @@ public final class EnterLeaveListener implements Listener {
         UUID world = vehicle.getWorld().getUID();
         boolean cancel = false;
 
-        for (Terrain terrain : TerrainManager.terrains()) {
+        for (Terrain terrain : TerrainManager.allTerrains()) {
             if (!terrain.world().equals(world)) continue;
 
             boolean inFrom = terrain.isWithin(fromX, fromY, fromZ), inTo = terrain.isWithin(toX, toY, toZ);
@@ -161,7 +161,7 @@ public final class EnterLeaveListener implements Listener {
         int x = loc.getBlockX(), y = loc.getBlockY(), z = loc.getBlockZ();
         UUID world = loc.getWorld().getUID();
 
-        for (Terrain terrain : TerrainManager.terrains()) {
+        for (Terrain terrain : TerrainManager.allTerrains()) {
             if (!terrain.world().equals(world) || !terrain.isWithin(x, y, z)) continue;
             var enter = new TerrainEnterEvent(loc, loc, player, terrain, TerrainEvent.EnterLeaveReason.JOIN_SERVER, false);
             Bukkit.getPluginManager().callEvent(enter);
@@ -180,7 +180,7 @@ public final class EnterLeaveListener implements Listener {
         int x = loc.getBlockX(), y = loc.getBlockY(), z = loc.getBlockZ();
         UUID world = loc.getWorld().getUID();
 
-        for (Terrain terrain : TerrainManager.terrains()) {
+        for (Terrain terrain : TerrainManager.allTerrains()) {
             if (!terrain.world().equals(world) || !terrain.isWithin(x, y, z)) continue;
             var leave = new TerrainLeaveEvent(loc, loc, player, terrain, TerrainEvent.EnterLeaveReason.LEAVE_SERVER, false);
             Bukkit.getPluginManager().callEvent(leave);
@@ -257,7 +257,7 @@ public final class EnterLeaveListener implements Listener {
         UUID fromWorld = from.getWorld().getUID();
         UUID toWorld = to.getWorld().getUID();
 
-        for (Terrain terrain : TerrainManager.terrains()) {
+        for (Terrain terrain : TerrainManager.allTerrains()) {
             UUID world = terrain.world();
             boolean inFrom = world.equals(fromWorld) && terrain.isWithin(fromX, fromY, fromZ);
             boolean inTo = world.equals(toWorld) && terrain.isWithin(toX, toY, toZ);

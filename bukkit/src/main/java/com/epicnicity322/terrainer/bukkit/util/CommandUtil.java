@@ -33,10 +33,7 @@ import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.ArrayList;
-import java.util.Locale;
-import java.util.Objects;
-import java.util.UUID;
+import java.util.*;
 import java.util.function.Supplier;
 
 public class CommandUtil {
@@ -102,7 +99,7 @@ public class CommandUtil {
             int y = loc.getBlockY();
             int z = loc.getBlockZ();
 
-            for (Terrain t : TerrainManager.terrains()) {
+            for (Terrain t : TerrainManager.allTerrains()) {
                 if (t instanceof WorldTerrain || !t.isWithin(x, y, z)) continue;
                 if (terrain != null) {
                     lang.send(sender, lang.get("Matcher.Location.Multiple").replace("<label>", label).replace("<args>", args[0] + " " + exampleSyntax));
@@ -125,7 +122,7 @@ public class CommandUtil {
             if (id != null) {
                 terrain = TerrainManager.getTerrainByID(id);
             } else {
-                for (Terrain t : TerrainManager.terrains()) {
+                for (Terrain t : TerrainManager.allTerrains()) {
                     if (!t.name().equals(terrainName)) continue;
                     if (terrain != null) {
                         lang.send(sender, lang.get("Matcher.Name.Multiple"));
@@ -225,6 +222,24 @@ public class CommandUtil {
             if (i != (args.length - 1)) name.append(" ");
         }
         return name.toString();
+    }
+
+    /**
+     * Adds the "--t {@literal <terrain>}" completion to the list of completions.
+     *
+     * @param completions      The list of completions.
+     * @param permissionOthers The permission that allows the sender to find other people's terrains.
+     * @param allowModerators  Allows moderators to find the terrain.
+     * @param sender           The person who is tab completing.
+     * @param args             The arguments of the tab completion.
+     */
+    //TODO
+    public static void addTerrainTabCompletion(@NotNull List<String> completions, @NotNull String permissionOthers, boolean allowModerators, @NotNull CommandSender sender, @NotNull String[] args) {
+        String current = args[args.length - 1];
+
+        if (args.length > 1 && args[args.length - 2].equals("--t")) {
+            return;
+        }
     }
 
     public record CommandArguments(@NotNull String[] preceding, @NotNull Terrain terrain) {

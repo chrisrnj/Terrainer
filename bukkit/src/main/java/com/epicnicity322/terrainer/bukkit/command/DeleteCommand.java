@@ -58,7 +58,7 @@ public final class DeleteCommand extends Command {
         int confirmationHash = Objects.hash("delete", terrain.id());
 
         ConfirmCommand.requestConfirmation(sender, () -> {
-            if (TerrainManager.remove(terrain)) {
+            if (TerrainManager.remove(terrain) != null) {
                 lang.send(sender, lang.get("Delete.Success").replace("<name>", terrain.name()));
                 // Cancelling all confirmations related to this terrain.
                 ConfirmCommand.cancelConfirmations(confirmationHash);

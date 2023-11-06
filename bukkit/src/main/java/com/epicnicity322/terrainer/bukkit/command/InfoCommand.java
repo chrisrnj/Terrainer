@@ -80,7 +80,7 @@ public final class InfoCommand extends Command {
                 terrains = new HashSet<>();
                 String name = CommandUtil.join(args, 1);
 
-                for (Terrain t : TerrainManager.terrains()) {
+                for (Terrain t : TerrainManager.allTerrains()) {
                     if (ChatColor.stripColor(t.name()).equals(name)) terrains.add(t);
                 }
             } else {

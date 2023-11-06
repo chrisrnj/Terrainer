@@ -148,7 +148,7 @@ public final class ProtectionsListener implements Listener {
         int z = loc.getBlockZ();
         UUID world = loc.getWorld().getUID();
 
-        for (Terrain terrain : TerrainManager.terrains()) {
+        for (Terrain terrain : TerrainManager.allTerrains()) {
             if (!terrain.world().equals(world) || !terrain.isWithin(x, y, z)) continue;
             if (!TerrainerPlugin.getPlayerUtil().hasAnyRelations(player.getUniqueId(), terrain) && deny(terrain, flag)) {
                 event.setCancelled(true);
@@ -166,7 +166,7 @@ public final class ProtectionsListener implements Listener {
      * Cancels the event if the provided flag is set to deny in a terrain found in the location.
      */
     private static void handleProtection(@NotNull Cancellable event, @NotNull UUID world, int x, int y, int z, @NotNull Flag<Boolean> flag) {
-        for (Terrain terrain : TerrainManager.terrains()) {
+        for (Terrain terrain : TerrainManager.allTerrains()) {
             if (!terrain.world().equals(world) || !terrain.isWithin(x, y, z)) continue;
             if (deny(terrain, flag)) {
                 event.setCancelled(true);
@@ -187,7 +187,7 @@ public final class ProtectionsListener implements Listener {
         int z = loc.getBlockZ();
         UUID world = loc.getWorld().getUID();
 
-        for (Terrain terrain : TerrainManager.terrains()) {
+        for (Terrain terrain : TerrainManager.allTerrains()) {
             if (!terrain.world().equals(world) || !terrain.isWithin(x, y, z)) continue;
             if (deny(terrain, Flags.VULNERABILITY)) {
                 event.setCancelled(true);
@@ -214,7 +214,7 @@ public final class ProtectionsListener implements Listener {
         int z = origin.getBlockZ();
         UUID world = origin.getWorld().getUID();
 
-        for (Terrain terrain : TerrainManager.terrains()) {
+        for (Terrain terrain : TerrainManager.allTerrains()) {
             if (!terrain.world().equals(world)) continue;
             if (deny(terrain, Flags.EXPLOSION_DAMAGE) || (!terrain.isWithin(x, y, z) && deny(terrain, Flags.BUILD))) {
                 exploded.removeIf(block -> terrain.isWithin(block.getX(), block.getY(), block.getZ()));
@@ -246,7 +246,7 @@ public final class ProtectionsListener implements Listener {
         boolean build = false;
         boolean mob = false;
 
-        for (Terrain terrain : TerrainManager.terrains()) {
+        for (Terrain terrain : TerrainManager.allTerrains()) {
             if (!terrain.world().equals(world) || !terrain.isWithin(x, y, z)) continue;
             if (flag == null) {
                 switch (victim.getType()) {
@@ -295,7 +295,7 @@ public final class ProtectionsListener implements Listener {
             if (!player.hasPermission("terrainer.bypass.build") || !player.hasPermission("terrainer.bypass.containers")) {
                 UUID world = block.getWorld().getUID();
 
-                for (Terrain terrain : TerrainManager.terrains()) {
+                for (Terrain terrain : TerrainManager.allTerrains()) {
                     if (!terrain.world().equals(world) || !terrain.isWithin(block.getX(), block.getY(), block.getZ()))
                         continue;
                     if (!TerrainerPlugin.getPlayerUtil().hasAnyRelations(player.getUniqueId(), terrain) && (deny(terrain, Flags.CONTAINERS) || deny(terrain, Flags.CONTAINERS))) {
@@ -348,7 +348,7 @@ public final class ProtectionsListener implements Listener {
         if (action == Action.PHYSICAL) {
             UUID world = block.getWorld().getUID();
 
-            for (Terrain terrain : TerrainManager.terrains()) {
+            for (Terrain terrain : TerrainManager.allTerrains()) {
                 if (!terrain.world().equals(world) || !terrain.isWithin(block.getX(), block.getY(), block.getZ())) {
                     continue;
                 }
@@ -407,7 +407,7 @@ public final class ProtectionsListener implements Listener {
         UUID world = block.getWorld().getUID();
         Block relative = block.getRelative(event.getBlockFace());
 
-        for (Terrain terrain : TerrainManager.terrains()) {
+        for (Terrain terrain : TerrainManager.allTerrains()) {
             if (!terrain.world().equals(world) || (!terrain.isWithin(block.getX(), block.getY(), block.getZ()) && !terrain.isWithin(relative.getX(), relative.getY(), relative.getZ()))) {
                 continue;
             }
@@ -493,7 +493,7 @@ public final class ProtectionsListener implements Listener {
         if (blocks.isEmpty()) {
             Block block = piston.getRelative(dir);
 
-            for (Terrain terrain : TerrainManager.terrains()) {
+            for (Terrain terrain : TerrainManager.allTerrains()) {
                 // If an outside piston is pushing blocks into a terrain.
                 if (!terrain.world().equals(world)) continue;
                 boolean pistonIn = terrain.isWithin(piston.getX(), piston.getY(), piston.getZ());
@@ -504,7 +504,7 @@ public final class ProtectionsListener implements Listener {
                 }
             }
         } else {
-            for (Terrain terrain : TerrainManager.terrains()) {
+            for (Terrain terrain : TerrainManager.allTerrains()) {
                 if (!terrain.world().equals(world)) continue;
                 boolean pistonIn = terrain.isWithin(piston.getX(), piston.getY(), piston.getZ());
 
@@ -538,7 +538,7 @@ public final class ProtectionsListener implements Listener {
         Location loc = piston.getLocation();
         UUID world = loc.getWorld().getUID();
 
-        for (Terrain terrain : TerrainManager.terrains()) {
+        for (Terrain terrain : TerrainManager.allTerrains()) {
             if (!terrain.world().equals(world)) continue;
             boolean pistonIn = terrain.isWithin(piston.getX(), piston.getY(), piston.getZ());
             boolean pistonsState = deny(terrain, Flags.PISTONS);
@@ -616,7 +616,7 @@ public final class ProtectionsListener implements Listener {
         Flag<Boolean> flag2 = null;
         String message = null;
 
-        for (Terrain terrain : TerrainManager.terrains()) {
+        for (Terrain terrain : TerrainManager.allTerrains()) {
             if (!terrain.world().equals(world) || !terrain.isWithin(x, y, z)) continue;
             if (flag1 == null) {
                 switch (event.getEntityType()) {
@@ -718,7 +718,7 @@ public final class ProtectionsListener implements Listener {
         Flag<Boolean> flag2 = null;
         String message = null;
 
-        for (Terrain terrain : TerrainManager.terrains()) {
+        for (Terrain terrain : TerrainManager.allTerrains()) {
             if (!terrain.world().equals(world) || !terrain.isWithin(x, y, z)) continue;
             if (flag1 == null) {
                 switch (event.getRightClicked().getType()) {
@@ -809,7 +809,7 @@ public final class ProtectionsListener implements Listener {
         Block to = event.getToBlock();
         UUID world = to.getWorld().getUID();
 
-        for (Terrain terrain : TerrainManager.terrains()) {
+        for (Terrain terrain : TerrainManager.allTerrains()) {
             if (!terrain.world().equals(world) || !terrain.isWithin(to.getX(), to.getY(), to.getZ())) continue;
             if (deny(terrain, Flags.LIQUID_FLOW) || (!terrain.isWithin(from.getX(), from.getY(), from.getZ()) && deny(terrain, Flags.BUILD))) {
                 event.setCancelled(true);
@@ -837,7 +837,7 @@ public final class ProtectionsListener implements Listener {
         if (from == null) {
             handleProtection(event, world, to.getX(), to.getY(), to.getZ(), Flags.FIRE_DAMAGE);
         } else {
-            for (Terrain terrain : TerrainManager.terrains()) {
+            for (Terrain terrain : TerrainManager.allTerrains()) {
                 if (!terrain.world().equals(world) || !terrain.isWithin(to.getX(), to.getY(), to.getZ())) continue;
 
                 if (deny(terrain, Flags.FIRE_DAMAGE) || (!terrain.isWithin(from.getX(), from.getY(), from.getZ()) && deny(terrain, Flags.BUILD))) {
@@ -854,7 +854,7 @@ public final class ProtectionsListener implements Listener {
         Block to = event.getBlock();
         UUID world = to.getWorld().getUID();
 
-        for (Terrain terrain : TerrainManager.terrains()) {
+        for (Terrain terrain : TerrainManager.allTerrains()) {
             if (!terrain.world().equals(world) || !terrain.isWithin(to.getX(), to.getY(), to.getZ())) continue;
 
             if (!terrain.isWithin(from.getX(), from.getY(), from.getZ()) && deny(terrain, Flags.BUILD)) {
@@ -879,7 +879,7 @@ public final class ProtectionsListener implements Listener {
         int z = loc.getBlockZ();
         UUID world = event.getWorld().getUID();
 
-        for (Terrain terrain : TerrainManager.terrains()) {
+        for (Terrain terrain : TerrainManager.allTerrains()) {
             if (!terrain.world().equals(world) || terrain.isWithin(x, y, z)) continue;
             if (deny(terrain, Flags.BUILD)) {
                 blocks.removeIf(block -> terrain.isWithin(block.getX(), block.getY(), block.getZ()));
@@ -905,7 +905,7 @@ public final class ProtectionsListener implements Listener {
         int z = loc.getBlockZ();
         UUID world = block.getWorld().getUID();
 
-        for (Terrain terrain : TerrainManager.terrains()) {
+        for (Terrain terrain : TerrainManager.allTerrains()) {
             if (!terrain.world().equals(world) || !terrain.isWithin(block.getX(), block.getY(), block.getZ())) continue;
             if (!terrain.isWithin(x, y, z) && deny(terrain, Flags.BUILD)) {
                 event.setCancelled(true);
@@ -1002,7 +1002,7 @@ public final class ProtectionsListener implements Listener {
         Block frontBlock = block.getRelative(((Directional) block.getBlockData()).getFacing());
         UUID world = block.getWorld().getUID();
 
-        for (Terrain terrain : TerrainManager.terrains()) {
+        for (Terrain terrain : TerrainManager.allTerrains()) {
             if (!terrain.world().equals(world)) continue;
 
             boolean dispenserIn = terrain.isWithin(block.getX(), block.getY(), block.getZ());
@@ -1039,7 +1039,7 @@ public final class ProtectionsListener implements Listener {
         int x = hitLoc.getBlockX(), y = hitLoc.getBlockY(), z = hitLoc.getBlockZ();
         UUID world = projectile.getWorld().getUID();
 
-        for (Terrain terrain : TerrainManager.terrains()) {
+        for (Terrain terrain : TerrainManager.allTerrains()) {
             if (!terrain.world().equals(world)) continue;
 
             if (!terrain.isWithin(originX, originY, originZ) && terrain.isWithin(x, y, z) && deny(terrain, Flags.OUTSIDE_PROJECTILES)) {

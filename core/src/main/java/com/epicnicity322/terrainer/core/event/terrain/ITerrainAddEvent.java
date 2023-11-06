@@ -22,7 +22,7 @@ import com.epicnicity322.terrainer.core.event.TerrainEvent;
 import com.epicnicity322.terrainer.core.terrain.TerrainManager;
 
 /**
- * When a terrain is added by any means. This is called before the terrain is actually added to {@link TerrainManager#terrains()}.
+ * When a terrain is added by any means. This is called before the terrain is actually added to {@link TerrainManager#allTerrains()}.
  */
 public interface ITerrainAddEvent extends TerrainEvent {
 }

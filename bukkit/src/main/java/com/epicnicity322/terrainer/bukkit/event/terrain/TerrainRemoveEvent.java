@@ -27,7 +27,7 @@ import org.bukkit.event.HandlerList;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * When a terrain is removed. This is called before the terrain is actually removed from {@link TerrainManager#terrains()}.
+ * When a terrain is removed. This is called before the terrain is actually removed from {@link TerrainManager#allTerrains()}.
  */
 public class TerrainRemoveEvent extends Event implements ITerrainRemoveEvent, Cancellable {
     private static final @NotNull HandlerList handlers = new HandlerList();

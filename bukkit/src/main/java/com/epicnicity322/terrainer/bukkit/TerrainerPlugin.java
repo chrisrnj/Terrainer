@@ -239,7 +239,7 @@ public final class TerrainerPlugin extends JavaPlugin {
         getServer().getScheduler().runTask(this, () -> {
             try {
                 TerrainManager.load();
-                logger.log(TerrainManager.terrains().size() + " terrains loaded.");
+                logger.log("Terrains loaded.");
             } catch (IOException e) {
                 logger.log("Unable to load terrains due to exception:", ConsoleLogger.Level.ERROR);
                 e.printStackTrace();

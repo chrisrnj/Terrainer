@@ -27,7 +27,7 @@ import org.bukkit.event.HandlerList;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * When a terrain is created. This is called before the terrain is actually added to {@link TerrainManager#terrains()}.
+ * When a terrain is created. This is called before the terrain is actually added to {@link TerrainManager#allTerrains()}.
  */
 public class TerrainAddEvent extends Event implements ITerrainAddEvent, Cancellable {
     private static final @NotNull HandlerList handlers = new HandlerList();

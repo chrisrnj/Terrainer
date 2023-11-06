@@ -27,6 +27,7 @@ import com.epicnicity322.terrainer.core.event.flag.IFlagSetEvent;
 import com.epicnicity322.terrainer.core.event.flag.IFlagUnsetEvent;
 import com.epicnicity322.terrainer.core.event.terrain.ITerrainAddEvent;
 import com.epicnicity322.terrainer.core.event.terrain.ITerrainRemoveEvent;
+import com.google.common.collect.Iterables;
 import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
@@ -36,35 +37,49 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 import java.util.stream.Stream;
 
 public final class TerrainManager {
     public static final @NotNull Path TERRAINS_FOLDER = Configurations.DATA_FOLDER.resolve("Terrains");
-    private static final @NotNull HashSet<Terrain> terrains = new HashSet<>();
-    private static final @NotNull Set<Terrain> unmodifiableTerrains = Collections.unmodifiableSet(terrains);
+    /**
+     * A map with the World's ID as key and a list of terrains in this world as value. This list is sorted based on the minDiagonal's coordinate ID.
+     */
+    private static final @NotNull Map<UUID, Set<Terrain>> terrains = new ConcurrentHashMap<>();
+    /**
+     * The selected diagonals of players. Key as the player's ID and value as an array with size 2 containing the diagonals.
+     */
     private static final @NotNull HashMap<UUID, WorldCoordinate[]> selections = new HashMap<>();
-    // Initial capacity of 4 because there usually isn't a ton of players deleting their terrains at the same
-    // time.
-    private static final @NotNull HashSet<UUID> terrainsToRemove = new HashSet<>(4);
+    /**
+     * A set with all the terrains to be deleted by the auto-saver.
+     * Initial capacity of 4 because there usually isn't a ton of players deleting their terrains at the same time.
+     */
+    private static final @NotNull Set<UUID> terrainsToRemove = ConcurrentHashMap.newKeySet(4);
+    /**
+     * The ID to use in the selection map as placeholder for the console player.
+     */
     private static final @NotNull UUID consoleUUID = UUID.randomUUID();
+
+    // Usually there's only one listener for these events: the one to be used internally by Terrainer.
     private static final @NotNull ArrayList<Function<ITerrainAddEvent, Boolean>> onAddListeners = new ArrayList<>(1);
     private static final @NotNull ArrayList<Function<ITerrainRemoveEvent, Boolean>> onRemoveListeners = new ArrayList<>(1);
     private static final @NotNull ArrayList<Function<IFlagSetEvent<?>, Boolean>> onFlagSetListeners = new ArrayList<>(1);
     private static final @NotNull ArrayList<Function<IFlagUnsetEvent<?>, Boolean>> onFlagUnsetListeners = new ArrayList<>(1);
+
     private static volatile boolean autoSaveRunning = false;
 
     private TerrainManager() {
     }
 
     /**
-     * Registers a terrain object to {@link #terrains()}. Registered terrain objects are saved, loaded, and have their
+     * Registers a terrain object to {@link #allTerrains()}. Registered terrain objects are saved, loaded, and have their
      * protections enforced. They also are saved automatically once any changes to the instance are made.
      * <p>
      * If a different terrain instance with same {@link Terrain#id()} is present, it is removed and replaced by the
      * specified one.
      * <p>
-     * The terrain is not added if it is already present in {@link #terrains()}, or if the {@link ITerrainAddEvent} was
+     * The terrain is not added if it is already present in {@link #allTerrains()}, or if the {@link ITerrainAddEvent} was
      * cancelled.
      *
      * @param terrain The terrain to save.
@@ -80,26 +95,30 @@ public final class TerrainManager {
     }
 
     /**
-     * Adds the terrain to {@link #terrains()} without calling {@link #loadAutoSave()}.
+     * Adds the terrain to {@link #allTerrains()} without calling {@link #loadAutoSave()}.
      *
      * @param terrain The terrain to add.
      * @return Whether the terrain was added and {@link #loadAutoSave()} should be called.
      */
     private static boolean addWithoutAutoSave(@NotNull Terrain terrain) {
-        if (terrains.contains(terrain)) return false;
+        Set<Terrain> worldTerrains = terrains.get(terrain.world);
+
+        if (worldTerrains != null && worldTerrains.contains(terrain)) return false;
         // Calling add event. If it's cancelled, then the terrain should not be added, and false is returned.
         if (callOnAdd(terrain)) return false;
 
-        // Removing instance with the same ID if found.
-        Terrain found = getTerrainByID(terrain.id);
-        if (found != null) {
-            found.save = false;
-            found.changed = true;
-            terrains.remove(found);
+        // Events passed, terrain should be added.
+
+        if (worldTerrains == null) {
+            worldTerrains = ConcurrentHashMap.newKeySet();
+            terrains.put(terrain.world, worldTerrains);
         }
 
+        // Removing instance with the same ID if found.
+        remove(terrain.id, false);
+
         // Adding new instance of terrain and setting Terrain#save to true, so it's saved automatically.
-        terrains.add(terrain);
+        worldTerrains.add(terrain);
         terrain.save = true;
         return true;
     }
@@ -108,30 +127,24 @@ public final class TerrainManager {
      * Unregisters a terrain object. This makes so the terrain object is no longer saved automatically once changes are
      * made, also the saved file associated to this terrain's ID is deleted.
      * <p>
-     * A terrain with the same specified terrain's ID is removed, regardless if the provided terrain object is not
-     * exactly equal to the one in {@link #terrains()} set.
+     * A terrain with the specified terrain's ID is removed, regardless if the provided terrain instance is not exactly
+     * equal to the one in the list of registered terrains.
      * <p>
      * The terrain is not removed if the {@link ITerrainRemoveEvent} was cancelled.
      *
      * @param terrain The terrain to delete.
-     * @return Whether the terrain was removed or not.
+     * @return The terrain that was removed, null if the terrain could not be removed.
      */
-    public static boolean remove(@NotNull Terrain terrain) {
-        Terrain found = getTerrainByID(terrain.id);
-        if (found == null) return false;
-        // Calling remove event. If it's cancelled, then cancel the removal.
-        if (callOnRemove(terrain)) return false;
+    public static @Nullable Terrain remove(@NotNull Terrain terrain) {
+        Terrain removed = remove(terrain.id);
 
-        terrain.save = false;
-        terrain.changed = true;
-        // Might be different object.
-        found.save = false;
-        found.changed = true;
+        if (removed != null) {
+            // The terrain that has this ID might be a different instance, making sure the terrain is set to not save.
+            terrain.save = false;
+            terrain.changed = true;
+        }
 
-        terrains.removeIf(t -> terrain.id.equals(t.id));
-        terrainsToRemove.add(terrain.id);
-        loadAutoSave();
-        return true;
+        return removed;
     }
 
     /**
@@ -141,31 +154,60 @@ public final class TerrainManager {
      * The terrain is not removed if the {@link ITerrainRemoveEvent} was cancelled.
      *
      * @param terrainID The ID of the terrain to delete.
-     * @return Whether the terrain was removed or not.
+     * @return The terrain that was removed, null if no terrain was found or removed.
      */
-    public static boolean remove(@NotNull UUID terrainID) {
+    public static @Nullable Terrain remove(@NotNull UUID terrainID) {
+        return remove(terrainID, true);
+    }
+
+    private static @Nullable Terrain remove(@NotNull UUID terrainID, boolean callEvents) {
         Terrain found = getTerrainByID(terrainID);
-        if (found == null) return false;
+        if (found == null) return null;
         // Calling remove event. If it's cancelled, then cancel the removal.
-        if (callOnRemove(found)) return false;
+        if (callEvents && callOnRemove(found)) return null;
 
         found.save = false;
         found.changed = true;
-        terrains.removeIf(t -> terrainID.equals(t.id));
-        terrainsToRemove.add(terrainID);
-        loadAutoSave();
-        return true;
+
+        // Removing from registered terrains.
+        UUID world = found.world;
+        Set<Terrain> worldTerrains = terrains.get(world);
+        worldTerrains.remove(found);
+        if (worldTerrains.isEmpty()) terrains.remove(world);
+
+        if (callEvents) {
+            // Adding this terrain's ID to be removed and loading the auto saver.
+            terrainsToRemove.add(terrainID);
+            loadAutoSave();
+        }
+
+        return found;
     }
 
     /**
-     * @return An unmodifiable set of currently loaded terrains.
+     * Concat terrains from all worlds into a single iterable.
+     *
+     * @return An unmodifiable iterable of all currently loaded terrains.
+     * @see #terrains(UUID) It is recommended to get terrains by world, for better performance.
      */
-    public static @NotNull Set<Terrain> terrains() {
-        return unmodifiableTerrains;
+    public static @NotNull Iterable<Terrain> allTerrains() {
+        return Iterables.unmodifiableIterable(Iterables.concat(terrains.values()));
     }
 
     /**
-     * Gets the terrain with matching ID from {@link #terrains()}.
+     * Gets the terrains at a specific world.
+     *
+     * @param world The world of the terrains.
+     * @return An unmodifiable set with the terrains located in this world.
+     */
+    public static @NotNull Set<Terrain> terrains(@NotNull UUID world) {
+        Set<Terrain> worldTerrains = terrains.get(world);
+        if (worldTerrains == null) return Collections.emptySet();
+        return Collections.unmodifiableSet(worldTerrains);
+    }
+
+    /**
+     * Gets the terrain with matching ID from the list of registered terrains.
      *
      * @param id The ID of the terrain.
      * @return The terrain with matching ID or null if not found.
@@ -173,40 +215,49 @@ public final class TerrainManager {
     @Contract("null -> null")
     public static @Nullable Terrain getTerrainByID(@Nullable UUID id) {
         if (id == null) return null;
+
+        // Looking for matching ID through all worlds.
+        for (Map.Entry<UUID, Set<Terrain>> entry : terrains.entrySet()) {
+            Terrain t = getTerrainByID(id, entry.getValue());
+            if (t != null) return t;
+        }
+
+        return null;
+    }
+
+    @Contract("_,null -> null")
+    private static @Nullable Terrain getTerrainByID(@NotNull UUID id, Set<Terrain> terrains) {
+        if (terrains == null) return null;
+
         for (Terrain terrain : terrains) {
             if (terrain.id.equals(id)) return terrain;
         }
+
         return null;
     }
 
     /**
-     * Gets the terrains at a specific world.
-     *
-     * @param world The world of the terrains.
-     * @return The terrains located in this world.
-     */
-    public static @NotNull HashSet<Terrain> getTerrainsAt(@NotNull UUID world) {
-        var terrainsAt = new HashSet<Terrain>();
-        for (Terrain terrain : terrains) {
-            if (terrain.world.equals(world)) terrainsAt.add(terrain);
-        }
-        return terrainsAt;
-    }
-
-    /**
-     * Gets the terrains at a specific location.
+     * Runs through all terrains in this world and adds the ones that have the coordinate within to a {@link TreeSet}.
+     * The provided set has the terrains sorted based on priority.
      *
      * @param world The world of the coordinates.
-     * @param x     The X coordinate
-     * @param y     The Y coordinate
-     * @param z     The Z coordinate
+     * @param x     The X coordinate.
+     * @param y     The Y coordinate.
+     * @param z     The Z coordinate.
      * @return The terrains containing the location.
      */
-    public static @NotNull HashSet<Terrain> getTerrainsAt(@NotNull UUID world, double x, double y, double z) {
-        var terrainsAt = new HashSet<Terrain>(4);
-        for (Terrain terrain : terrains) {
-            if (terrain.world.equals(world) && terrain.isWithin(x, y, z)) terrainsAt.add(terrain);
+    public static @NotNull Set<Terrain> getTerrainsAt(@NotNull UUID world, double x, double y, double z) {
+        Set<Terrain> worldTerrains = terrains.get(world);
+        if (worldTerrains == null) return Collections.emptySet();
+
+        // Terrains are sorted based on priority.
+        TreeSet<Terrain> terrainsAt = new TreeSet<>(Comparator.comparingInt(Terrain::priority));
+
+        //TODO: binary search
+        for (Terrain terrain : worldTerrains) {
+            if (terrain.isWithin(x, y, z)) terrainsAt.add(terrain);
         }
+
         return terrainsAt;
     }
 
@@ -216,12 +267,8 @@ public final class TerrainManager {
      * @param worldCoordinate The coordinate to get terrains at.
      * @return The terrains containing the location.
      */
-    public static @NotNull HashSet<Terrain> getTerrainsAt(@NotNull WorldCoordinate worldCoordinate) {
-        var terrainsAt = new HashSet<Terrain>(4);
-        for (Terrain terrain : terrains) {
-            if (terrain.isWithin(worldCoordinate)) terrainsAt.add(terrain);
-        }
-        return terrainsAt;
+    public static @NotNull Set<Terrain> getTerrainsAt(@NotNull WorldCoordinate worldCoordinate) {
+        return getTerrainsAt(worldCoordinate.world(), worldCoordinate.coordinate().x(), worldCoordinate.coordinate().y(), worldCoordinate.coordinate().z());
     }
 
     /**
@@ -230,9 +277,9 @@ public final class TerrainManager {
      * @param owner The UUID of the player to check if owns the terrain.
      * @return The terrains that have this player as an owner.
      */
-    public static @NotNull HashSet<Terrain> getTerrainsOf(@Nullable UUID owner) {
-        var terrainsOf = new HashSet<Terrain>();
-        for (Terrain terrain : terrains) {
+    public static @NotNull Set<Terrain> getTerrainsOf(@Nullable UUID owner) {
+        HashSet<Terrain> terrainsOf = new HashSet<>();
+        for (Terrain terrain : allTerrains()) {
             if (Objects.equals(terrain.owner, owner)) terrainsOf.add(terrain);
         }
         return terrainsOf;
@@ -252,8 +299,8 @@ public final class TerrainManager {
     }
 
     /**
-     * Loads all terrains from disk into {@link #terrains()} set. No existing terrains are actually updated, this only
-     * deserializes {@link Terrain} objects in {@link #TERRAINS_FOLDER} and adds them to {@link #terrains()} set using
+     * Loads all terrains from disk into {@link #allTerrains()} set. No existing terrains are actually updated, this only
+     * deserializes {@link Terrain} objects in {@link #TERRAINS_FOLDER} and adds them to {@link #allTerrains()} set using
      * {@link Set#add(Object)}.
      *
      * @see #save()
@@ -270,6 +317,8 @@ public final class TerrainManager {
                 } catch (Exception e) {
                     Terrainer.logger().log("Unable to read file '" + terrainFile.getFileName() + "' as a Terrain object:", ConsoleLogger.Level.ERROR);
                     e.printStackTrace();
+
+                    // Terrain file is likely corrupted, adding .bak to the end of the file name to avoid trying to load it again next time.
                     Path newName = PathUtils.getUniquePath(terrainFile.getParent().resolve(terrainFile.getFileName().toString() + ".bak"));
                     Terrainer.logger().log("The file will be renamed to '" + newName.getFileName() + "'.", ConsoleLogger.Level.ERROR);
                     try {
@@ -290,41 +339,37 @@ public final class TerrainManager {
     public static void save() {
         Terrainer.logger().log("Saving terrain changes.");
 
-        synchronized (terrainsToRemove) {
-            for (UUID uuid : terrainsToRemove) {
-                try {
-                    Files.deleteIfExists(TERRAINS_FOLDER.resolve(uuid + ".terrain"));
-                } catch (IOException e) {
-                    Terrainer.logger().log("Unable to remove '" + uuid + "' terrain from " + TERRAINS_FOLDER.getFileName() + " folder:", ConsoleLogger.Level.ERROR);
-                    e.printStackTrace();
-                }
+        for (UUID uuid : terrainsToRemove) {
+            try {
+                Files.deleteIfExists(TERRAINS_FOLDER.resolve(uuid + ".terrain"));
+            } catch (IOException e) {
+                Terrainer.logger().log("Unable to remove '" + uuid + "' terrain from " + TERRAINS_FOLDER.getFileName() + " folder:", ConsoleLogger.Level.ERROR);
+                e.printStackTrace();
             }
-            terrainsToRemove.clear();
         }
+        terrainsToRemove.clear();
 
-        synchronized (terrains) {
-            // Saving changed terrains.
-            for (Terrain terrain : terrains) {
-                if (!terrain.changed) continue;
+        // Saving changed terrains.
+        for (Terrain terrain : allTerrains()) {
+            if (!terrain.changed) continue;
 
-                terrain.changed = false;
+            terrain.changed = false;
 
-                Path path = TERRAINS_FOLDER.resolve(terrain.id + ".terrain");
+            Path path = TERRAINS_FOLDER.resolve(terrain.id + ".terrain");
 
-                try {
-                    Files.deleteIfExists(path);
-                } catch (Exception e) {
-                    Terrainer.logger().log("Error while deleting old terrain file '" + path.getFileName() + "':", ConsoleLogger.Level.ERROR);
-                    e.printStackTrace();
-                    continue;
-                }
+            try {
+                Files.deleteIfExists(path);
+            } catch (Exception e) {
+                Terrainer.logger().log("Error while deleting old terrain file '" + path.getFileName() + "':", ConsoleLogger.Level.ERROR);
+                e.printStackTrace();
+                continue;
+            }
 
-                try {
-                    Terrain.toFile(path, terrain);
-                } catch (Exception e) {
-                    Terrainer.logger().log("Error while saving terrain '" + terrain.id + "':", ConsoleLogger.Level.ERROR);
-                    e.printStackTrace();
-                }
+            try {
+                Terrain.toFile(path, terrain);
+            } catch (Exception e) {
+                Terrainer.logger().log("Error while saving terrain '" + terrain.id + "':", ConsoleLogger.Level.ERROR);
+                e.printStackTrace();
             }
         }
     }
@@ -344,7 +389,7 @@ public final class TerrainManager {
             }
             save();
             autoSaveRunning = false;
-        }, "Terrain Remover Thread").start();
+        }, "Terrain Saver Thread").start();
     }
 
     /**
