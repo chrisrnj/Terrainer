@@ -385,7 +385,7 @@ public final class TerrainManager {
             try {
                 Thread.sleep(600000);
             } catch (InterruptedException e) {
-                Terrainer.logger().log("Failed to wait 10 minutes to load regions", ConsoleLogger.Level.WARN);
+                Terrainer.logger().log("Failed to wait 10 minutes to save terrains", ConsoleLogger.Level.WARN);
             }
             save();
             autoSaveRunning = false;

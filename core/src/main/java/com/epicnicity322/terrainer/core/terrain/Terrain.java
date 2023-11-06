@@ -377,7 +377,7 @@ public class Terrain implements Serializable {
     }
 
     /**
-     * @return The ID of the world this region is located.
+     * @return The ID of the world this terrain is located.
      */
     public @NotNull UUID world() {
         return world;
@@ -539,10 +539,10 @@ public class Terrain implements Serializable {
     public boolean isOverlapping(@NotNull Terrain terrain) {
         if (!world.equals(terrain.world)) return false;
 
-        Coordinate region2Min = terrain.minDiagonal;
-        Coordinate region2Max = terrain.maxDiagonal;
+        Coordinate terrain2Min = terrain.minDiagonal;
+        Coordinate terrain2Max = terrain.maxDiagonal;
 
-        return minDiagonal.x() <= region2Max.x() && maxDiagonal.x() >= region2Min.x() && minDiagonal.y() <= region2Max.y() && maxDiagonal.y() >= region2Min.y() && minDiagonal.z() <= region2Max.z() && maxDiagonal.z() >= region2Min.z();
+        return minDiagonal.x() <= terrain2Max.x() && maxDiagonal.x() >= terrain2Min.x() && minDiagonal.y() <= terrain2Max.y() && maxDiagonal.y() >= terrain2Min.y() && minDiagonal.z() <= terrain2Max.z() && maxDiagonal.z() >= terrain2Min.z();
     }
 
     /**
@@ -584,7 +584,7 @@ public class Terrain implements Serializable {
      * @param <E> The elements in the set.
      */
     public final class PrivateSet<E> implements Serializable {
-        // Usually there aren't many moderators or members in a region. Since this is all what PrivateSet is used for,
+        // Usually there aren't many moderators or members in a terrain. Since this is all what PrivateSet is used for,
         // creating a HashSet that resizes only when there are 6 entries.
         private static final int INITIAL_CAPACITY = 8;
         @Serial
