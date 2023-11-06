@@ -199,6 +199,8 @@ public final class FlagCommand extends Command {
                         if (suggestion.toLowerCase(Locale.ROOT).startsWith(arg)) completions.add(suggestion);
                     }
                 }
+                default ->
+                        CommandUtil.addTerrainTabCompletion(completions, "terrainer.flag.others", true, sender, args);
             }
         };
     }
