@@ -42,9 +42,9 @@ import java.util.stream.Collectors;
  * saved, loaded and have its flags enforced if they are added to a {@link TerrainManager}.
  */
 public class Terrain implements Serializable {
-    @Serial
-    private static final long serialVersionUID = 2466171685939540939L;
     private static final @NotNull YamlConfigurationLoader loader = new YamlConfigurationLoader();
+    @Serial
+    private static final long serialVersionUID = 1796255576306619296L;
     final @NotNull UUID world;
     final @NotNull UUID id;
     final @NotNull ZonedDateTime creationDate;
@@ -57,12 +57,13 @@ public class Terrain implements Serializable {
     @NotNull Set<Coordinate> borders;
     @NotNull String name;
     @Nullable String description;
+    int priority;
     /**
      * Whether this terrain should make a call to {@link TerrainManager#loadAutoSave()} everytime something changes.
      */
-    transient boolean save = false;
+    transient volatile boolean save = false;
     /**
-     * If the terrain was changed before it was last loaded.
+     * If the terrain was changed before it was last saved.
      */
     transient volatile boolean changed = false;
 
@@ -88,7 +89,7 @@ public class Terrain implements Serializable {
      * @param members      The set of members of this terrain.
      * @param flags        The set of active flags in this terrain.
      */
-    public Terrain(@NotNull Coordinate first, @NotNull Coordinate second, @NotNull UUID world, @NotNull UUID id, @NotNull String name, @Nullable String description, @NotNull ZonedDateTime creationDate, @Nullable UUID owner, @Nullable Collection<UUID> moderators, @Nullable Collection<UUID> members, @Nullable HashMap<String, Object> flags) {
+    public Terrain(@NotNull Coordinate first, @NotNull Coordinate second, @NotNull UUID world, @NotNull UUID id, @NotNull String name, @Nullable String description, @NotNull ZonedDateTime creationDate, @Nullable UUID owner, int priority, @Nullable Collection<UUID> moderators, @Nullable Collection<UUID> members, @Nullable HashMap<String, Object> flags) {
         this.minDiagonal = findMinMax(first, second, true);
         this.maxDiagonal = findMinMax(first, second, false);
         this.borders = findBorders(minDiagonal, maxDiagonal);
@@ -96,6 +97,7 @@ public class Terrain implements Serializable {
         this.id = id;
         this.world = world;
         this.owner = owner;
+        this.priority = priority;
         this.moderators = new PrivateSet<>(moderators);
         this.members = new PrivateSet<>(members);
         this.description = description;
@@ -111,7 +113,7 @@ public class Terrain implements Serializable {
      * @param world  The world this terrain is located.
      */
     public Terrain(@NotNull Coordinate first, @NotNull Coordinate second, @NotNull UUID world) {
-        this(first, second, world, UUID.randomUUID(), "", null, ZonedDateTime.now(), null, null, null, null);
+        this(first, second, world, UUID.randomUUID(), "", null, ZonedDateTime.now(), null, 0, null, null, null);
         this.name = id.toString().substring(0, id.toString().indexOf('-'));
     }
 
@@ -122,7 +124,7 @@ public class Terrain implements Serializable {
      * @param terrain The terrain to make an unregistered copy of.
      */
     public Terrain(@NotNull Terrain terrain) {
-        this(terrain.minDiagonal, terrain.maxDiagonal, terrain.world, terrain.id, terrain.name, terrain.description, terrain.creationDate, terrain.owner, terrain.moderators.set, terrain.members.set, terrain.flags.map);
+        this(terrain.minDiagonal, terrain.maxDiagonal, terrain.world, terrain.id, terrain.name, terrain.description, terrain.creationDate, terrain.owner, terrain.priority, terrain.moderators.set, terrain.members.set, terrain.flags.map);
     }
 
     /**
@@ -141,6 +143,7 @@ public class Terrain implements Serializable {
         config.set("description", terrain.description);
         config.set("creation-date", terrain.creationDate.toString());
         config.set("world", terrain.world.toString());
+        config.set("priority", terrain.priority);
         config.set("diagonals.max-x", terrain.maxDiagonal.x());
         config.set("diagonals.max-y", terrain.maxDiagonal.y());
         config.set("diagonals.max-z", terrain.maxDiagonal.z());
@@ -217,7 +220,7 @@ public class Terrain implements Serializable {
                     }
                 }
             }
-            return new Terrain(min, max, UUID.fromString(terrain.getString("world").orElseThrow()), terrainId, terrain.getString("name").orElseThrow(), terrain.getString("description").orElse(null), terrain.getString("creation-date").map(ZonedDateTime::parse).orElseThrow(), owner == null ? null : UUID.fromString(owner), moderators, members, flagMap);
+            return new Terrain(min, max, UUID.fromString(terrain.getString("world").orElseThrow()), terrainId, terrain.getString("name").orElseThrow(), terrain.getString("description").orElse(null), terrain.getString("creation-date").map(ZonedDateTime::parse).orElseThrow(), owner == null ? null : UUID.fromString(owner), terrain.getNumber("priority").orElse(0).intValue(), moderators, members, flagMap);
         } catch (Exception e) {
             throw new IllegalArgumentException("The provided file is not a valid terrain file:", e);
         }
@@ -275,12 +278,13 @@ public class Terrain implements Serializable {
     }
 
     /**
-     * If this terrain has changed, and it's marked to automatically save, then call {@link TerrainManager#loadAutoSave()} method.
+     * Sets this terrain as changed. If this terrain is marked to auto save, then {@link TerrainManager#loadAutoSave()}
+     * will be called, to save this terrain's changes.
      * <p>
-     * This should be called after the property has changed, and avoid redundant calls that attempt to change to the
-     * same previous property, so the terrain is only saved if it has truly changed.
+     * This should be called AFTER the property has changed. Redundant calls should be avoided, so the terrain saver is
+     * only loaded if something has truly changed.
      */
-    private void reloadIfAutoSave() {
+    protected void markAsChanged() {
         changed = true;
         if (save) TerrainManager.loadAutoSave();
     }
@@ -306,7 +310,7 @@ public class Terrain implements Serializable {
         minDiagonal = findMinMax(first, maxDiagonal, true);
         maxDiagonal = findMinMax(first, maxDiagonal, false);
         borders = findBorders(minDiagonal, maxDiagonal);
-        reloadIfAutoSave();
+        markAsChanged();
     }
 
     /**
@@ -330,7 +334,7 @@ public class Terrain implements Serializable {
         minDiagonal = findMinMax(minDiagonal, second, true);
         maxDiagonal = findMinMax(minDiagonal, second, false);
         borders = findBorders(minDiagonal, maxDiagonal);
-        reloadIfAutoSave();
+        markAsChanged();
     }
 
     /**
@@ -361,7 +365,7 @@ public class Terrain implements Serializable {
     public void setName(@NotNull String name) {
         if (name.equals(this.name)) return;
         this.name = name;
-        reloadIfAutoSave();
+        markAsChanged();
     }
 
     /**
@@ -401,7 +405,29 @@ public class Terrain implements Serializable {
     public void setOwner(@Nullable UUID owner) {
         if (Objects.equals(this.owner, owner)) return;
         this.owner = owner;
-        reloadIfAutoSave();
+        markAsChanged();
+    }
+
+    /**
+     * The priority this terrain should take over other terrains when enforcing flags.
+     * <p>
+     * Usually used when there's more than one terrain at a location.
+     *
+     * @return The priority of this terrain.
+     */
+    public int priority() {
+        return priority;
+    }
+
+    /**
+     * Sets this terrain's priority. The priority will be used when enforcing flags for multiple terrains.
+     *
+     * @param priority The new priority of this terrain.
+     */
+    public void setPriority(int priority) {
+        if (this.priority == priority) return;
+        this.priority = priority;
+        markAsChanged();
     }
 
     /**
@@ -446,7 +472,7 @@ public class Terrain implements Serializable {
     public void setDescription(@Nullable String description) {
         if (Objects.equals(this.description, description)) return;
         this.description = description;
-        reloadIfAutoSave();
+        markAsChanged();
     }
 
     /**
@@ -538,17 +564,17 @@ public class Terrain implements Serializable {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         Terrain terrain = (Terrain) o;
-        return id.equals(terrain.id) && world.equals(terrain.world) && minDiagonal.equals(terrain.minDiagonal) && maxDiagonal.equals(terrain.maxDiagonal) && Objects.equals(owner, terrain.owner) && creationDate.equals(terrain.creationDate) && name.equals(terrain.name) && Objects.equals(description, terrain.description) && moderators.equals(terrain.moderators) && members.equals(terrain.members) && flags.equals(terrain.flags);
+        return id.equals(terrain.id) && world.equals(terrain.world) && minDiagonal.equals(terrain.minDiagonal) && maxDiagonal.equals(terrain.maxDiagonal) && Objects.equals(owner, terrain.owner) && creationDate.equals(terrain.creationDate) && name.equals(terrain.name) && Objects.equals(description, terrain.description) && priority == terrain.priority && moderators.equals(terrain.moderators) && members.equals(terrain.members) && flags.equals(terrain.flags);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(id, world, moderators, members, creationDate, flags, minDiagonal, maxDiagonal, name, owner, description);
+        return Objects.hash(id, world, moderators, members, creationDate, flags, minDiagonal, maxDiagonal, name, owner, description, priority);
     }
 
     @Override
     public @NotNull String toString() {
-        return "Terrain{" + "id=" + id + ", world=" + world + ", minDiagonal=" + minDiagonal + ", maxDiagonal=" + maxDiagonal + ", owner=" + owner + ", creationDate=" + creationDate + ", name='" + name + "', description='" + description + "', moderators=" + moderators + ", members=" + members + ", flags=" + flags + '}';
+        return "Terrain{" + "id=" + id + ", world=" + world + ", minDiagonal=" + minDiagonal + ", maxDiagonal=" + maxDiagonal + ", owner=" + owner + ", creationDate=" + creationDate + ", name='" + name + "', description='" + description + "', priority=" + priority + ", moderators=" + moderators + ", members=" + members + ", flags=" + flags + '}';
     }
 
     /**
@@ -580,7 +606,7 @@ public class Terrain implements Serializable {
                 unmodifiableSet = Collections.unmodifiableSet(set);
             }
             if (set.add(e)) {
-                reloadIfAutoSave();
+                markAsChanged();
                 return true;
             } else {
                 return false;
@@ -591,7 +617,7 @@ public class Terrain implements Serializable {
             if (set == null) return false;
             try {
                 if (set.remove(e)) {
-                    reloadIfAutoSave();
+                    markAsChanged();
                     return true;
                 } else {
                     return false;
@@ -608,7 +634,7 @@ public class Terrain implements Serializable {
             if (set == null) return false;
             try {
                 if (set.removeIf(filter)) {
-                    reloadIfAutoSave();
+                    markAsChanged();
                     return true;
                 } else {
                     return false;
@@ -625,7 +651,7 @@ public class Terrain implements Serializable {
             boolean hadSomething = set != null;
             set = null;
             unmodifiableSet = null;
-            if (hadSomething) reloadIfAutoSave();
+            if (hadSomething) markAsChanged();
         }
 
         public @NotNull Set<E> view() {
@@ -710,7 +736,7 @@ public class Terrain implements Serializable {
             try {
                 return map.put(flag.id(), data);
             } finally {
-                reloadIfAutoSave();
+                markAsChanged();
             }
         }
 
@@ -754,7 +780,7 @@ public class Terrain implements Serializable {
                     map = null;
                     unmodifiableMap = null;
                 }
-                reloadIfAutoSave();
+                markAsChanged();
             }
         }
 
@@ -782,7 +808,7 @@ public class Terrain implements Serializable {
                     map = null;
                     unmodifiableMap = null;
                 }
-                reloadIfAutoSave();
+                markAsChanged();
             }
         }
 

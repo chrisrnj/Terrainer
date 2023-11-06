@@ -30,11 +30,11 @@ import java.util.UUID;
 
 public final class WorldTerrain extends Terrain {
     @Serial
-    private static final long serialVersionUID = -6389040877608477777L;
+    private static final long serialVersionUID = 6844639450981466893L;
 
     public WorldTerrain(@NotNull UUID world, @NotNull String name) {
         super(new Coordinate(Double.MIN_VALUE, Double.MIN_VALUE, Double.MIN_VALUE), new Coordinate(Double.MAX_VALUE, Double.MAX_VALUE, Double.MAX_VALUE),
-                world, world, name, null, ZonedDateTime.now(), null, null, null, null);
+                world, world, name, null, ZonedDateTime.now(), null, 0, null, null, null);
     }
 
     /**
@@ -93,11 +93,11 @@ public final class WorldTerrain extends Terrain {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         WorldTerrain terrain = (WorldTerrain) o;
-        return id.equals(terrain.id) && world.equals(terrain.world) && minDiagonal.equals(terrain.minDiagonal) && maxDiagonal.equals(terrain.maxDiagonal) && Objects.equals(owner, terrain.owner) && creationDate.equals(terrain.creationDate) && name.equals(terrain.name) && Objects.equals(description, terrain.description) && moderators.equals(terrain.moderators) && members.equals(terrain.members) && flags.equals(terrain.flags);
+        return id.equals(terrain.id) && world.equals(terrain.world) && minDiagonal.equals(terrain.minDiagonal) && maxDiagonal.equals(terrain.maxDiagonal) && Objects.equals(owner, terrain.owner) && creationDate.equals(terrain.creationDate) && name.equals(terrain.name) && Objects.equals(description, terrain.description) && priority == terrain.priority && moderators.equals(terrain.moderators) && members.equals(terrain.members) && flags.equals(terrain.flags);
     }
 
     @Override
     public @NotNull String toString() {
-        return "WorldTerrain{" + "id=" + id + ", world=" + world + ", creationDate=" + creationDate + ", name='" + name + "', description='" + description + "', moderators=" + moderators + ", members=" + members + ", flags=" + flags + '}';
+        return "WorldTerrain{" + "id=" + id + ", world=" + world + ", creationDate=" + creationDate + ", name='" + name + "', description='" + description + "', priority=" + priority + ", moderators=" + moderators + ", members=" + members + ", flags=" + flags + '}';
     }
 }
