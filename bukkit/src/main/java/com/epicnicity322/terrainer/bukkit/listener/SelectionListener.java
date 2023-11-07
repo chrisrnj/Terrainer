@@ -29,8 +29,8 @@ import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
 
 import java.time.format.DateTimeFormatter;
+import java.util.List;
 import java.util.Locale;
-import java.util.Set;
 import java.util.UUID;
 
 public final class SelectionListener implements Listener {
@@ -164,7 +164,7 @@ public final class SelectionListener implements Listener {
 
     private void sendInfo(@NotNull Player player, @NotNull Block block) {
         MessageSender lang = TerrainerPlugin.getLanguage();
-        Set<Terrain> terrains = TerrainManager.getTerrainsAt(block.getWorld().getUID(), block.getX(), block.getY(), block.getZ());
+        List<Terrain> terrains = TerrainManager.getTerrainsAt(block.getWorld().getUID(), block.getX(), block.getY(), block.getZ());
 
         if (terrains.isEmpty()) {
             lang.send(player, lang.get("Info.Error.No Terrains"));

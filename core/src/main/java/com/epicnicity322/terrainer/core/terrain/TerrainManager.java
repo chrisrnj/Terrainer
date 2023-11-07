@@ -46,7 +46,7 @@ public final class TerrainManager {
     /**
      * A map with the World's ID as key and a list of terrains in this world as value. This list is sorted based on the minDiagonal's coordinate ID.
      */
-    private static final @NotNull Map<UUID, Set<Terrain>> terrains = new ConcurrentHashMap<>();
+    private static final @NotNull Map<UUID, List<Terrain>> terrains = new ConcurrentHashMap<>();
     /**
      * The selected diagonals of players. Key as the player's ID and value as an array with size 2 containing the diagonals.
      */
@@ -62,10 +62,10 @@ public final class TerrainManager {
     private static final @NotNull UUID consoleUUID = UUID.randomUUID();
 
     // Usually there's only one listener for these events: the one to be used internally by Terrainer.
-    private static final @NotNull ArrayList<Function<ITerrainAddEvent, Boolean>> onAddListeners = new ArrayList<>(1);
-    private static final @NotNull ArrayList<Function<ITerrainRemoveEvent, Boolean>> onRemoveListeners = new ArrayList<>(1);
-    private static final @NotNull ArrayList<Function<IFlagSetEvent<?>, Boolean>> onFlagSetListeners = new ArrayList<>(1);
-    private static final @NotNull ArrayList<Function<IFlagUnsetEvent<?>, Boolean>> onFlagUnsetListeners = new ArrayList<>(1);
+    private static final @NotNull ArrayList<Function<ITerrainAddEvent, Boolean>> onAddListeners = new ArrayList<>(2);
+    private static final @NotNull ArrayList<Function<ITerrainRemoveEvent, Boolean>> onRemoveListeners = new ArrayList<>(2);
+    private static final @NotNull ArrayList<Function<IFlagSetEvent<?>, Boolean>> onFlagSetListeners = new ArrayList<>(2);
+    private static final @NotNull ArrayList<Function<IFlagUnsetEvent<?>, Boolean>> onFlagUnsetListeners = new ArrayList<>(2);
 
     private static volatile boolean autoSaveRunning = false;
 
@@ -101,7 +101,7 @@ public final class TerrainManager {
      * @return Whether the terrain was added and {@link #loadAutoSave()} should be called.
      */
     private static boolean addWithoutAutoSave(@NotNull Terrain terrain) {
-        Set<Terrain> worldTerrains = terrains.get(terrain.world);
+        List<Terrain> worldTerrains = terrains.get(terrain.world);
 
         if (worldTerrains != null && worldTerrains.contains(terrain)) return false;
         // Calling add event. If it's cancelled, then the terrain should not be added, and false is returned.
@@ -110,7 +110,8 @@ public final class TerrainManager {
         // Events passed, terrain should be added.
 
         if (worldTerrains == null) {
-            worldTerrains = ConcurrentHashMap.newKeySet();
+            // Creating a new list for this world, terrains are sorted based on priority.
+            worldTerrains = Collections.synchronizedList(new SortedList<>(Comparator.comparingInt(t -> t.priority)));
             terrains.put(terrain.world, worldTerrains);
         }
 
@@ -171,7 +172,7 @@ public final class TerrainManager {
 
         // Removing from registered terrains.
         UUID world = found.world;
-        Set<Terrain> worldTerrains = terrains.get(world);
+        List<Terrain> worldTerrains = terrains.get(world);
         worldTerrains.remove(found);
         if (worldTerrains.isEmpty()) terrains.remove(world);
 
@@ -185,6 +186,22 @@ public final class TerrainManager {
     }
 
     /**
+     * Removes the terrain from terrains list and adds it again at the proper index, so the list of terrains is always
+     * sorted based on {@link Terrain#priority}.
+     *
+     * @param terrain The terrain to update in the terrains list.
+     */
+    static void update(@NotNull Terrain terrain) {
+        List<Terrain> worldTerrains = terrains.get(terrain.world);
+        if (worldTerrains == null) return;
+
+        // If the list of world terrains contained the terrain, then add it again at sorted index.
+        if (worldTerrains.remove(terrain)) {
+            worldTerrains.add(terrain);
+        }
+    }
+
+    /**
      * Concat terrains from all worlds into a single iterable.
      *
      * @return An unmodifiable iterable of all currently loaded terrains.
@@ -195,15 +212,15 @@ public final class TerrainManager {
     }
 
     /**
-     * Gets the terrains at a specific world.
+     * Gets the terrains of a specific world. The provided list has the terrains sorted based on {@link Terrain#priority()}.
      *
      * @param world The world of the terrains.
-     * @return An unmodifiable set with the terrains located in this world.
+     * @return An unmodifiable list with the terrains located in this world.
      */
-    public static @NotNull Set<Terrain> terrains(@NotNull UUID world) {
-        Set<Terrain> worldTerrains = terrains.get(world);
-        if (worldTerrains == null) return Collections.emptySet();
-        return Collections.unmodifiableSet(worldTerrains);
+    public static @NotNull List<Terrain> terrains(@NotNull UUID world) {
+        List<Terrain> worldTerrains = terrains.get(world);
+        if (worldTerrains == null) return Collections.emptyList();
+        return Collections.unmodifiableList(worldTerrains);
     }
 
     /**
@@ -217,41 +234,29 @@ public final class TerrainManager {
         if (id == null) return null;
 
         // Looking for matching ID through all worlds.
-        for (Map.Entry<UUID, Set<Terrain>> entry : terrains.entrySet()) {
-            Terrain t = getTerrainByID(id, entry.getValue());
-            if (t != null) return t;
-        }
-
-        return null;
-    }
-
-    @Contract("_,null -> null")
-    private static @Nullable Terrain getTerrainByID(@NotNull UUID id, Set<Terrain> terrains) {
-        if (terrains == null) return null;
-
-        for (Terrain terrain : terrains) {
-            if (terrain.id.equals(id)) return terrain;
+        for (Terrain terrain : allTerrains()) {
+            if (id.equals(terrain.id)) return terrain;
         }
 
         return null;
     }
 
     /**
-     * Runs through all terrains in this world and adds the ones that have the coordinate within to a {@link TreeSet}.
-     * The provided set has the terrains sorted based on priority.
+     * Runs through all terrains in this world and adds the ones that have the coordinate within to a new {@link ArrayList}.
+     * The provided list has the terrains sorted based on {@link Terrain#priority()}.
      *
      * @param world The world of the coordinates.
      * @param x     The X coordinate.
      * @param y     The Y coordinate.
      * @param z     The Z coordinate.
-     * @return The terrains containing the location.
+     * @return A mutable list with the terrains containing the location.
      */
-    public static @NotNull Set<Terrain> getTerrainsAt(@NotNull UUID world, double x, double y, double z) {
-        Set<Terrain> worldTerrains = terrains.get(world);
-        if (worldTerrains == null) return Collections.emptySet();
+    public static @NotNull List<Terrain> getTerrainsAt(@NotNull UUID world, double x, double y, double z) {
+        List<Terrain> worldTerrains = terrains.get(world);
+        if (worldTerrains == null) return Collections.emptyList();
 
-        // Terrains are sorted based on priority.
-        TreeSet<Terrain> terrainsAt = new TreeSet<>(Comparator.comparingInt(Terrain::priority));
+        // Terrains are sorted based on priority. They are iterated over and the ones that have the coordinate within are added.
+        ArrayList<Terrain> terrainsAt = new ArrayList<>();
 
         //TODO: binary search
         for (Terrain terrain : worldTerrains) {
@@ -262,23 +267,24 @@ public final class TerrainManager {
     }
 
     /**
-     * Gets the terrains at a specific location.
+     * Runs through all terrains in this world and adds the ones that have the coordinate within to a new {@link ArrayList}.
+     * The provided list has the terrains sorted based on {@link Terrain#priority()}.
      *
      * @param worldCoordinate The coordinate to get terrains at.
-     * @return The terrains containing the location.
+     * @return A mutable list with the terrains containing the location.
      */
-    public static @NotNull Set<Terrain> getTerrainsAt(@NotNull WorldCoordinate worldCoordinate) {
+    public static @NotNull List<Terrain> getTerrainsAt(@NotNull WorldCoordinate worldCoordinate) {
         return getTerrainsAt(worldCoordinate.world(), worldCoordinate.coordinate().x(), worldCoordinate.coordinate().y(), worldCoordinate.coordinate().z());
     }
 
     /**
-     * Get the terrains owned by a player.
+     * Get the terrains owned by a player. The provided list has the terrains sorted based on {@link Terrain#priority()}.
      *
      * @param owner The UUID of the player to check if owns the terrain.
-     * @return The terrains that have this player as an owner.
+     * @return A mutable list with the terrains that have this player as owner.
      */
-    public static @NotNull Set<Terrain> getTerrainsOf(@Nullable UUID owner) {
-        HashSet<Terrain> terrainsOf = new HashSet<>();
+    public static @NotNull List<Terrain> getTerrainsOf(@Nullable UUID owner) {
+        ArrayList<Terrain> terrainsOf = new ArrayList<>();
         for (Terrain terrain : allTerrains()) {
             if (Objects.equals(terrain.owner, owner)) terrainsOf.add(terrain);
         }
@@ -299,9 +305,9 @@ public final class TerrainManager {
     }
 
     /**
-     * Loads all terrains from disk into {@link #allTerrains()} set. No existing terrains are actually updated, this only
-     * deserializes {@link Terrain} objects in {@link #TERRAINS_FOLDER} and adds them to {@link #allTerrains()} set using
-     * {@link Set#add(Object)}.
+     * Reads all terrains from disk and registers them into the terrains list. No existing terrains are actually updated,
+     * this only deserializes {@link Terrain} objects in {@link #TERRAINS_FOLDER} and adds them to the terrains list using
+     * {@link TerrainManager#addWithoutAutoSave(Terrain)}.
      *
      * @see #save()
      */
@@ -540,5 +546,21 @@ public final class TerrainManager {
     }
 
     record FlagSetResult<T>(boolean cancel, T newData) {
+    }
+
+    private static final class SortedList<E> extends LinkedList<E> {
+        private final Comparator<E> comparator;
+
+        public SortedList(Comparator<E> comparator) {
+            this.comparator = comparator;
+        }
+
+        @Override
+        public boolean add(E e) {
+            int index = Collections.binarySearch(this, e, comparator);
+            if (index < 0) index = -index - 1;
+            add(index, e);
+            return true;
+        }
     }
 }

@@ -37,8 +37,8 @@ import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
 import java.time.format.DateTimeFormatter;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 public final class InfoCommand extends Command {
@@ -66,7 +66,7 @@ public final class InfoCommand extends Command {
     @Override
     public void run(@NotNull String label, @NotNull CommandSender sender, @NotNull String[] args) {
         MessageSender lang = TerrainerPlugin.getLanguage();
-        Set<Terrain> terrains;
+        List<Terrain> terrains;
 
         if (args.length > 1) {
             UUID id = null;
@@ -77,14 +77,14 @@ public final class InfoCommand extends Command {
             }
 
             if (id == null) {
-                terrains = new HashSet<>();
+                terrains = new ArrayList<>();
                 String name = CommandUtil.join(args, 1);
 
                 for (Terrain t : TerrainManager.allTerrains()) {
                     if (ChatColor.stripColor(t.name()).equals(name)) terrains.add(t);
                 }
             } else {
-                terrains = new HashSet<>(2);
+                terrains = new ArrayList<>(2);
                 terrains.add(TerrainManager.getTerrainByID(id));
             }
         } else if (sender instanceof Player player) {

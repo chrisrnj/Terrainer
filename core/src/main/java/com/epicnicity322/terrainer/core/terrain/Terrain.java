@@ -421,12 +421,19 @@ public class Terrain implements Serializable {
 
     /**
      * Sets this terrain's priority. The priority will be used when enforcing flags for multiple terrains.
+     * <p>
+     * If this terrain is registered, this method will update the terrain's index in the list of terrains by removing and
+     * adding it again, in order to keep the list sorted by priority. So to avoid {@link ConcurrentModificationException},
+     * it is not recommended to use this method while iterating  through terrains using {@link TerrainManager#allTerrains()}
+     * or {@link TerrainManager#terrains(UUID)}.
      *
      * @param priority The new priority of this terrain.
      */
     public void setPriority(int priority) {
         if (this.priority == priority) return;
         this.priority = priority;
+        // If this terrain is registered to save, then update the index in terrains list, so it remains sorted.
+        if (save) TerrainManager.update(this);
         markAsChanged();
     }
 
