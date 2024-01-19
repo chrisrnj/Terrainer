@@ -25,6 +25,7 @@ import com.epicnicity322.terrainer.bukkit.command.BordersCommand;
 import com.epicnicity322.terrainer.bukkit.event.terrain.TerrainEnterEvent;
 import com.epicnicity322.terrainer.bukkit.event.terrain.TerrainLeaveEvent;
 import com.epicnicity322.terrainer.core.config.Configurations;
+import com.epicnicity322.terrainer.core.protection.Protections;
 import com.epicnicity322.terrainer.core.terrain.Flag;
 import com.epicnicity322.terrainer.core.terrain.Flags;
 import com.epicnicity322.terrainer.core.terrain.Terrain;
@@ -38,6 +39,7 @@ import org.bukkit.block.data.Directional;
 import org.bukkit.boss.BarColor;
 import org.bukkit.boss.BarStyle;
 import org.bukkit.boss.BossBar;
+import org.bukkit.command.CommandSender;
 import org.bukkit.entity.*;
 import org.bukkit.entity.minecart.ExplosiveMinecart;
 import org.bukkit.event.Cancellable;
@@ -62,7 +64,7 @@ import org.spigotmc.event.entity.EntityMountEvent;
 
 import java.util.*;
 
-public final class ProtectionsListener implements Listener {
+public final class ProtectionsListener extends Protections<Player, CommandSender, Material> implements Listener {
     // Enemy interface was added in 1.19.3.
     private static final @Nullable Class<?> enemyInterface = ReflectionUtil.getClass("org.bukkit.entity.Enemy");
     // Paper
@@ -74,6 +76,7 @@ public final class ProtectionsListener implements Listener {
     private final @NotNull NamespacedKey resetFly;
 
     public ProtectionsListener(@NotNull TerrainerPlugin plugin, @NotNull BordersCommand bordersCommand) {
+        super(TerrainerPlugin.getPlayerUtil(), TerrainerPlugin.getLanguage());
         this.plugin = plugin;
         this.bordersCommand = bordersCommand;
         resetFly = new NamespacedKey(plugin, "reset-fly-on-leave");
@@ -104,14 +107,6 @@ public final class ProtectionsListener implements Listener {
             case ARMOR_STAND, GLOW_ITEM_FRAME, ITEM_FRAME, PAINTING, STRING, BUCKET, AXOLOTL_BUCKET, COD_BUCKET, LAVA_BUCKET, POWDER_SNOW_BUCKET, PUFFERFISH_BUCKET, SALMON_BUCKET, TADPOLE_BUCKET, TROPICAL_FISH_BUCKET, WATER_BUCKET, CHEST_MINECART, COMMAND_BLOCK_MINECART, FURNACE_MINECART, HOPPER_MINECART, TNT_MINECART ->
                     true;
             default -> type.name().endsWith("BOAT");
-        };
-    }
-
-    private static boolean isContainer(@NotNull Material type) {
-        return switch (type) {
-            case BARREL, BLAST_FURNACE, BREWING_STAND, CHEST, DISPENSER, DROPPER, FURNACE, HOPPER, SHULKER_BOX, SMOKER, TRAPPED_CHEST ->
-                    true;
-            default -> false;
         };
     }
 
@@ -286,42 +281,34 @@ public final class ProtectionsListener implements Listener {
         }
     }
 
-    // Prevent block break if BUILD is false, if it's a container, prevent if BUILD or CONTAINERS is false.
+    protected boolean isContainer(@NotNull Material type) {
+        return switch (type) {
+            case BARREL, BLAST_FURNACE, BREWING_STAND, CHEST, DISPENSER, DROPPER, FURNACE, HOPPER, SHULKER_BOX, SMOKER, TRAPPED_CHEST ->
+                    true;
+            default -> false;
+        };
+    }
+
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
     public void onBlockBreak(BlockBreakEvent event) {
-        Player player = event.getPlayer();
         Block block = event.getBlock();
-        if (isContainer(block.getType())) {
-            if (!player.hasPermission("terrainer.bypass.build") || !player.hasPermission("terrainer.bypass.containers")) {
-                UUID world = block.getWorld().getUID();
-
-                for (Terrain terrain : TerrainManager.allTerrains()) {
-                    if (!terrain.world().equals(world) || !terrain.isWithin(block.getX(), block.getY(), block.getZ()))
-                        continue;
-                    if (!TerrainerPlugin.getPlayerUtil().hasAnyRelations(player.getUniqueId(), terrain) && (deny(terrain, Flags.CONTAINERS) || deny(terrain, Flags.CONTAINERS))) {
-                        event.setCancelled(true);
-                        lang.send(player, lang.get("Protections.Containers"));
-                        return;
-                    }
-                }
-            }
-        } else {
-            if (player.hasPermission("terrainer.bypass.build")) return;
-            handleProtection(event, player, block.getLocation(), Flags.BUILD, "Protections.Build");
-        }
+        boolean allow = blockBreak(block.getWorld().getUID(), block.getX(), block.getY(), block.getZ(), event.getPlayer(), block.getType());
+        if (!allow) event.setCancelled(true);
     }
 
     @EventHandler(priority = EventPriority.LOWEST)
     public void onBucketFill(PlayerBucketFillEvent event) {
-        if (event.getPlayer().hasPermission("terrainer.bypass.build")) return;
-        handleProtection(event, event.getPlayer(), event.getBlockClicked().getLocation(), Flags.BUILD, "Protections.Build");
+        Block block = event.getBlockClicked();
+        boolean allow = bucketFill(block.getWorld().getUID(), block.getX(), block.getY(), block.getZ(), event.getPlayer());
+        if (!allow) event.setCancelled(true);
     }
 
     // Prevent block place if BUILD is false.
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
     public void onBlockPlace(BlockPlaceEvent event) {
-        if (event.getPlayer().hasPermission("terrainer.bypass.build")) return;
-        handleProtection(event, event.getPlayer(), event.getBlock().getLocation(), Flags.BUILD, "Protections.Build");
+        Block block = event.getBlock();
+        boolean allow = blockPlace(block.getWorld().getUID(), block.getX(), block.getY(), block.getZ(), event.getPlayer());
+        if (!allow) event.setCancelled(true);
     }
 
     // Prevent interactions of:
@@ -977,14 +964,15 @@ public final class ProtectionsListener implements Listener {
         Terrain terrain = event.terrain();
         Player player = event.player();
 
-        if (player.hasPermission("terrainer.bypass.leave")) return;
-        if (!TerrainerPlugin.getPlayerUtil().hasAnyRelations(player, terrain) && deny(terrain, Flags.LEAVE)) {
+        if (!player.hasPermission("terrainer.bypass.leave") && !TerrainerPlugin.getPlayerUtil().hasAnyRelations(player, terrain) && deny(terrain, Flags.LEAVE)) {
             event.setCancelled(true);
             lang.send(player, lang.get("Protections.Leave"));
             return;
         }
 
-        if (player.getPersistentDataContainer().has(resetFly, PersistentDataType.INTEGER)) {
+        String flyPermission = Configurations.CONFIG.getConfiguration().getString("Fly Permission").orElse("essentials.fly");
+
+        if (player.getPersistentDataContainer().has(resetFly, PersistentDataType.INTEGER) && player.hasPermission(flyPermission)) {
             player.getPersistentDataContainer().remove(resetFly);
             player.setAllowFlight(true);
         }

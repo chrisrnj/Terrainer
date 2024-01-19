@@ -114,7 +114,7 @@ public final class Configurations {
             Borders:
               # Whether to show borders of terrains to players.
               Enabled: true
-              # Whether to show the border everytime a player enters a terrain.
+              # Whether to show the border every time a player enters a terrain.
               On Enter: true
               # Whether to spawn the particles asynchronously.
               Async: true
@@ -195,6 +195,11 @@ public final class Configurations {
               Price: 50
               # Bypass: terrainer.wand.info.nocooldown
               Cooldown: 3600 #seconds
+                        
+            # The permission for flying.
+            # When flying players enter terrains that have the flag FLY denied, they will have their ability to fly removed.
+            # Players who have this permission will have their ability to fly granted back when they leave the terrain.
+            Fly Permission: 'essentials.fly'
                         
             List:
               Chat:
@@ -318,6 +323,8 @@ public final class Configurations {
               Confirm:
                 Confirm: 'confirm'
                 List: 'list'
+              Priority:
+                Here: '-here'
               Transfer:
                 Force: '-force'
               Wand:
@@ -439,6 +446,7 @@ public final class Configurations {
                 &7Members: &f<members>
                 &7Flags: &f<flags>
                 &7Description: &f<desc>
+                &7Priority: &f<priority>
                 &8----------------------------------------
                         
             Input:
@@ -482,6 +490,7 @@ public final class Configurations {
               Flag Optional: '<flag> [values]'
               Player: '<player>'
               Player Optional: '[player]'
+              Priority: '[priority|-here]'
               Terrain: '<terrain>'
               Terrain Optional: '[--t <terrain>]'
               World: 'world'
@@ -525,6 +534,14 @@ public final class Configurations {
               Request: '&f<player>&7 wants to transfer the terrain &f<terrain>&7 to you. To accept, use &f&n/tr confirm&7.'
               Requested: '&7A request was sent to &f<who>&7 to accept the terrain.'
               Success: '&aTerrain &7<terrain>&a was transferred successfully to &7<who>&a.'
+                        
+            Priority:
+              Error:
+                No Terrains: '<cooldown=1000> &7No terrains could be found.'
+              Same:
+                Here: '&7All terrains in this location have priority &f<priority>&7: &f<terrains>'
+              Removed: '&7Some terrains are not in the list because you don''t own them.'
+              Single: '&7Terrain &f<terrain>&7 has &f<priority>&7 priority.'
                         
             Wand:
               Bought: '&aYou''ve bought a &7<type>&a for &6<price>$&a.'
