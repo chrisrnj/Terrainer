@@ -544,7 +544,7 @@ public class Terrain implements Serializable {
      * @return Whether this terrain is being overlapped by the other terrain.
      */
     public boolean isOverlapping(@NotNull Terrain terrain) {
-        if (!world.equals(terrain.world)) return false;
+        if (!world.equals(terrain.world) || terrain instanceof WorldTerrain) return false;
 
         Coordinate terrain2Min = terrain.minDiagonal;
         Coordinate terrain2Max = terrain.maxDiagonal;
