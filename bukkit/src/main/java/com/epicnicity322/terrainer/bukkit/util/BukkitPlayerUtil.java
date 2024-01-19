@@ -47,7 +47,7 @@ public final class BukkitPlayerUtil extends PlayerUtil<Player, CommandSender> {
     }
 
     @Override
-    protected boolean hasPermission(@NotNull Player player, @NotNull String permission) {
+    public boolean hasPermission(@NotNull Player player, @NotNull String permission) {
         return player.hasPermission(permission);
     }
 

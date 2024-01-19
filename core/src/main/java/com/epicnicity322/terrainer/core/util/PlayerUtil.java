@@ -68,7 +68,7 @@ public abstract class PlayerUtil<P extends R, R> {
         defaultClaimLimits.putAll(claimLimits);
     }
 
-    protected abstract boolean hasPermission(@NotNull P player, @NotNull String permission);
+    public abstract boolean hasPermission(@NotNull P player, @NotNull String permission);
 
     /**
      * Finds the name of the proprietary of this UUID. {@code null} is used to find the name of console.
