@@ -69,6 +69,7 @@ public class CommandUtil {
         ArrayList<String> preceding = new ArrayList<>();
         StringBuilder exampleSyntax = new StringBuilder();
 
+        // Splitting command arguments into preceding and terrain name based on where --t is.
         for (int i = 1; i < args.length; ++i) {
             String s = args[i];
             if (join) {
@@ -87,6 +88,7 @@ public class CommandUtil {
         String terrainName = terrainNameBuilder.toString();
         Terrain terrain = null;
 
+        // If no terrain was specified in the command, look for terrain in player's location.
         if (terrainName.isEmpty()) {
             exampleSyntax.append("--t ").append(lang.get("Invalid Arguments.Terrain"));
             if (!(sender instanceof Player player)) {
@@ -99,8 +101,15 @@ public class CommandUtil {
             int y = loc.getBlockY();
             int z = loc.getBlockZ();
 
-            for (Terrain t : TerrainManager.allTerrains()) {
+            boolean notAllowed = false;
+
+            // Looping through all terrains in the location. The ones the player is not allowed to find are ignored.
+            for (Terrain t : TerrainManager.terrains(player.getWorld().getUID())) {
                 if (t instanceof WorldTerrain || !t.isWithin(x, y, z)) continue;
+                if (isNotAllowedToFind(t, player, allowModerators, permissionOthers)) {
+                    notAllowed = true;
+                    continue;
+                }
                 if (terrain != null) {
                     lang.send(sender, lang.get("Matcher.Location.Multiple").replace("<label>", label).replace("<args>", args[0] + " " + exampleSyntax));
                     return null;
@@ -109,21 +118,41 @@ public class CommandUtil {
                 }
             }
 
+            // No terrains found.
             if (terrain == null) {
-                lang.send(sender, lang.get("Matcher.Location.Not Found").replace("<label>", label).replace("<args>", args[0] + " " + exampleSyntax));
+                if (notAllowed) {
+                    lang.send(sender, lang.get("Matcher.No Permission"));
+                } else {
+                    lang.send(sender, lang.get("Matcher.Location.Not Found").replace("<label>", label).replace("<args>", args[0] + " " + exampleSyntax));
+                }
                 return null;
             }
         } else {
+            // Checking for ID first.
             UUID id = null;
             try {
                 id = UUID.fromString(terrainName);
             } catch (IllegalArgumentException ignored) {
             }
+
+            boolean notAllowed = false;
+
             if (id != null) {
                 terrain = TerrainManager.getTerrainByID(id);
+
+                // Checking permission to find.
+                if (terrain != null && isNotAllowedToFind(terrain, sender, allowModerators, permissionOthers)) {
+                    lang.send(sender, lang.get("Matcher.No Permission"));
+                    return null;
+                }
             } else {
+                // Finding terrain by name. The ones the player is not allowed to find are ignored.
                 for (Terrain t : TerrainManager.allTerrains()) {
                     if (!t.name().equals(terrainName)) continue;
+                    if (isNotAllowedToFind(t, sender, allowModerators, permissionOthers)) {
+                        notAllowed = true;
+                        continue;
+                    }
                     if (terrain != null) {
                         lang.send(sender, lang.get("Matcher.Name.Multiple"));
                         return null;
@@ -133,21 +162,24 @@ public class CommandUtil {
                 }
             }
 
+            // No terrains found.
             if (terrain == null) {
-                lang.send(sender, lang.get("Matcher.Name.Not Found"));
-                return null;
-            }
-        }
-
-        if (!sender.hasPermission(permissionOthers)) {
-            UUID id = sender instanceof Player player ? player.getUniqueId() : null;
-            if (!Objects.equals(terrain.owner(), id) && (!allowModerators || !terrain.moderators().view().contains(id))) {
-                lang.send(sender, lang.get("Matcher.No Permission"));
+                if (notAllowed) {
+                    lang.send(sender, lang.get("Matcher.No Permission"));
+                } else {
+                    lang.send(sender, lang.get("Matcher.Name.Not Found"));
+                }
                 return null;
             }
         }
 
         return new CommandArguments(preceding.toArray(new String[0]), terrain);
+    }
+
+    private static boolean isNotAllowedToFind(@NotNull Terrain terrain, @NotNull CommandSender sender, boolean allowModerators, @NotNull String permission) {
+        UUID id = sender instanceof Player player ? player.getUniqueId() : null;
+
+        return id != null && !Objects.equals(terrain.owner(), id) && !sender.hasPermission(permission) && (!allowModerators || !terrain.moderators().view().contains(id));
     }
 
     public static @Nullable TargetResponse target(int targetIndex, @Nullable String permissionOthers, @NotNull CommandSender sender, @NotNull String[] args) {
