@@ -34,6 +34,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.IOException;
+import java.io.Serial;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
@@ -111,7 +112,7 @@ public final class TerrainManager {
 
         if (worldTerrains == null) {
             // Creating a new list for this world, terrains are sorted based on priority.
-            worldTerrains = Collections.synchronizedList(new SortedList<>(Comparator.comparingInt(t -> t.priority)));
+            worldTerrains = Collections.synchronizedList(new SortedList<>((c1, c2) -> -Integer.compare(c1.priority, c2.priority)));
             terrains.put(terrain.world, worldTerrains);
         }
 
@@ -548,7 +549,10 @@ public final class TerrainManager {
     record FlagSetResult<T>(boolean cancel, T newData) {
     }
 
-    private static final class SortedList<E> extends LinkedList<E> {
+    private static final class SortedList<E> extends ArrayList<E> {
+        @Serial
+        private static final long serialVersionUID = -1378407811134218600L;
+
         private final Comparator<E> comparator;
 
         public SortedList(Comparator<E> comparator) {
