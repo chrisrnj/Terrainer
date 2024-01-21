@@ -1,12 +1,12 @@
 package com.epicnicity322.terrainer.bukkit.gui;
 
 import com.epicnicity322.epicpluginlib.bukkit.lang.MessageSender;
+import com.epicnicity322.epicpluginlib.bukkit.util.InputGetterUtil;
 import com.epicnicity322.epicpluginlib.bukkit.util.InventoryUtils;
 import com.epicnicity322.epicpluginlib.core.logger.ConsoleLogger;
 import com.epicnicity322.terrainer.bukkit.TerrainerPlugin;
 import com.epicnicity322.terrainer.bukkit.event.flag.UserFlagSetEvent;
 import com.epicnicity322.terrainer.bukkit.event.flag.UserFlagUnsetEvent;
-import com.epicnicity322.terrainer.bukkit.util.InputGetterUtil;
 import com.epicnicity322.terrainer.core.Terrainer;
 import com.epicnicity322.terrainer.core.config.Configurations;
 import com.epicnicity322.terrainer.core.terrain.Flag;
@@ -111,7 +111,7 @@ public class FlagListGUI extends ListGUI<FlagListGUI.FlagEntry> {
                 return;
             }
 
-            InputGetterUtil.input(player, input -> {
+            Consumer<String> onInput = input -> {
                 if (input.isBlank()) {
                     UserFlagUnsetEvent e = new UserFlagUnsetEvent(player, terrain, flag, true);
                     Bukkit.getPluginManager().callEvent(e);
@@ -130,7 +130,17 @@ public class FlagListGUI extends ListGUI<FlagListGUI.FlagEntry> {
                 if (putFlag(terrain, flag, input, player, localized)) {
                     event.getInventory().setItem(event.getSlot(), item(t));
                 }
-            });
+            };
+
+            boolean anvil = Configurations.CONFIG.getConfiguration().getBoolean("Input.Anvil GUI.Enabled").orElse(false);
+
+            if (!anvil || !InputGetterUtil.askAnvilInput(player, InventoryUtils.getItemStack("Input.Anvil GUI", Configurations.CONFIG.getConfiguration(), TerrainerPlugin.getLanguage()), onInput)) {
+                // Anvil could not be open, asking for input in chat.
+                long chatInterval = Configurations.CONFIG.getConfiguration().getNumber("Input.Chat Interval").orElse(200).longValue();
+
+                lang.send(player, lang.get("Input.Ask").replace("<time>", Long.toString(chatInterval / 20)));
+                InputGetterUtil.askChatInput(player, chatInterval, onInput);
+            }
         };
     }
 

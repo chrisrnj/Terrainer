@@ -138,7 +138,7 @@ public final class Configurations {
                 Material: FEATHER
                 Glowing: true
               # The max time in ticks to get inputs from chat, if the player can't answer the input within this time, it will be cancelled.
-              Chat Interval: 200
+              Chat Interval: 400
                         
             # The commands to execute when a player joins the server in a terrain, and the TerrainEnterEvent is cancelled.
             # An example of this happening is if the player had permission to enter a terrain which ENTRY flag is denied,
@@ -456,8 +456,6 @@ public final class Configurations {
                   Please type in what do you want to
                   <line>input.
               Ask: '&ePlease type the input in chat, you have <time> seconds.'
-              Submitted: '&aInput submitted: &7<input>'
-              Error: '&4Something went wrong while processing the input, please contact an administrator.'
                         
             Limits:
               No Others: '&4You don''t have permission to see/edit limits of other players!'
