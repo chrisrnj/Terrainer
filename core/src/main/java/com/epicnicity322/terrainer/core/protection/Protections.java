@@ -1,3 +1,21 @@
+/*
+ * Terrainer - A minecraft terrain claiming protection plugin.
+ * Copyright (C) 2024 Christiano Rangel
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 package com.epicnicity322.terrainer.core.protection;
 
 import com.epicnicity322.epicpluginlib.core.lang.LanguageHolder;
@@ -133,17 +151,12 @@ public abstract class Protections<P extends R, R, M> {
         return handleProtection(player, world, x, y, z, Flags.BUILD, "Protections.Build");
     }
 
-    // Prevent interactions of:
-    // Pressure Plates if PRESSURE_PLATES is false.
-    // Farmland if FARMLAND_TRAMPLE is false.
-    // Levers and buttons if BUTTONS is false.
-    // Doors, gates, trapdoors if DOORS is false.
-    // Signs if SIGN_CLICK is false.
-    // Containers if CONTAINERS is false.
-    // Double chests if any of the ends are within a terrain and CONTAINERS is false.
-    // Any non interactable block if the item in hand is a building block and BUILD is false.
-    // Any other interactable block if the item in hand is not a building block and INTERACTIONS is false.
-    public boolean interact(@NotNull UUID world, double x, double y, double z, @NotNull P player, @Nullable M material) {
+    public boolean physicalInteract(@NotNull UUID world, double x, double y, double z, @NotNull P player, @NotNull Flag<Boolean> flag, @NotNull String message) {
+        if (playerUtil.hasPermission(player, "terrainer.bypass.interactions")) return true;
+        return handleProtection(player, world, x, y, z, flag, message);
+    }
+
+    public boolean rightClickInteract(@NotNull UUID world, double x, double y, double z, @NotNull P player, @Nullable M material) {
         return true;
     }
 }

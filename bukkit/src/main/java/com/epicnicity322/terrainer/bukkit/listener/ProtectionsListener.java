@@ -1,6 +1,6 @@
 /*
  * Terrainer - A minecraft terrain claiming protection plugin.
- * Copyright (C) 2023 Christiano Rangel
+ * Copyright (C) 2024 Christiano Rangel
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -42,10 +42,7 @@ import org.bukkit.boss.BossBar;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.*;
 import org.bukkit.entity.minecart.ExplosiveMinecart;
-import org.bukkit.event.Cancellable;
-import org.bukkit.event.EventHandler;
-import org.bukkit.event.EventPriority;
-import org.bukkit.event.Listener;
+import org.bukkit.event.*;
 import org.bukkit.event.block.*;
 import org.bukkit.event.entity.*;
 import org.bukkit.event.hanging.HangingBreakByEntityEvent;
@@ -60,7 +57,6 @@ import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scheduler.BukkitTask;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.spigotmc.event.entity.EntityMountEvent;
 
 import java.util.*;
 
@@ -303,6 +299,8 @@ public final class ProtectionsListener extends Protections<Player, CommandSender
         if (!allow) event.setCancelled(true);
     }
 
+//TODO: PICKUP ARROW EVENT
+
     // Prevent block place if BUILD is false.
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
     public void onBlockPlace(BlockPlaceEvent event) {
@@ -323,47 +321,38 @@ public final class ProtectionsListener extends Protections<Player, CommandSender
     // Any other interactable block if the item in hand is not a building block and INTERACTIONS is false.
     @EventHandler(priority = EventPriority.LOWEST)
     public void onInteract(PlayerInteractEvent event) {
-        Player player = event.getPlayer();
-        Action action = event.getAction();
         Block block = event.getClickedBlock();
         if (block == null) return;
+        Player player = event.getPlayer();
+        Action action = event.getAction();
         Material type = block.getType();
-
-        Flag<Boolean> flag = null;
-        String message = null;
+        UUID world = block.getWorld().getUID();
 
         if (action == Action.PHYSICAL) {
-            UUID world = block.getWorld().getUID();
+            String typeName = type.name();
+            int underscore = typeName.lastIndexOf('_');
+            if (underscore != -1) typeName = typeName.substring(underscore + 1);
 
-            for (Terrain terrain : TerrainManager.allTerrains()) {
-                if (!terrain.world().equals(world) || !terrain.isWithin(block.getX(), block.getY(), block.getZ())) {
-                    continue;
+            Flag<Boolean> flag;
+            String message;
+
+            switch (typeName) {
+                case "PLATE" -> {
+                    flag = Flags.PRESSURE_PLATES;
+                    message = "Protections.Pressure Plates";
                 }
-                if (flag == null) {
-                    if (player.hasPermission("terrainer.bypass.interactions")) return;
-                    String typeName = type.name();
-                    int underscore = typeName.lastIndexOf('_');
-                    if (underscore != -1) typeName = typeName.substring(underscore + 1);
-                    switch (typeName) {
-                        case "PLATE" -> {
-                            flag = Flags.PRESSURE_PLATES;
-                            message = "Protections.Pressure Plates";
-                        }
-                        case "FARMLAND" -> {
-                            flag = Flags.TRAMPLE;
-                            message = "Protections.Farmland Trampling";
-                        }
-                        default -> {
-                            flag = Flags.INTERACTIONS;
-                            message = "Protections.Interactions";
-                        }
-                    }
+                case "FARMLAND" -> {
+                    flag = Flags.TRAMPLE;
+                    message = "Protections.Farmland Trampling";
                 }
-                if (!TerrainerPlugin.getPlayerUtil().hasAnyRelations(player, terrain) && deny(terrain, flag)) {
-                    event.setCancelled(true);
-                    lang.send(player, lang.get(message));
-                    return;
+                default -> {
+                    flag = Flags.INTERACTIONS;
+                    message = "Protections.Interactions";
                 }
+            }
+
+            if (!physicalInteract(world, block.getX(), block.getY(), block.getZ(), player, flag, message)) {
+                event.setUseInteractedBlock(Event.Result.DENY);
             }
             return;
         } else if (action != Action.RIGHT_CLICK_BLOCK) return;
@@ -391,9 +380,9 @@ public final class ProtectionsListener extends Protections<Player, CommandSender
             }
         }
 
-        UUID world = block.getWorld().getUID();
         Block relative = block.getRelative(event.getBlockFace());
-
+        Flag<Boolean> flag = null;
+        String message = null;
         for (Terrain terrain : TerrainManager.allTerrains()) {
             if (!terrain.world().equals(world) || (!terrain.isWithin(block.getX(), block.getY(), block.getZ()) && !terrain.isWithin(relative.getX(), relative.getY(), relative.getZ()))) {
                 continue;
