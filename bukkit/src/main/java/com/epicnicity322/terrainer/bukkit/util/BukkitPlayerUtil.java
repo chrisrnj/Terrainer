@@ -47,6 +47,11 @@ public final class BukkitPlayerUtil extends PlayerUtil<Player, CommandSender> {
     }
 
     @Override
+    public boolean isSneaking(@NotNull Player player) {
+        return player.isSneaking();
+    }
+
+    @Override
     public boolean hasPermission(@NotNull Player player, @NotNull String permission) {
         return player.hasPermission(permission);
     }

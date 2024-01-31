@@ -68,6 +68,8 @@ public abstract class PlayerUtil<P extends R, R> {
         defaultClaimLimits.putAll(claimLimits);
     }
 
+    public abstract boolean isSneaking(@NotNull P player);
+
     public abstract boolean hasPermission(@NotNull P player, @NotNull String permission);
 
     /**
