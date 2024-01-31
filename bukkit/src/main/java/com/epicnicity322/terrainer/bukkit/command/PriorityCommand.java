@@ -78,7 +78,7 @@ public class PriorityCommand extends Command {
                 lang.send(sender, lang.get("Priority.Single").replace("<priority>", Integer.toString(terrains.get(0).priority())).replace("<terrain>", terrains.get(0).name()));
                 return;
             }
-            if (checkIfTerrainsHaveSamePriority(terrains, player, true)) {
+            if (checkIfTerrainsHaveSamePriority(terrains)) {
                 lang.send(sender, lang.get("Priority.Same.Here").replace("<priority>", Integer.toString(terrains.get(0).priority())).replace("<terrains>", TerrainerUtil.listToString(terrains, Terrain::name)));
                 if (removed) lang.send(sender, lang.get("Priority.Removed"));
                 return;
@@ -110,7 +110,7 @@ public class PriorityCommand extends Command {
 
             boolean showOtherPriorities = sender.hasPermission("terrainer.priority.others");
 
-            if (showOtherPriorities && checkIfTerrainsHaveSamePriority(overlappingTerrains, sender, false)) {
+            if (showOtherPriorities && checkIfTerrainsHaveSamePriority(overlappingTerrains)) {
                 return;
             }
 
@@ -156,7 +156,7 @@ public class PriorityCommand extends Command {
         return terrains;
     }
 
-    private boolean checkIfTerrainsHaveSamePriority(List<Terrain> terrains, CommandSender sender, boolean here) {
+    private boolean checkIfTerrainsHaveSamePriority(List<Terrain> terrains) {
         Integer priority = null;
 
         for (Terrain terrain : terrains) {
