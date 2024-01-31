@@ -128,6 +128,11 @@ public final class TerrainerPlugin extends JavaPlugin {
         });
 
         Configuration config = Configurations.CONFIG.getConfiguration();
+
+        // Entry Cancelled Commands
+        EnterLeaveListener.setCommandsOnEntryCancelled(config.getCollection("Commands When TerrainEnterEvent Cancelled on Join or Create", Object::toString));
+
+        // Block Limits
         Map<String, Long> defaultBlockLimits = Collections.emptyMap();
         ConfigurationSection blockLimits = config.getConfigurationSection("Block Limits");
         if (blockLimits != null) {
@@ -142,6 +147,7 @@ public final class TerrainerPlugin extends JavaPlugin {
         }
         PlayerUtil.setDefaultBlockLimits(defaultBlockLimits);
 
+        // Claim Limits
         Map<String, Integer> defaultClaimLimits = Collections.emptyMap();
         ConfigurationSection claimLimits = config.getConfigurationSection("Claim Limits");
         if (claimLimits != null) {
@@ -156,7 +162,10 @@ public final class TerrainerPlugin extends JavaPlugin {
         }
         PlayerUtil.setDefaultClaimLimits(defaultClaimLimits);
 
+        // Instance required from now on
         if (instance == null) return false;
+
+        // Borders Particle
         String particleName = config.getString("Borders.Particle").orElse("CLOUD").toUpperCase(Locale.ROOT);
         try {
             instance.bordersCommand.setParticle(Particle.valueOf(particleName));
@@ -165,6 +174,7 @@ public final class TerrainerPlugin extends JavaPlugin {
             instance.bordersCommand.setParticle(Particle.CLOUD);
         }
 
+        // Selection and Info Items
         SelectionListener.reloadItems(instance.selectorWandKey, instance.infoWandKey);
         return exceptions.isEmpty();
     }
