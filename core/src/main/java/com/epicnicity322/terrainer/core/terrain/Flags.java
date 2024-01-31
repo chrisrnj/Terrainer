@@ -42,13 +42,24 @@ public final class Flags {
      */
     public static final @NotNull Flag<Boolean> ARMOR_STANDS = Flag.newBooleanFlag("Armor Stands", false);
     /**
+     * Allows blocks such as fire and sculk to spread.
+     */
+    //TODO:
+    public static final @NotNull Flag<Boolean> BLOCK_SPREAD = Flag.newBooleanFlag("Block Spread", true);
+    /**
      * Allows everyone to build in a terrain, even non-members.
      */
     public static final @NotNull Flag<Boolean> BUILD = Flag.newBooleanFlag("Build", false);
     /**
-     * Allows everyone to place and break vehicles.
+     * Allows everyone to place and break boats.
      */
-    public static final @NotNull Flag<Boolean> BUILD_VEHICLES = Flag.newBooleanFlag("Build Vehicles", false);
+    //TODO:
+    public static final @NotNull Flag<Boolean> BUILD_BOATS = Flag.newBooleanFlag("Build Boats", false);
+    /**
+     * Allows everyone to place and break minecarts.
+     */
+    //TODO:
+    public static final @NotNull Flag<Boolean> BUILD_MINECARTS = Flag.newBooleanFlag("Build Minecarts", false);
     /**
      * Allows everyone to use buttons and levers.
      */
@@ -146,6 +157,11 @@ public final class Flags {
         return input.trim();
     });
     /**
+     * Allows everyone to use lighters such as fireballs or flint and steel.
+     */
+    //TODO:
+    public static final @NotNull Flag<Boolean> LIGHTERS = Flag.newBooleanFlag("Lighters", false);
+    /**
      * Allows water and lava to flow.
      */
     public static final @NotNull Flag<Boolean> LIQUID_FLOW = Flag.newBooleanFlag("Liquid Flow", true);
@@ -189,6 +205,16 @@ public final class Flags {
      */
     public static final @NotNull Flag<Boolean> PISTONS = Flag.newBooleanFlag("Pistons", true);
     /**
+     * Allows everyone to plant and break crops on farmland.
+     */
+    //TODO:
+    public static final @NotNull Flag<Boolean> PLANT = Flag.newBooleanFlag("Plant", false);
+    /**
+     * Allows everyone to use hoes on grass blocks.
+     */
+    //TODO:
+    public static final @NotNull Flag<Boolean> PLOW = Flag.newBooleanFlag("Plow", false);
+    /**
      * Allows everyone to use preparing blocks, such as cartography tables, crafting tables, enchanting tables,
      * grindstones, looms, smithing tables, and stonecutters.
      */
@@ -206,6 +232,11 @@ public final class Flags {
      * Allows players to engage in combat.
      */
     public static final @NotNull Flag<Boolean> PVP = Flag.newBooleanFlag("PvP", false);
+    /**
+     * Show particles at the terrain's boundaries.
+     */
+    //TODO:
+    public static final @NotNull Flag<Boolean> SHOW_BORDERS = Flag.newBooleanFlag("Show Borders", true);
     /**
      * Allows everyone to right-click signs.
      */
@@ -227,14 +258,14 @@ public final class Flags {
      */
     public static final @NotNull Flag<Boolean> VULNERABILITY = Flag.newBooleanFlag("Vulnerability", true);
 
-    //private static final @NotNull Pattern space = Pattern.compile(" ");
     private static final @NotNull HashSet<Flag<?>> customValues = new HashSet<>();
-    private static final @NotNull Set<Flag<?>> values = Set.of(ARMOR_STANDS, BUILD, BUILD_VEHICLES, BUTTONS, CONTAINERS,
-            DISPENSERS, DOORS, EFFECTS, ENEMY_HARM, ENTER, ENTER_VEHICLES, ENTITY_HARM, ENTITY_INTERACTIONS,
-            EXPLOSION_DAMAGE, FIRE_DAMAGE, FLY, FROST_WALK, GLIDE, INTERACTIONS, ITEM_DROP, ITEM_FRAMES, ITEM_PICKUP,
-            LEAF_DECAY, LEAVE, LEAVE_MESSAGE, LIQUID_FLOW, MESSAGE_LOCATION, MOB_SPAWN, MODS_CAN_EDIT_FLAGS,
-            MODS_CAN_MANAGE_MODS, OUTSIDE_DISPENSERS, OUTSIDE_PISTONS, OUTSIDE_PROJECTILES, PISTONS, PRESSURE_PLATES,
-            PROJECTILES, PVP, SIGN_CLICK, SIGN_EDIT, SPAWNERS, TRAMPLE, VULNERABILITY);
+    private static final @NotNull Set<Flag<?>> values = Set.of(ANVILS, ARMOR_STANDS, BLOCK_SPREAD, BUILD, BUILD_BOATS,
+            BUILD_MINECARTS, BUTTONS, CONTAINERS, DISPENSERS, DOORS, EFFECTS, ENEMY_HARM, ENTER, ENTER_VEHICLES,
+            ENTITY_HARM, ENTITY_INTERACTIONS, EXPLOSION_DAMAGE, FIRE_DAMAGE, FLY, FROST_WALK, GLIDE, INTERACTIONS,
+            ITEM_DROP, ITEM_FRAMES, ITEM_PICKUP, LEAF_DECAY, LEAVE, LEAVE_MESSAGE, LIGHTERS, LIQUID_FLOW,
+            MESSAGE_LOCATION, MOB_SPAWN, MODS_CAN_EDIT_FLAGS, MODS_CAN_MANAGE_MODS, OUTSIDE_DISPENSERS, OUTSIDE_PISTONS,
+            OUTSIDE_PROJECTILES, PISTONS, PLANT, PLOW, PREPARE, PRESSURE_PLATES, PROJECTILES, PVP, SHOW_BORDERS,
+            SIGN_CLICK, SIGN_EDIT, SPAWNERS, TRAMPLE, VULNERABILITY);
 
     private Flags() {
     }
@@ -257,7 +288,6 @@ public final class Flags {
      * Display name and description of flags will be taken from Terrainer's language file.
      *
      * @return A set of registered third-party flags.
-     * @see #findPermission(Flag)
      * @see Flag
      */
     public static @NotNull HashSet<Flag<?>> customValues() {
@@ -284,16 +314,5 @@ public final class Flags {
             }
         }
         return null;
-    }
-
-    /**
-     * Finds the permission of a flag. Flag permissions are just the ID on lower case with no spaces, plus the prefix
-     * "terrainer.flag.".
-     *
-     * @param flag The flag to get the permission of.
-     * @return The permission of this flag.
-     */
-    public static @NotNull String findPermission(@NotNull Flag<?> flag) {
-        return "terrainer.flag." + flag.id().toLowerCase().replace(" ", "");
     }
 }
