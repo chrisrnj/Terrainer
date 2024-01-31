@@ -46,6 +46,7 @@ import java.util.regex.Pattern;
  * @param <T>          The type of data this flag can hold.
  */
 public record Flag<T>(@NotNull String id, @NotNull Class<T> dataType, @NotNull T defaultValue,
+                      @NotNull String bypassPermission, @NotNull String editPermission,
                       @NotNull Function<String, T> transformer, @NotNull Function<T, String> formatter) {
     private static final @NotNull Pattern ALLOWED_FLAG_ID_REGEX = Pattern.compile("^[a-zA-Z ]+$");
 
@@ -98,11 +99,16 @@ public record Flag<T>(@NotNull String id, @NotNull Class<T> dataType, @NotNull T
      * @param defaultValue The default value used in terrains where the flag is undefined.
      * @param transformer  The transformer to obtain the data object from the player's input.
      * @throws IllegalArgumentException If the ID does not match the [a-zA-Z ] regex.
-     * @see #Flag(String, Class, Object, Function, Function)
+     * @see #Flag(String, Class, Object, String, String, Function, Function)
      */
     @SuppressWarnings("unchecked")
     public Flag(@NotNull String id, @NotNull T defaultValue, @NotNull Function<String, T> transformer) {
         this(id, (Class<T>) defaultValue.getClass(), defaultValue, transformer, Object::toString);
+    }
+
+    public Flag(@NotNull String id, @NotNull Class<T> dataType, @NotNull T defaultValue,
+                @NotNull Function<String, T> transformer, @NotNull Function<T, String> formatter) {
+        this(id, dataType, defaultValue, findBypassPermission(id), findEditPermission(id), transformer, formatter);
     }
 
     /**
@@ -112,6 +118,28 @@ public record Flag<T>(@NotNull String id, @NotNull Class<T> dataType, @NotNull T
         if (!ALLOWED_FLAG_ID_REGEX.matcher(id).matches()) {
             throw new IllegalArgumentException("Flag IDs must follow the regex [a-zA-Z ]. ID provided: '" + id + "'");
         }
+    }
+
+    /**
+     * Finds the permission to assign a flag. Flag edit permissions are just the ID on lower case with no spaces, plus the prefix
+     * "terrainer.flag.".
+     *
+     * @param flagID The ID to use in the edit permission.
+     * @return The permission to edit this flag.
+     */
+    private static @NotNull String findEditPermission(@NotNull String flagID) {
+        return "terrainer.flag." + flagID.toLowerCase().replace(" ", "");
+    }
+
+    /**
+     * Finds the permission to bypass a flag's protection. Flag bypass permissions are just the ID on lower case with no
+     * spaces, plus the prefix "terrainer.bypass.".
+     *
+     * @param flagID The ID to use in the bypass permission.
+     * @return The permission of this flag.
+     */
+    private static @NotNull String findBypassPermission(@NotNull String flagID) {
+        return "terrainer.bypass." + flagID.toLowerCase().replace(" ", "");
     }
 
     public static @NotNull Flag<Boolean> newBooleanFlag(@NotNull String id, boolean defaultValue) {

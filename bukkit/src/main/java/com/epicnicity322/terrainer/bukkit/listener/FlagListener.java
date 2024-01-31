@@ -21,21 +21,26 @@ package com.epicnicity322.terrainer.bukkit.listener;
 import com.epicnicity322.terrainer.bukkit.TerrainerPlugin;
 import com.epicnicity322.terrainer.bukkit.event.flag.UserFlagSetEvent;
 import com.epicnicity322.terrainer.bukkit.event.flag.UserFlagUnsetEvent;
+import com.epicnicity322.terrainer.core.terrain.Flag;
 import com.epicnicity322.terrainer.core.terrain.Flags;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 
+/**
+ * A listener just for checking if the player is allowed to edit flags based if they are the owner of the terrain.
+ * <p>
+ * Players with permission {@link Flag#editPermission()} + ".others" are always allowed to edit the flags in terrains
+ * they don't own.
+ */
 public class FlagListener implements Listener {
     @EventHandler(priority = EventPriority.LOWEST)
     public void onFlagSet(UserFlagSetEvent event) {
-        if (event.flag() == Flags.MODS_CAN_MANAGE_MODS) {
-            if (event.sender().hasPermission("terrainer.bypass.modscanmanagemods")) return;
-        } else if (event.flag() == Flags.MODS_CAN_EDIT_FLAGS) {
-            if (event.sender().hasPermission("terrainer.bypass.modscaneditflags")) return;
-        } else return;
+        Flag<?> flag = event.flag();
 
+        if (flag != Flags.MODS_CAN_MANAGE_MODS && flag != Flags.MODS_CAN_EDIT_FLAGS) return;
+        if (event.sender().hasPermission(flag.editPermission() + ".others")) return;
         if (!(event.sender() instanceof Player player)) return;
 
         if (!player.getUniqueId().equals(event.terrain().owner())) {
@@ -46,12 +51,10 @@ public class FlagListener implements Listener {
 
     @EventHandler(priority = EventPriority.LOWEST)
     public void onFlagUnset(UserFlagUnsetEvent event) {
-        if (event.flag() == Flags.MODS_CAN_MANAGE_MODS) {
-            if (event.sender().hasPermission("terrainer.bypass.modscanmanagemods")) return;
-        } else if (event.flag() == Flags.MODS_CAN_EDIT_FLAGS) {
-            if (event.sender().hasPermission("terrainer.bypass.modscaneditflags")) return;
-        } else return;
+        Flag<?> flag = event.flag();
 
+        if (flag != Flags.MODS_CAN_MANAGE_MODS && flag != Flags.MODS_CAN_EDIT_FLAGS) return;
+        if (event.sender().hasPermission(flag.editPermission() + ".others")) return;
         if (!(event.sender() instanceof Player player)) return;
 
         if (!player.getUniqueId().equals(event.terrain().owner())) {

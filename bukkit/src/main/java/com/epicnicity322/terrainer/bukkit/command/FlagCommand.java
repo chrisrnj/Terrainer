@@ -83,7 +83,7 @@ public final class FlagCommand extends Command {
             lang.send(sender, lang.get("Flags.Error.Not Found").replace("<value>", args[0]));
             return;
         }
-        if (!sender.hasPermission(Flags.findPermission(flag))) {
+        if (!sender.hasPermission(flag.editPermission())) {
             lang.send(sender, lang.get("General.No Permission"));
             return;
         }
@@ -174,12 +174,12 @@ public final class FlagCommand extends Command {
                     String arg = args[1].toLowerCase(Locale.ROOT).replace('_', '-');
 
                     for (Flag<?> flag : Flags.values()) {
-                        if (!sender.hasPermission(Flags.findPermission(flag))) continue;
+                        if (!sender.hasPermission(flag.editPermission())) continue;
                         String id = flag.id().toLowerCase(Locale.ROOT).replace(' ', '-');
                         if (id.startsWith(arg)) completions.add(id);
                     }
                     for (Flag<?> flag : Flags.customValues()) {
-                        if (!sender.hasPermission(Flags.findPermission(flag))) continue;
+                        if (!sender.hasPermission(flag.editPermission())) continue;
                         String id = flag.id().toLowerCase(Locale.ROOT).replace(' ', '-');
                         if (id.startsWith(arg)) completions.add(id);
                     }

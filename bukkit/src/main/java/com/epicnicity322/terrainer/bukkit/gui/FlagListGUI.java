@@ -55,10 +55,10 @@ public class FlagListGUI extends ListGUI<FlagListGUI.FlagEntry> {
         TreeSet<FlagEntry> qualified = new TreeSet<>(Comparator.comparing(entry -> entry.flag().id()));
 
         for (Flag<?> flag : Flags.values()) {
-            if (player.hasPermission(Flags.findPermission(flag))) qualified.add(new FlagEntry(terrain, flag));
+            if (player.hasPermission(flag.editPermission())) qualified.add(new FlagEntry(terrain, flag));
         }
         for (Flag<?> customFlag : Flags.customValues()) {
-            if (player.hasPermission(Flags.findPermission(customFlag)))
+            if (player.hasPermission(customFlag.editPermission()))
                 qualified.add(new FlagEntry(terrain, customFlag));
         }
         return qualified;
