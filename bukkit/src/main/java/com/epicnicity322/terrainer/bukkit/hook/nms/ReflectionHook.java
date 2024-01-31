@@ -82,6 +82,7 @@ public final class ReflectionHook implements NMSHandler {
     @Override
     public int spawnMarkerEntity(@NotNull Player player, int x, int y, int z) throws Throwable {
         assert method_CraftWorld_getHandle != null;
+        assert slimeEntityType != null;
         EntitySlime slime = new EntitySlime((EntityTypes<? extends EntitySlime>) slimeEntityType, (World) method_CraftWorld_getHandle.invoke(player.getWorld()));
         assert method_CraftEntity_getBukkitEntity != null;
         Slime bukkitSlime = (Slime) method_CraftEntity_getBukkitEntity.invoke(slime);
