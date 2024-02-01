@@ -40,11 +40,11 @@ public final class Flags {
     /**
      * Allows everyone to use armor stands.
      */
+    //TODO:
     public static final @NotNull Flag<Boolean> ARMOR_STANDS = Flag.newBooleanFlag("Armor Stands", false);
     /**
      * Allows blocks such as fire and sculk to spread.
      */
-    //TODO:
     public static final @NotNull Flag<Boolean> BLOCK_SPREAD = Flag.newBooleanFlag("Block Spread", true);
     /**
      * Allows everyone to build in a terrain, even non-members.
@@ -83,6 +83,7 @@ public final class Flags {
     /**
      * Prevents players from harming enemy entities.
      */
+    //TODO:
     public static final @NotNull Flag<Boolean> ENEMY_HARM = Flag.newBooleanFlag("Enemy Harm", true);
     /**
      * Allows everyone to enter the terrain.
@@ -95,6 +96,7 @@ public final class Flags {
     /**
      * Allows everyone to harm mobs.
      */
+    //TODO:
     public static final @NotNull Flag<Boolean> ENTITY_HARM = Flag.newBooleanFlag("Entity Harm", false);
     /**
      * Allows everyone to interact with entities, breed entities and use armor stands in a terrain.
@@ -103,6 +105,7 @@ public final class Flags {
     /**
      * Allows blocks being damaged by explosives.
      */
+    //TODO:
     public static final @NotNull Flag<Boolean> EXPLOSION_DAMAGE = Flag.newBooleanFlag("Explosion Damage", true);
     /**
      * Allows blocks being burned by fire.
@@ -199,6 +202,7 @@ public final class Flags {
     /**
      * Allows outside projectiles to land inside the terrain.
      */
+    //TODO:
     public static final @NotNull Flag<Boolean> OUTSIDE_PROJECTILES = Flag.newBooleanFlag("Outside Projectiles", false);
     /**
      * Allows pistons inside the terrain moving blocks.
@@ -209,6 +213,10 @@ public final class Flags {
      */
     //TODO:
     public static final @NotNull Flag<Boolean> PLANT = Flag.newBooleanFlag("Plant", false);
+    /**
+     * Allows trees, crops, grass, etc. to grow naturally or from bone meal.
+     */
+    public static final @NotNull Flag<Boolean> PLANT_GROW = Flag.newBooleanFlag("Plant Grow", true);
     /**
      * Allows everyone to use hoes on grass blocks.
      */
@@ -227,19 +235,21 @@ public final class Flags {
     /**
      * Allows everyone to shoot projectiles.
      */
+    //TODO:
     public static final @NotNull Flag<Boolean> PROJECTILES = Flag.newBooleanFlag("Projectiles", false);
     /**
      * Allows players to engage in combat.
      */
+    //TODO:
     public static final @NotNull Flag<Boolean> PVP = Flag.newBooleanFlag("PvP", false);
     /**
      * Show particles at the terrain's boundaries.
      */
-    //TODO:
     public static final @NotNull Flag<Boolean> SHOW_BORDERS = Flag.newBooleanFlag("Show Borders", true);
     /**
      * Allows everyone to right-click signs.
      */
+    //TODO:
     public static final @NotNull Flag<Boolean> SIGN_CLICK = Flag.newBooleanFlag("Sign Click", false);
     /**
      * Allows everyone to edit signs.
@@ -250,12 +260,17 @@ public final class Flags {
      */
     public static final @NotNull Flag<Boolean> SPAWNERS = Flag.newBooleanFlag("Spawners", true);
     /**
+     * Allows sponges to absorb water.
+     */
+    public static final @NotNull Flag<Boolean> SPONGES = Flag.newBooleanFlag("Sponges", true);
+    /**
      * Allows everyone to trample farmland blocks.
      */
     public static final @NotNull Flag<Boolean> TRAMPLE = Flag.newBooleanFlag("Trample", false);
     /**
      * Do not freeze player's health and saturation.
      */
+    //TODO:
     public static final @NotNull Flag<Boolean> VULNERABILITY = Flag.newBooleanFlag("Vulnerability", true);
 
     private static final @NotNull HashSet<Flag<?>> customValues = new HashSet<>();
@@ -264,8 +279,8 @@ public final class Flags {
             ENTITY_HARM, ENTITY_INTERACTIONS, EXPLOSION_DAMAGE, FIRE_DAMAGE, FLY, FROST_WALK, GLIDE, INTERACTIONS,
             ITEM_DROP, ITEM_FRAMES, ITEM_PICKUP, LEAF_DECAY, LEAVE, LEAVE_MESSAGE, LIGHTERS, LIQUID_FLOW,
             MESSAGE_LOCATION, MOB_SPAWN, MODS_CAN_EDIT_FLAGS, MODS_CAN_MANAGE_MODS, OUTSIDE_DISPENSERS, OUTSIDE_PISTONS,
-            OUTSIDE_PROJECTILES, PISTONS, PLANT, PLOW, PREPARE, PRESSURE_PLATES, PROJECTILES, PVP, SHOW_BORDERS,
-            SIGN_CLICK, SIGN_EDIT, SPAWNERS, TRAMPLE, VULNERABILITY);
+            OUTSIDE_PROJECTILES, PISTONS, PLANT, PLANT_GROW, PLOW, PREPARE, PRESSURE_PLATES, PROJECTILES, PVP,
+            SHOW_BORDERS, SIGN_CLICK, SIGN_EDIT, SPAWNERS, SPONGES, TRAMPLE, VULNERABILITY);
 
     private Flags() {
     }
