@@ -400,6 +400,10 @@ public abstract class Protections<P extends R, R, M, B, E> {
         return handleBlockFromTo(world, x, y, z, fromX, fromY, fromZ, Flags.PLANT_GROW, Flags.BUILD);
     }
 
+    protected boolean blockForm(@NotNull UUID world, double x, double y, double z) {
+        return handleProtection(world, x, y, z, Flags.BLOCK_FORM);
+    }
+
     protected boolean blockSpread(@NotNull UUID world, double x, double y, double z, double fromX, double fromY, double fromZ) {
         //TODO: FIRE_SPREAD flag
         return handleBlockFromTo(world, x, y, z, fromX, fromY, fromZ, Flags.BLOCK_SPREAD, Flags.BUILD);

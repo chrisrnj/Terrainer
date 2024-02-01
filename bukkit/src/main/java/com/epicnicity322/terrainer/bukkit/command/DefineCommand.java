@@ -95,10 +95,12 @@ public final class DefineCommand extends Command {
 
         // Setting spawn protection flags.
         Terrain.FlagMap flagMap = terrain.flags();
+        flagMap.putFlag(Flags.BLOCK_FORM, false);
         flagMap.putFlag(Flags.BLOCK_SPREAD, false);
         flagMap.putFlag(Flags.ENEMY_HARM, false);
         flagMap.putFlag(Flags.EXPLOSION_DAMAGE, false);
         flagMap.putFlag(Flags.FIRE_DAMAGE, false);
+        flagMap.putFlag(Flags.FIRE_SPREAD, false);
         flagMap.putFlag(Flags.FLY, false);
         flagMap.putFlag(Flags.GLIDE, false);
         flagMap.putFlag(Flags.LEAF_DECAY, false);

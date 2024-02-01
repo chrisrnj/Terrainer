@@ -111,35 +111,6 @@ public final class ProtectionsListener extends Protections<Player, CommandSender
         }
     }
 
-    /**
-     * Gets the other chest from the provided double chest block.
-     *
-     * @param block The block to get the other double chest side.
-     * @return The other chest of this double chest, null if block is not a double chest.
-     */
-    private static @Nullable Block otherChestSide(@NotNull Block block) {
-        Material type = block.getType();
-
-        if (type == Material.CHEST || type == Material.TRAPPED_CHEST) {
-            if (((Chest) block.getState()).getInventory().getHolder() instanceof DoubleChest doubleChest) {
-                Block side = null;
-                Chest left = (Chest) doubleChest.getLeftSide();
-                Chest right = (Chest) doubleChest.getRightSide();
-                Location loc = block.getLocation();
-
-                // Getting the other side of the chest.
-                if (left != null && loc.equals(left.getLocation())) {
-                    if (right != null) side = right.getBlock();
-                } else if (right != null && loc.equals(right.getLocation())) {
-                    if (left != null) side = left.getBlock();
-                }
-                return side;
-            }
-        }
-
-        return null;
-    }
-
     @Override
     @SuppressWarnings("deprecation")
     protected boolean isInteractable(@NotNull Material material) {
@@ -395,14 +366,6 @@ public final class ProtectionsListener extends Protections<Player, CommandSender
     }
 
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
-    public void onBlockSpread(BlockSpreadEvent event) {
-        Block from = event.getSource();
-        Block to = event.getBlock();
-        if (!blockSpread(to.getWorld().getUID(), to.getX(), to.getY(), to.getZ(), from.getX(), from.getY(), from.getZ()))
-            event.setCancelled(true);
-    }
-
-    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
     public void onLeafDecay(LeavesDecayEvent event) {
         Block block = event.getBlock();
         if (!leafDecay(block.getWorld().getUID(), block.getX(), block.getY(), block.getZ())) event.setCancelled(true);
@@ -454,6 +417,20 @@ public final class ProtectionsListener extends Protections<Player, CommandSender
         Location loc = arrow.getLocation();
 
         if (!pickupArrow(arrow.getWorld().getUID(), loc.getBlockX(), loc.getBlockY(), loc.getBlockZ(), event.getPlayer(), event.getFlyAtPlayer()))
+            event.setCancelled(true);
+    }
+
+    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
+    public void onBlockForm(BlockFormEvent event) {
+        Block block = event.getBlock();
+        if (!blockForm(block.getWorld().getUID(), block.getX(), block.getY(), block.getZ())) event.setCancelled(true);
+    }
+
+    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
+    public void onBlockSpread(BlockSpreadEvent event) {
+        Block from = event.getSource();
+        Block to = event.getBlock();
+        if (!blockSpread(to.getWorld().getUID(), to.getX(), to.getY(), to.getZ(), from.getX(), from.getY(), from.getZ()))
             event.setCancelled(true);
     }
 

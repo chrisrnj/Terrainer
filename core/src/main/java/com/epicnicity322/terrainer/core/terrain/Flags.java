@@ -43,7 +43,11 @@ public final class Flags {
     //TODO:
     public static final @NotNull Flag<Boolean> ARMOR_STANDS = Flag.newBooleanFlag("Armor Stands", false);
     /**
-     * Allows blocks such as fire and sculk to spread.
+     * Allows blocks such as ice, snow, cobblestone, obsidian, concrete to form.
+     */
+    public static final @NotNull Flag<Boolean> BLOCK_FORM = Flag.newBooleanFlag("Block Form", true);
+    /**
+     * Allows blocks such as grass, mushrooms and sculk to spread.
      */
     public static final @NotNull Flag<Boolean> BLOCK_SPREAD = Flag.newBooleanFlag("Block Spread", true);
     /**
@@ -111,6 +115,10 @@ public final class Flags {
      * Allows blocks being burned by fire.
      */
     public static final @NotNull Flag<Boolean> FIRE_DAMAGE = Flag.newBooleanFlag("Fire Damage", true);
+    /**
+     * Allows fire to spread.
+     */
+    public static final @NotNull Flag<Boolean> FIRE_SPREAD = Flag.newBooleanFlag("Fire Spread", true);
     /**
      * Prevents players from flying.
      */
@@ -274,13 +282,14 @@ public final class Flags {
     public static final @NotNull Flag<Boolean> VULNERABILITY = Flag.newBooleanFlag("Vulnerability", true);
 
     private static final @NotNull HashSet<Flag<?>> customValues = new HashSet<>();
-    private static final @NotNull Set<Flag<?>> values = Set.of(ANVILS, ARMOR_STANDS, BLOCK_SPREAD, BUILD, BUILD_BOATS,
-            BUILD_MINECARTS, BUTTONS, CONTAINERS, DISPENSERS, DOORS, EFFECTS, ENEMY_HARM, ENTER, ENTER_VEHICLES,
-            ENTITY_HARM, ENTITY_INTERACTIONS, EXPLOSION_DAMAGE, FIRE_DAMAGE, FLY, FROST_WALK, GLIDE, INTERACTIONS,
-            ITEM_DROP, ITEM_FRAMES, ITEM_PICKUP, LEAF_DECAY, LEAVE, LEAVE_MESSAGE, LIGHTERS, LIQUID_FLOW,
-            MESSAGE_LOCATION, MOB_SPAWN, MODS_CAN_EDIT_FLAGS, MODS_CAN_MANAGE_MODS, OUTSIDE_DISPENSERS, OUTSIDE_PISTONS,
-            OUTSIDE_PROJECTILES, PISTONS, PLANT, PLANT_GROW, PLOW, PREPARE, PRESSURE_PLATES, PROJECTILES, PVP,
-            SHOW_BORDERS, SIGN_CLICK, SIGN_EDIT, SPAWNERS, SPONGES, TRAMPLE, VULNERABILITY);
+    private static final @NotNull Set<Flag<?>> values = Set.of(ANVILS, ARMOR_STANDS, BLOCK_FORM, BLOCK_SPREAD, BUILD,
+            BUILD_BOATS, BUILD_MINECARTS, BUTTONS, CONTAINERS, DISPENSERS, DOORS, EFFECTS, ENEMY_HARM, ENTER,
+            ENTER_VEHICLES, ENTITY_HARM, ENTITY_INTERACTIONS, EXPLOSION_DAMAGE, FIRE_DAMAGE, FIRE_SPREAD, FLY,
+            FROST_WALK, GLIDE, INTERACTIONS, ITEM_DROP, ITEM_FRAMES, ITEM_PICKUP, LEAF_DECAY, LEAVE, LEAVE_MESSAGE,
+            LIGHTERS, LIQUID_FLOW, MESSAGE_LOCATION, MOB_SPAWN, MODS_CAN_EDIT_FLAGS, MODS_CAN_MANAGE_MODS,
+            OUTSIDE_DISPENSERS, OUTSIDE_PISTONS, OUTSIDE_PROJECTILES, PISTONS, PLANT, PLANT_GROW, PLOW, PREPARE,
+            PRESSURE_PLATES, PROJECTILES, PVP, SHOW_BORDERS, SIGN_CLICK, SIGN_EDIT, SPAWNERS, SPONGES, TRAMPLE,
+            VULNERABILITY);
 
     private Flags() {
     }
