@@ -24,6 +24,7 @@ import com.epicnicity322.terrainer.bukkit.TerrainerPlugin;
 import com.epicnicity322.terrainer.bukkit.command.BordersCommand;
 import com.epicnicity322.terrainer.bukkit.event.terrain.TerrainEnterEvent;
 import com.epicnicity322.terrainer.bukkit.event.terrain.TerrainLeaveEvent;
+import com.epicnicity322.terrainer.bukkit.util.BlockStateToBlockMapping;
 import com.epicnicity322.terrainer.core.config.Configurations;
 import com.epicnicity322.terrainer.core.protection.Protections;
 import com.epicnicity322.terrainer.core.terrain.Flag;
@@ -41,8 +42,9 @@ import org.bukkit.boss.BarStyle;
 import org.bukkit.boss.BossBar;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.*;
-import org.bukkit.entity.minecart.ExplosiveMinecart;
-import org.bukkit.event.*;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
+import org.bukkit.event.Listener;
 import org.bukkit.event.block.*;
 import org.bukkit.event.entity.*;
 import org.bukkit.event.hanging.HangingBreakByEntityEvent;
@@ -50,7 +52,7 @@ import org.bukkit.event.inventory.InventoryOpenEvent;
 import org.bukkit.event.player.*;
 import org.bukkit.event.vehicle.VehicleDestroyEvent;
 import org.bukkit.event.world.StructureGrowEvent;
-import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
@@ -60,7 +62,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
 
-public final class ProtectionsListener extends Protections<Player, CommandSender, Material> implements Listener {
+public final class ProtectionsListener extends Protections<Player, CommandSender, Material, Block, Entity> implements Listener {
     // Enemy interface was added in 1.19.3.
     private static final @Nullable Class<?> enemyInterface = ReflectionUtil.getClass("org.bukkit.entity.Enemy");
     // Paper
@@ -93,19 +95,6 @@ public final class ProtectionsListener extends Protections<Player, CommandSender
         }
     }
 
-    /**
-     * Items that when you use, they place a block.
-     */
-    private static boolean isBuildingItem(@NotNull Material type) {
-        if (type.isBlock()) return true;
-
-        return switch (type) {
-            case ARMOR_STAND, GLOW_ITEM_FRAME, ITEM_FRAME, PAINTING, STRING, BUCKET, AXOLOTL_BUCKET, COD_BUCKET, LAVA_BUCKET, POWDER_SNOW_BUCKET, PUFFERFISH_BUCKET, SALMON_BUCKET, TADPOLE_BUCKET, TROPICAL_FISH_BUCKET, WATER_BUCKET, CHEST_MINECART, COMMAND_BLOCK_MINECART, FURNACE_MINECART, HOPPER_MINECART, TNT_MINECART ->
-                    true;
-            default -> type.name().endsWith("BOAT");
-        };
-    }
-
     private static boolean isPrepareBlock(@NotNull Material type) {
         return switch (type) {
             case CARTOGRAPHY_TABLE, CRAFTING_TABLE, ENCHANTING_TABLE, GRINDSTONE, LOOM, SMITHING_TABLE, STONECUTTER ->
@@ -122,191 +111,178 @@ public final class ProtectionsListener extends Protections<Player, CommandSender
         }
     }
 
-    private static boolean deny(@NotNull Terrain terrain, @NotNull Flag<Boolean> flag) {
-        Boolean state;
-        return (state = terrain.flags().getData(flag)) != null && !state;
-    }
-
     /**
-     * Cancels the event and notifies the player if all conditions meet:
-     * <li>The location is within a terrain;</li>
-     * <li>The player has no relations (not a member) to the terrain;</li>
-     * <li>The terrain does not have the specified flag.</li>
-     */
-    private static boolean handleProtection(@NotNull Cancellable event, @NotNull Entity player, @NotNull Location loc, @NotNull Flag<Boolean> flag, @Nullable String message) {
-        int x = loc.getBlockX();
-        int y = loc.getBlockY();
-        int z = loc.getBlockZ();
-        UUID world = loc.getWorld().getUID();
-
-        for (Terrain terrain : TerrainManager.allTerrains()) {
-            if (!terrain.world().equals(world) || !terrain.isWithin(x, y, z)) continue;
-            if (!TerrainerPlugin.getPlayerUtil().hasAnyRelations(player.getUniqueId(), terrain) && deny(terrain, flag)) {
-                event.setCancelled(true);
-                if (message != null) {
-                    MessageSender lang = TerrainerPlugin.getLanguage();
-                    lang.send(player, lang.get(message));
-                }
-                return true;
-            }
-        }
-        return false;
-    }
-
-    /**
-     * Cancels the event if the provided flag is set to deny in a terrain found in the location.
-     */
-    private static void handleProtection(@NotNull Cancellable event, @NotNull UUID world, int x, int y, int z, @NotNull Flag<Boolean> flag) {
-        for (Terrain terrain : TerrainManager.allTerrains()) {
-            if (!terrain.world().equals(world) || !terrain.isWithin(x, y, z)) continue;
-            if (deny(terrain, flag)) {
-                event.setCancelled(true);
-                break;
-            }
-        }
-    }
-
-    /**
-     * Called everytime a player receives vulnerability.
-     */
-    private static boolean handleVulnerability(@NotNull EntityDamageEvent event, @Nullable Entity pvp) {
-        if (event.getEntityType() != EntityType.PLAYER) return false;
-
-        Location loc = event.getEntity().getLocation();
-        int x = loc.getBlockX();
-        int y = loc.getBlockY();
-        int z = loc.getBlockZ();
-        UUID world = loc.getWorld().getUID();
-
-        for (Terrain terrain : TerrainManager.allTerrains()) {
-            if (!terrain.world().equals(world) || !terrain.isWithin(x, y, z)) continue;
-            if (deny(terrain, Flags.VULNERABILITY)) {
-                event.setCancelled(true);
-                return true;
-            } else if (pvp != null && deny(terrain, Flags.PVP)) {
-                MessageSender lang = TerrainerPlugin.getLanguage();
-                lang.send(pvp, lang.get("Protections.PvP"));
-                event.setCancelled(true);
-                return true;
-            }
-        }
-        return true;
-    }
-
-    /**
-     * Removes blocks from explosion if all conditions meet:
-     * <li>The exploded blocks are within a terrain;</li>
-     * <li>The terrain has {@link Flags#EXPLOSION_DAMAGE} flag OR the origin is outside the terrain and the terrain
-     * does not have {@link Flags#BUILD}</li>
-     */
-    private static void handleExplosion(@NotNull Location origin, @NotNull List<Block> exploded) {
-        int x = origin.getBlockX();
-        int y = origin.getBlockY();
-        int z = origin.getBlockZ();
-        UUID world = origin.getWorld().getUID();
-
-        for (Terrain terrain : TerrainManager.allTerrains()) {
-            if (!terrain.world().equals(world)) continue;
-            if (deny(terrain, Flags.EXPLOSION_DAMAGE) || (!terrain.isWithin(x, y, z) && deny(terrain, Flags.BUILD))) {
-                exploded.removeIf(block -> terrain.isWithin(block.getX(), block.getY(), block.getZ()));
-            }
-        }
-    }
-
-    /**
-     * Checks if the victim is within a terrain and if the terrain has specific flags to allow or prevent the victim
-     * from being damaged by the explosion. The following scenarios are considered:
+     * Gets the other chest from the provided double chest block.
      *
-     * <li>If the victim is not a mob, it will only be damaged if the terrain does not have {@link Flags#EXPLOSION_DAMAGE} flag.</li>
-     * <li>If the explosion happened outside the terrain, the entity will be damaged only if the terrain has a flag that
-     * allows it, such as {@link Flags#ARMOR_STANDS}, {@link Flags#BUILD}, {@link Flags#CONTAINERS},
-     * {@link Flags#ENTITY_HARM}, or {@link Flags#ITEM_FRAMES}, depending on the entity type. Conversely, the entity
-     * will not be damaged if the terrain has a flag that disallows it, such as {@link Flags#ENEMY_HARM}.</li>
+     * @param block The block to get the other double chest side.
+     * @return The other chest of this double chest, null if block is not a double chest.
      */
-    private static void handleEntityExplosion(@NotNull Cancellable event, @NotNull Location damager, @NotNull Entity victim) {
-        Location loc = victim.getLocation();
-        int x = loc.getBlockX();
-        int y = loc.getBlockY();
-        int z = loc.getBlockZ();
-        int originX = damager.getBlockX();
-        int originY = damager.getBlockY();
-        int originZ = damager.getBlockZ();
-        UUID world = loc.getWorld().getUID();
+    private static @Nullable Block otherChestSide(@NotNull Block block) {
+        Material type = block.getType();
 
-        Flag<Boolean> flag = null;
-        boolean build = false;
-        boolean mob = false;
+        if (type == Material.CHEST || type == Material.TRAPPED_CHEST) {
+            if (((Chest) block.getState()).getInventory().getHolder() instanceof DoubleChest doubleChest) {
+                Block side = null;
+                Chest left = (Chest) doubleChest.getLeftSide();
+                Chest right = (Chest) doubleChest.getRightSide();
+                Location loc = block.getLocation();
 
-        for (Terrain terrain : TerrainManager.allTerrains()) {
-            if (!terrain.world().equals(world) || !terrain.isWithin(x, y, z)) continue;
-            if (flag == null) {
-                switch (victim.getType()) {
-                    case ARMOR_STAND -> {
-                        flag = Flags.ARMOR_STANDS;
-                        build = true;
-                    }
-                    case MINECART_CHEST, MINECART_HOPPER -> {
-                        flag = Flags.CONTAINERS;
-                        build = true;
-                    }
-                    default -> {
-                        if (isEnemy(victim)) {
-                            flag = Flags.ENEMY_HARM;
-                            mob = true;
-                        } else if (victim instanceof Mob) {
-                            flag = Flags.ENTITY_HARM;
-                            mob = true;
-                        } else {
-                            flag = Flags.BUILD;
-                        }
-                    }
+                // Getting the other side of the chest.
+                if (left != null && loc.equals(left.getLocation())) {
+                    if (right != null) side = right.getBlock();
+                } else if (right != null && loc.equals(right.getLocation())) {
+                    if (left != null) side = left.getBlock();
                 }
-            }
-
-            if (terrain.isWithin(originX, originY, originZ)) {
-                if (!mob && deny(terrain, Flags.EXPLOSION_DAMAGE)) {
-                    event.setCancelled(true);
-                    return;
-                }
-            } else {
-                if ((!mob && deny(terrain, Flags.EXPLOSION_DAMAGE)) || deny(terrain, flag) || (build && deny(terrain, Flags.BUILD))) {
-                    event.setCancelled(true);
-                    return;
-                }
+                return side;
             }
         }
+
+        return null;
     }
 
-    protected boolean isContainer(@NotNull Material type) {
-        return switch (type) {
-            case BARREL, BLAST_FURNACE, BREWING_STAND, CHEST, DISPENSER, DROPPER, FURNACE, HOPPER, SHULKER_BOX, SMOKER, TRAPPED_CHEST ->
+    @Override
+    @SuppressWarnings("deprecation")
+    protected boolean isInteractable(@NotNull Material material) {
+        return material.isInteractable();
+    }
+
+    @Override
+    protected boolean isBuildingItem(@Nullable Material material) {
+        if (material == null) return false;
+        if (material.isBlock()) return true;
+
+        return switch (material) {
+            case ARMOR_STAND, AXOLOTL_BUCKET, BUCKET, CHEST_MINECART, COD_BUCKET, COMMAND_BLOCK_MINECART, FURNACE_MINECART, GLOW_ITEM_FRAME, HOPPER_MINECART, ITEM_FRAME, LAVA_BUCKET, MINECART, PAINTING, POWDER_SNOW_BUCKET, PUFFERFISH_BUCKET, SALMON_BUCKET, STRING, TADPOLE_BUCKET, TNT_MINECART, TROPICAL_FISH_BUCKET, WATER_BUCKET ->
+                    true;
+            default -> material.name().endsWith("BOAT");
+        };
+    }
+
+    @Override
+    protected boolean isLighter(@Nullable Material material) {
+        return material == Material.FLINT_AND_STEEL || material == Material.FIRE_CHARGE;
+    }
+
+    @Override
+    protected boolean isFire(@NotNull Material material) {
+        return material == Material.FIRE || material == Material.SOUL_FIRE;
+    }
+
+    @Override
+    protected boolean isBoat(@NotNull Entity entity) {
+        return entity.getType() == EntityType.BOAT || entity.getType() == EntityType.CHEST_BOAT;
+    }
+
+    @Override
+    protected boolean isContainer(@NotNull Material material) {
+        return switch (material) {
+            case BARREL, BLAST_FURNACE, BREWING_STAND, CHEST, DISPENSER, DROPPER, FURNACE, HOPPER, SMOKER, TRAPPED_CHEST, SHULKER_BOX, BLACK_SHULKER_BOX, BLUE_SHULKER_BOX, BROWN_SHULKER_BOX, CYAN_SHULKER_BOX, GRAY_SHULKER_BOX, GREEN_SHULKER_BOX, LIGHT_BLUE_SHULKER_BOX, LIGHT_GRAY_SHULKER_BOX, LIME_SHULKER_BOX, MAGENTA_SHULKER_BOX, ORANGE_SHULKER_BOX, PINK_SHULKER_BOX, PURPLE_SHULKER_BOX, RED_SHULKER_BOX, WHITE_SHULKER_BOX, YELLOW_SHULKER_BOX ->
                     true;
             default -> false;
+        };
+    }
+
+    @Override
+    protected int x(@NotNull Block block) {
+        return block.getX();
+    }
+
+    @Override
+    protected int y(@NotNull Block block) {
+        return block.getY();
+    }
+
+    @Override
+    protected int z(@NotNull Block block) {
+        return block.getZ();
+    }
+
+    @Override
+    protected @NotNull Flag<Boolean> flagEntityPlaced(@NotNull Entity entity) {
+        return switch (entity.getType()) {
+            case MINECART, MINECART_CHEST, MINECART_HOPPER, MINECART_COMMAND, MINECART_FURNACE, MINECART_TNT, MINECART_MOB_SPAWNER ->
+                    Flags.BUILD_MINECARTS;
+            case BOAT, CHEST_BOAT -> Flags.BUILD_BOATS;
+            // ARMOR_STAND, ENDER_CRYSTAL
+            default -> Flags.BUILD;
+        };
+    }
+
+    @Override
+    protected @NotNull Flag<Boolean> flagPhysicalInteraction(@NotNull Material material) {
+        String typeName = material.name();
+        int underscore = typeName.lastIndexOf('_');
+        if (underscore != -1) typeName = typeName.substring(underscore + 1);
+
+        return switch (typeName) {
+            case "PLATE" -> Flags.PRESSURE_PLATES;
+            case "FARMLAND" -> Flags.TRAMPLE;
+            default -> Flags.INTERACTIONS;
+        };
+    }
+
+    @Override
+    protected @NotNull Flag<Boolean> flagBlockRightClickInteraction(@NotNull Material material) {
+        if (isContainer(material)) return Flags.CONTAINERS;
+
+        String typeName = material.name();
+        int underscore = typeName.lastIndexOf('_');
+        if (underscore != -1) typeName = typeName.substring(underscore + 1);
+
+        return switch (typeName) {
+            case "LEVER", "BUTTON" -> Flags.BUTTONS;
+            case "DOOR", "GATE", "TRAPDOOR" -> Flags.DOORS;
+            case "SIGN" -> Flags.SIGN_CLICK;
+            default -> Flags.INTERACTIONS;
+        };
+    }
+
+    @Override
+    protected @NotNull Flag<Boolean> flagItemUseInteraction(@NotNull Material block, @NotNull Material hand) {
+        //TODO: Add flags
+        return Flags.INTERACTIONS;
+    }
+
+    @Override
+    protected @NotNull Flag<Boolean> flagEntityInteraction(@NotNull Entity entity, @NotNull Material mainHand, @NotNull Material offHand, boolean sneaking) {
+        return switch (entity.getType()) {
+            case ARMOR_STAND -> Flags.ARMOR_STANDS;
+            case GLOW_ITEM_FRAME, ITEM_FRAME -> Flags.ITEM_FRAMES;
+            case MINECART_CHEST, MINECART_HOPPER, CHEST_BOAT, DONKEY -> Flags.CONTAINERS;
+            case BOAT, MINECART -> Flags.ENTER_VEHICLES;
+            case CAMEL, HORSE, LLAMA, MULE, PIG, SKELETON_HORSE, STRIDER, TRADER_LLAMA, ZOMBIE_HORSE ->
+                    !sneaking && mainHand == Material.AIR && offHand == Material.AIR ? Flags.ENTER_VEHICLES : Flags.ENTITY_INTERACTIONS;
+            default -> Flags.ENTITY_INTERACTIONS;
         };
     }
 
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
     public void onBlockBreak(BlockBreakEvent event) {
         Block block = event.getBlock();
-        boolean allow = blockBreak(block.getWorld().getUID(), block.getX(), block.getY(), block.getZ(), event.getPlayer(), block.getType());
-        if (!allow) event.setCancelled(true);
+        if (!blockBreak(block.getWorld().getUID(), block.getX(), block.getY(), block.getZ(), event.getPlayer(), block.getType()))
+            event.setCancelled(true);
     }
 
     @EventHandler(priority = EventPriority.LOWEST)
     public void onBucketFill(PlayerBucketFillEvent event) {
-        Block block = event.getBlockClicked();
-        boolean allow = bucketFill(block.getWorld().getUID(), block.getX(), block.getY(), block.getZ(), event.getPlayer());
-        if (!allow) event.setCancelled(true);
+        Block block = event.getBlock();
+        if (!bucketFill(block.getWorld().getUID(), block.getX(), block.getY(), block.getZ(), event.getPlayer()))
+            event.setCancelled(true);
     }
 
-//TODO: PICKUP ARROW EVENT
+    @EventHandler(priority = EventPriority.LOWEST)
+    public void onBucketEmpty(PlayerBucketEmptyEvent event) {
+        Block block = event.getBlock();
+        if (!bucketEmpty(block.getWorld().getUID(), block.getX(), block.getY(), block.getZ(), event.getPlayer()))
+            event.setCancelled(true);
+    }
 
     // Prevent block place if BUILD is false.
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
     public void onBlockPlace(BlockPlaceEvent event) {
         Block block = event.getBlock();
-        boolean allow = blockPlace(block.getWorld().getUID(), block.getX(), block.getY(), block.getZ(), event.getPlayer());
-        if (!allow) event.setCancelled(true);
+        if (!blockPlace(block.getWorld().getUID(), block.getX(), block.getY(), block.getZ(), event.getPlayer(), block.getType()))
+            event.setCancelled(true);
     }
 
     // Prevent interactions of:
@@ -323,357 +299,28 @@ public final class ProtectionsListener extends Protections<Player, CommandSender
     public void onInteract(PlayerInteractEvent event) {
         Block block = event.getClickedBlock();
         if (block == null) return;
+        UUID world = block.getWorld().getUID();
         Player player = event.getPlayer();
         Action action = event.getAction();
-        Material type = block.getType();
-        UUID world = block.getWorld().getUID();
 
         if (action == Action.PHYSICAL) {
-            String typeName = type.name();
-            int underscore = typeName.lastIndexOf('_');
-            if (underscore != -1) typeName = typeName.substring(underscore + 1);
-
-            Flag<Boolean> flag;
-            String message;
-
-            switch (typeName) {
-                case "PLATE" -> {
-                    flag = Flags.PRESSURE_PLATES;
-                    message = "Protections.Pressure Plates";
-                }
-                case "FARMLAND" -> {
-                    flag = Flags.TRAMPLE;
-                    message = "Protections.Farmland Trampling";
-                }
-                default -> {
-                    flag = Flags.INTERACTIONS;
-                    message = "Protections.Interactions";
-                }
-            }
-
-            if (!physicalInteract(world, block.getX(), block.getY(), block.getZ(), player, flag, message)) {
-                event.setUseInteractedBlock(Event.Result.DENY);
-            }
+            if (!physicalInteract(world, block.getX(), block.getY(), block.getZ(), player, block.getType()))
+                event.setCancelled(true);
             return;
         } else if (action != Action.RIGHT_CLICK_BLOCK) return;
 
-        if (type == Material.CHEST || type == Material.TRAPPED_CHEST) {
-            if (((Chest) block.getState()).getInventory().getHolder() instanceof DoubleChest doubleChest) {
-                Location side = null;
-                Chest left = (Chest) doubleChest.getLeftSide();
-                Chest right = (Chest) doubleChest.getRightSide();
-                Location loc = block.getLocation();
+        Material hand = event.getItem() == null ? null : event.getItem().getType();
 
-                // Getting the other side of the chest.
-                if (left != null && loc.equals(left.getLocation())) {
-                    if (right != null) side = right.getLocation();
-                } else if (right != null && loc.equals(right.getLocation())) {
-                    if (left != null) side = left.getLocation();
-                }
-
-                if (side != null) {
-                    if (player.hasPermission("terrainer.bypass.containers")) return;
-                    if (handleProtection(event, player, side, Flags.CONTAINERS, "Protections.Containers")) {
-                        return;
-                    }
-                }
-            }
-        }
-
-        Block relative = block.getRelative(event.getBlockFace());
-        Flag<Boolean> flag = null;
-        String message = null;
-        for (Terrain terrain : TerrainManager.allTerrains()) {
-            if (!terrain.world().equals(world) || (!terrain.isWithin(block.getX(), block.getY(), block.getZ()) && !terrain.isWithin(relative.getX(), relative.getY(), relative.getZ()))) {
-                continue;
-            }
-            if (flag == null) {
-                String typeName = type.name();
-                int underscore = typeName.lastIndexOf('_');
-                if (underscore != -1) typeName = typeName.substring(underscore + 1);
-                switch (typeName) {
-                    case "LEVER", "BUTTON" -> {
-                        if (player.hasPermission("terrainer.bypass.interactions")) return;
-                        flag = Flags.BUTTONS;
-                        message = "Protections.Buttons";
-                    }
-                    case "DOOR", "GATE", "TRAPDOOR" -> {
-                        if (player.hasPermission("terrainer.bypass.interactions")) return;
-                        flag = Flags.DOORS;
-                        message = "Protections.Doors";
-                    }
-                    case "SIGN" -> {
-                        if (player.hasPermission("terrainer.bypass.interactions")) return;
-                        flag = Flags.SIGN_CLICK;
-                        message = "Protections.Sign Click";
-                    }
-                    case "BARREL", "CHEST", "FURNACE", "STAND", "DISPENSER", "DROPPER", "HOPPER", /*SHULKER_*/"BOX", "SMOKER" -> {
-                        if (player.hasPermission("terrainer.bypass.containers")) return;
-                        flag = Flags.CONTAINERS;
-                        message = "Protections.Containers";
-                    }
-                    case "RAIL" -> {
-                        ItemStack hand = event.getItem();
-                        if (hand == null) return;
-                        if (hand.getType() == Material.MINECART) {
-                            if (player.hasPermission("terrainer.bypass.build")) return;
-                            flag = Flags.BUILD_VEHICLES;
-                            message = "Protections.Build Vehicles";
-                        } else if (isBuildingItem(hand.getType())) {
-                            if (player.hasPermission("terrainer.bypass.build")) return;
-                            flag = Flags.BUILD;
-                            message = "Protections.Build";
-                        } else {
-                            if (player.hasPermission("terrainer.bypass.interactions")) return;
-                            flag = Flags.INTERACTIONS;
-                            message = "Protections.Interactions";
-                        }
-                    }
-                    default -> {
-                        if (!type.isInteractable()) {
-                            ItemStack hand = event.getItem();
-                            if (hand == null) return;
-                            if (isBuildingItem(hand.getType())) {
-                                if (player.hasPermission("terrainer.bypass.build")) return;
-                                flag = Flags.BUILD;
-                                message = "Protections.Build";
-                            } else {
-                                if (player.hasPermission("terrainer.bypass.interactions")) return;
-                                flag = Flags.INTERACTIONS;
-                                message = "Protections.Interactions";
-                            }
-                        } else {
-                            if (player.hasPermission("terrainer.bypass.interactions")) return;
-                            flag = Flags.INTERACTIONS;
-                            message = "Protections.Interactions";
-                        }
-                    }
-                }
-            }
-            if (!TerrainerPlugin.getPlayerUtil().hasAnyRelations(player, terrain) && deny(terrain, flag)) {
-                event.setCancelled(true);
-                lang.send(player, lang.get(message));
-                return;
-            }
-        }
+        if (!rightClickInteract(world, block.getX(), block.getY(), block.getZ(), player, block.getType(), hand))
+            event.setCancelled(true);
     }
 
-    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
-    public void onPistonExtend(BlockPistonExtendEvent event) {
-        Block piston = event.getBlock();
-        Location loc = piston.getLocation();
-        UUID world = loc.getWorld().getUID();
-        List<Block> blocks = event.getBlocks();
-        BlockFace dir = event.getDirection();
-
-        if (blocks.isEmpty()) {
-            Block block = piston.getRelative(dir);
-
-            for (Terrain terrain : TerrainManager.allTerrains()) {
-                // If an outside piston is pushing blocks into a terrain.
-                if (!terrain.world().equals(world)) continue;
-                boolean pistonIn = terrain.isWithin(piston.getX(), piston.getY(), piston.getZ());
-                boolean blockIn = terrain.isWithin(block.getX(), block.getY(), block.getZ());
-                if (((pistonIn || blockIn) && deny(terrain, Flags.PISTONS)) || (!pistonIn && blockIn && deny(terrain, Flags.OUTSIDE_PISTONS))) {
-                    event.setCancelled(true);
-                    return;
-                }
-            }
-        } else {
-            for (Terrain terrain : TerrainManager.allTerrains()) {
-                if (!terrain.world().equals(world)) continue;
-                boolean pistonIn = terrain.isWithin(piston.getX(), piston.getY(), piston.getZ());
-
-                if (pistonIn && deny(terrain, Flags.PISTONS)) {
-                    event.setCancelled(true);
-                    return;
-                }
-
-                boolean blockIn = false;
-                for (Block b : blocks) {
-                    Block block = b.getRelative(dir);
-                    if (terrain.isWithin(block.getX(), block.getY(), block.getZ())) {
-                        blockIn = true;
-                        break;
-                    }
-                }
-
-                if ((blockIn && deny(terrain, Flags.PISTONS)) || (!pistonIn && blockIn && deny(terrain, Flags.OUTSIDE_PISTONS))) {
-                    event.setCancelled(true);
-                    return;
-                }
-            }
-        }
-    }
-
-    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
-    public void onPistonRetract(BlockPistonRetractEvent event) {
-        List<Block> blocks = event.getBlocks();
-        if (blocks.isEmpty()) return;
-        Block piston = event.getBlock();
-        Location loc = piston.getLocation();
-        UUID world = loc.getWorld().getUID();
-
-        for (Terrain terrain : TerrainManager.allTerrains()) {
-            if (!terrain.world().equals(world)) continue;
-            boolean pistonIn = terrain.isWithin(piston.getX(), piston.getY(), piston.getZ());
-            boolean pistonsState = deny(terrain, Flags.PISTONS);
-
-            if (pistonIn && pistonsState) {
-                event.setCancelled(true);
-                return;
-            }
-
-            boolean blockIn = false;
-            for (Block b : blocks) {
-                if (terrain.isWithin(b.getX(), b.getY(), b.getZ())) {
-                    blockIn = true;
-                    break;
-                }
-            }
-
-            if ((blockIn && pistonsState) || (!pistonIn && blockIn && deny(terrain, Flags.OUTSIDE_PISTONS))) {
-                event.setCancelled(true);
-                return;
-            }
-        }
-    }
-
-    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
-    public void onDamage(EntityDamageEvent event) {
-        if (event instanceof EntityDamageByEntityEvent || event instanceof EntityDamageByBlockEvent) return;
-        handleVulnerability(event, null);
-    }
-
-    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
-    public void onDamage(EntityDamageByBlockEvent event) {
-        if (handleVulnerability(event, null)) return;
-        if (event.getDamager() == null) return;
-        handleEntityExplosion(event, event.getDamager().getLocation(), event.getEntity());
-    }
-
-    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
-    public void onDamage(EntityDamageByEntityEvent event) {
-        Entity damager = event.getDamager();
-        Entity victim = event.getEntity();
-
-        // If damager is an explosive, test for entity explosions.
-        // If damager is not a player, or it's a projectile and the shooter is not a player, return.
-        if (damager.getType() == EntityType.CREEPER) {
-            if (handleVulnerability(event, null)) return;
-            handleEntityExplosion(event, damager.getLocation(), victim);
-            return;
-        } else if (damager instanceof Explosive || damager instanceof ExplosiveMinecart) {
-            if (handleVulnerability(event, null)) return;
-            handleEntityExplosion(event, getOrigin(damager), victim);
-            return;
-        } else if (!(damager instanceof Player)) {
-            if (damager instanceof Projectile projectile) {
-                if (projectile.getShooter() instanceof Player player) damager = player;
-                else {
-                    handleVulnerability(event, null);
-                    return;
-                }
-            } else {
-                handleVulnerability(event, null);
-                return;
-            }
-        }
-
-        if (handleVulnerability(event, damager)) return;
-
-        Location loc = victim.getLocation();
-        int x = loc.getBlockX();
-        int y = loc.getBlockY();
-        int z = loc.getBlockZ();
-        UUID world = loc.getWorld().getUID();
-
-        Flag<Boolean> flag1 = null;
-        Flag<Boolean> flag2 = null;
-        String message = null;
-
-        for (Terrain terrain : TerrainManager.allTerrains()) {
-            if (!terrain.world().equals(world) || !terrain.isWithin(x, y, z)) continue;
-            if (flag1 == null) {
-                switch (event.getEntityType()) {
-                    case ARMOR_STAND -> {
-                        if (damager.hasPermission("terrainer.bypass.armorstands") && damager.hasPermission("terrainer.bypass.build")) {
-                            return;
-                        }
-                        flag1 = Flags.ARMOR_STANDS;
-                        flag2 = Flags.BUILD;
-                        message = "Protections.Armor Stands";
-                    }
-                    case GLOW_ITEM_FRAME, ITEM_FRAME -> {
-                        // Item Frames only call EntityDamageByEntity event if they have an item on them. If there's no item,
-                        //HangingBreakByEntityEvent is called instead.
-                        if (damager.hasPermission("terrainer.bypass.itemframes")) return;
-                        flag1 = Flags.ITEM_FRAMES;
-                        message = "Protections.Item Frames";
-                    }
-                    case CHEST_BOAT, MINECART_CHEST, MINECART_HOPPER -> {
-                        if (damager.hasPermission("terrainer.bypass.containers") && damager.hasPermission("terrainer.bypass.build")) {
-                            return;
-                        }
-                        flag1 = Flags.CONTAINERS;
-                        flag2 = Flags.BUILD;
-                        message = "Protections.Containers";
-                    }
-                    case DONKEY -> {
-                        if (damager.hasPermission("terrainer.bypass.containers") && damager.hasPermission("terrainer.bypass.harm")) {
-                            return;
-                        }
-                        flag1 = Flags.CONTAINERS;
-                        flag2 = Flags.ENTITY_HARM;
-                        message = "Protections.Containers";
-                    }
-                    default -> {
-                        if (isEnemy(victim)) {
-                            if (damager.hasPermission("terrainer.bypass.harm")) return;
-                            flag1 = Flags.ENEMY_HARM;
-                            message = "Protections.Enemy Harm";
-                        } else if (victim instanceof Mob) {
-                            if (damager.hasPermission("terrainer.bypass.harm")) return;
-                            flag1 = Flags.ENTITY_HARM;
-                            message = "Protections.Harm";
-                        } else {
-                            if (damager.hasPermission("terrainer.bypass.build")) return;
-                            flag1 = Flags.BUILD;
-                            message = "Protections.Build";
-                        }
-                    }
-                }
-            }
-            if (!TerrainerPlugin.getPlayerUtil().hasAnyRelations(damager.getUniqueId(), terrain) && (deny(terrain, flag1) || (flag2 != null && deny(terrain, flag2)))) {
-                event.setCancelled(true);
-                lang.send(damager, lang.get(message));
-                return;
-            }
-        }
-    }
-
-    //TODO: Fix breaking by explosions
-    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
-    public void onHangingBreak(HangingBreakByEntityEvent event) {
-        Entity victim = event.getEntity();
-        Entity remover = event.getRemover();
-        if (remover == null) return;
-        if (remover.hasPermission("terrainer.bypass.build")) return;
-
-        if (remover.getType() == EntityType.CREEPER) {
-            handleEntityExplosion(event, remover.getLocation(), victim);
-            return;
-        } else if (remover instanceof Explosive || remover instanceof ExplosiveMinecart) {
-            handleEntityExplosion(event, getOrigin(remover), victim);
-            return;
-        } else if (!(remover instanceof Player)) {
-            if (remover instanceof Projectile projectile) {
-                if (projectile.getShooter() instanceof Player player) remover = player;
-                else return;
-            } else return;
-        }
-
-        handleProtection(event, remover, victim.getLocation(), Flags.BUILD, "Protections.Build");
+    @EventHandler(priority = EventPriority.LOWEST)
+    public void onEntityPlace(EntityPlaceEvent event) {
+        if (event.getPlayer() == null) return;
+        Location loc = event.getEntity().getLocation();
+        if (!placeEntity(event.getEntity().getWorld().getUID(), loc.getBlockX(), loc.getBlockY(), loc.getBlockZ(), event.getPlayer(), event.getEntity()))
+            event.setCancelled(true);
     }
 
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
@@ -684,124 +331,164 @@ public final class ProtectionsListener extends Protections<Player, CommandSender
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
     public void onInteractEntity(PlayerInteractEntityEvent event) {
         Player player = event.getPlayer();
-        Location loc = event.getRightClicked().getLocation();
-        int x = loc.getBlockX();
-        int y = loc.getBlockY();
-        int z = loc.getBlockZ();
-        UUID world = loc.getWorld().getUID();
-
-        Flag<Boolean> flag1 = null;
-        Flag<Boolean> flag2 = null;
-        String message = null;
-
-        for (Terrain terrain : TerrainManager.allTerrains()) {
-            if (!terrain.world().equals(world) || !terrain.isWithin(x, y, z)) continue;
-            if (flag1 == null) {
-                switch (event.getRightClicked().getType()) {
-                    case ARMOR_STAND -> {
-                        if (player.hasPermission("terrainer.bypass.armorstands")) return;
-                        flag1 = Flags.ARMOR_STANDS;
-                        message = "Protections.Armor Stands";
-                    }
-                    case GLOW_ITEM_FRAME, ITEM_FRAME -> {
-                        if (player.hasPermission("terrainer.bypass.itemframes")) return;
-                        flag1 = Flags.ITEM_FRAMES;
-                        message = "Protections.Item Frames";
-                    }
-                    case MINECART_CHEST, MINECART_HOPPER -> {
-                        if (player.hasPermission("terrainer.bypass.containers")) return;
-                        flag1 = Flags.CONTAINERS;
-                        message = "Protections.Containers";
-                    }
-                    case CHEST_BOAT, DONKEY -> {
-                        flag1 = Flags.CONTAINERS;
-                        flag2 = Flags.ENTER_VEHICLES;
-                        message = "Protections.Containers";
-                    }
-                    case BOAT, MINECART -> {
-                        if (player.hasPermission("terrainer.bypass.entervehicles")) return;
-                        flag1 = Flags.ENTER_VEHICLES;
-                        message = "Protections.Enter Vehicles";
-                    }
-                    case CAMEL, HORSE, LLAMA, MULE, PIG, SKELETON_HORSE, STRIDER, TRADER_LLAMA, ZOMBIE_HORSE -> {
-                        if (player.getInventory().getItemInMainHand().getType() == Material.AIR && player.getInventory().getItemInOffHand().getType() == Material.AIR) {
-                            if (player.hasPermission("terrainer.bypass.entervehicles")) return;
-                            flag1 = Flags.ENTER_VEHICLES;
-                            message = "Protections.Enter Vehicles";
-                        } else {
-                            if (player.hasPermission("terrainer.bypass.entityinteractions")) return;
-                            flag1 = Flags.ENTITY_INTERACTIONS;
-                            message = "Protections.Entity Interactions";
-                        }
-                    }
-                    default -> {
-                        if (player.hasPermission("terrainer.bypass.entityinteractions")) return;
-                        flag1 = Flags.ENTITY_INTERACTIONS;
-                        message = "Protections.Entity Interactions";
-                    }
-                }
-            }
-            if (!TerrainerPlugin.getPlayerUtil().hasAnyRelations(player.getUniqueId(), terrain) && (deny(terrain, flag1) || (flag2 != null && deny(terrain, flag2)))) {
-                event.setCancelled(true);
-                lang.send(player, lang.get(message));
-                return;
-            }
-        }
+        Entity entity = event.getRightClicked();
+        Location loc = entity.getLocation();
+        if (!entityInteraction(entity.getWorld().getUID(), loc.getBlockX(), loc.getBlockY(), loc.getBlockZ(), player, entity, player.getInventory().getItemInMainHand().getType(), player.getInventory().getItemInOffHand().getType()))
+            event.setCancelled(true);
     }
 
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
     public void onCreatureSpawn(CreatureSpawnEvent event) {
-        Flag<Boolean> flag;
+        Location loc = event.getLocation();
 
         switch (event.getSpawnReason()) {
-            case NATURAL, DEFAULT, NETHER_PORTAL, RAID, REINFORCEMENTS, DUPLICATION, ENDER_PEARL, JOCKEY, MOUNT, PATROL, TRAP, SILVERFISH_BLOCK ->
-                    flag = Flags.MOB_SPAWN;
-            case SPAWNER -> flag = Flags.SPAWNERS;
-            default -> {
-                return;
+            case BUILD_IRONGOLEM, BUILD_SNOWMAN, BUILD_WITHER, CUSTOM, DISPENSE_EGG, DUPLICATION, ENDER_PEARL, JOCKEY, MOUNT, NATURAL, NETHER_PORTAL, OCELOT_BABY, PATROL, RAID, REINFORCEMENTS, SILVERFISH_BLOCK, SLIME_SPLIT, SPAWNER_EGG, SPELL, TRAP, VILLAGE_DEFENSE, VILLAGE_INVASION -> {
+                if (!creatureSpawn(loc.getWorld().getUID(), loc.getBlockX(), loc.getBlockY(), loc.getBlockZ()))
+                    event.setCancelled(true);
+            }
+            case SPAWNER -> {
+                if (!spawnerSpawn(loc.getWorld().getUID(), loc.getBlockX(), loc.getBlockY(), loc.getBlockZ()))
+                    event.setCancelled(true);
             }
         }
-
-        Location loc = event.getLocation();
-        handleProtection(event, loc.getWorld().getUID(), loc.getBlockX(), loc.getBlockY(), loc.getBlockZ(), flag);
     }
 
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
     public void onItemPickup(EntityPickupItemEvent event) {
-        Entity entity = event.getEntity();
-        if (entity.getType() != EntityType.PLAYER || entity.hasPermission("terrainer.bypass.pickup")) return;
-        handleProtection(event, entity, event.getItem().getLocation(), Flags.ITEM_PICKUP, "Protections.Pickup");
+        if (event.getEntityType() != EntityType.PLAYER) return;
+        Item item = event.getItem();
+        Location loc = item.getLocation();
+        if (!itemPickup(item.getWorld().getUID(), loc.getBlockX(), loc.getBlockY(), loc.getBlockZ(), (Player) event.getEntity()))
+            event.setCancelled(true);
     }
 
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
     public void onItemDrop(PlayerDropItemEvent event) {
-        if (event.getPlayer().hasPermission("terrainer.bypass.drop")) return;
-        handleProtection(event, event.getPlayer(), event.getItemDrop().getLocation(), Flags.ITEM_DROP, "Protections.Drop");
+        Item item = event.getItemDrop();
+        Location loc = item.getLocation();
+        if (!itemDrop(item.getWorld().getUID(), loc.getBlockX(), loc.getBlockY(), loc.getBlockZ(), event.getPlayer()))
+            event.setCancelled(true);
+    }
+
+    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
+    public void onPistonExtend(BlockPistonExtendEvent event) {
+        Block piston = event.getBlock();
+        Collection<Block> movedBlocks = event.getBlocks().isEmpty() ? Collections.singleton(piston) : event.getBlocks();
+        if (!pistonExtend(piston.getWorld().getUID(), movedBlocks, b -> b.getRelative(event.getDirection())))
+            event.setCancelled(true);
+    }
+
+    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
+    public void onPistonRetract(BlockPistonRetractEvent event) {
+        if (event.getBlocks().isEmpty()) return;
+        Block piston = event.getBlock();
+        if (!pistonRetract(piston.getWorld().getUID(), piston.getX(), piston.getY(), piston.getZ(), event.getBlocks()))
+            event.setCancelled(true);
     }
 
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
     public void onLiquidFlow(BlockFromToEvent event) {
         Block from = event.getBlock();
         Block to = event.getToBlock();
-        UUID world = to.getWorld().getUID();
+        if (!liquidFlow(to.getWorld().getUID(), to.getX(), to.getY(), to.getZ(), from.getX(), from.getY(), from.getZ()))
+            event.setCancelled(true);
+    }
 
-        for (Terrain terrain : TerrainManager.allTerrains()) {
-            if (!terrain.world().equals(world) || !terrain.isWithin(to.getX(), to.getY(), to.getZ())) continue;
-            if (deny(terrain, Flags.LIQUID_FLOW) || (!terrain.isWithin(from.getX(), from.getY(), from.getZ()) && deny(terrain, Flags.BUILD))) {
+    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
+    public void onBlockSpread(BlockSpreadEvent event) {
+        Block from = event.getSource();
+        Block to = event.getBlock();
+        if (!blockSpread(to.getWorld().getUID(), to.getX(), to.getY(), to.getZ(), from.getX(), from.getY(), from.getZ()))
+            event.setCancelled(true);
+    }
+
+    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
+    public void onLeafDecay(LeavesDecayEvent event) {
+        Block block = event.getBlock();
+        if (!leafDecay(block.getWorld().getUID(), block.getX(), block.getY(), block.getZ())) event.setCancelled(true);
+    }
+
+    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
+    public void onInventoryOpen(InventoryOpenEvent event) {
+        InventoryHolder holder = event.getInventory().getHolder();
+
+        if (holder instanceof DoubleChest chest) {
+            Chest left = (Chest) chest.getLeftSide();
+            Chest right = (Chest) chest.getRightSide();
+            if (left == null || right == null) return;
+            if (!doubleChestOpen(left.getWorld().getUID(), left.getX(), left.getY(), left.getZ(), right.getX(), right.getY(), right.getZ(), (Player) event.getPlayer()))
                 event.setCancelled(true);
-                break;
-            }
+        } else if (holder instanceof Container container) {
+            if (!containerOpen(container.getWorld().getUID(), container.getX(), container.getY(), container.getZ(), (Player) event.getPlayer()))
+                event.setCancelled(true);
+        } else if (holder instanceof LivingEntity entity) {
+            Location loc = entity.getLocation();
+            if (!containerOpen(entity.getWorld().getUID(), loc.getBlockX(), loc.getBlockY(), loc.getBlockZ(), (Player) event.getPlayer()))
+                event.setCancelled(true);
         }
     }
 
-    @EventHandler(priority = EventPriority.LOW)
-    public void onBlockExplode(BlockExplodeEvent event) {
-        handleExplosion(event.getBlock().getLocation(), event.blockList());
+    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
+    public void onEntityChangeBlock(EntityChangeBlockEvent event) {
+        if (event.getEntityType() != EntityType.FALLING_BLOCK) return;
+        Block block = event.getBlock();
+        Location loc = getOrigin(event.getEntity());
+        if (!fallingBlockFall(block.getWorld().getUID(), block.getX(), block.getY(), block.getZ(), loc.getBlockX(), loc.getBlockY(), loc.getBlockY()))
+            event.setCancelled(true);
     }
 
-    @EventHandler(priority = EventPriority.LOW)
+    // Priority LOW to allow other plugins to add more blocks in LOWEST.
+    @EventHandler(priority = EventPriority.LOW, ignoreCancelled = true)
+    public void onSpongeAbsorb(SpongeAbsorbEvent event) {
+        // Converting BlockState list to Block.
+        List<Block> blocks = BlockStateToBlockMapping.wrapBlockStates(event.getBlocks());
+        Block sponge = event.getBlock();
+        // If the sponge is outside a terrain and absorbs water inside, remove the blocks that are inside if flag BUILD is false.
+        if (!spongeAbsorb(sponge.getWorld().getUID(), sponge.getX(), sponge.getY(), sponge.getZ(), blocks))
+            event.setCancelled(true);
+    }
+
+    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
+    public void onPickupArrow(PlayerPickupArrowEvent event) {
+        AbstractArrow arrow = event.getArrow();
+        Location loc = arrow.getLocation();
+
+        if (!pickupArrow(arrow.getWorld().getUID(), loc.getBlockX(), loc.getBlockY(), loc.getBlockZ(), event.getPlayer(), event.getFlyAtPlayer()))
+            event.setCancelled(true);
+    }
+
+    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
+    public void onBlockGrow(BlockGrowEvent event) {
+        Block from = event.getBlock();
+        BlockState to = event.getNewState();
+        if (!blockGrow(from.getWorld().getUID(), to.getX(), to.getY(), to.getZ(), from.getX(), from.getY(), from.getZ()))
+            event.setCancelled(true);
+    }
+
+    //TODO: Implement
+
+    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
+    public void onDamage(EntityDamageEvent event) {
+    }
+
+    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
+    public void onDamage(EntityDamageByBlockEvent event) {
+    }
+
+    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
+    public void onDamage(EntityDamageByEntityEvent event) {
+    }
+
+    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
+    public void onHangingBreak(HangingBreakByEntityEvent event) {
+    }
+
+    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
+    public void onBlockExplode(BlockExplodeEvent event) {
+    }
+
+    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
     public void onEntityExplode(EntityExplodeEvent event) {
-        handleExplosion(getOrigin(event.getEntity()), event.blockList());
     }
 
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
@@ -811,195 +498,105 @@ public final class ProtectionsListener extends Protections<Player, CommandSender
         UUID world = to.getWorld().getUID();
 
         if (from == null) {
-            handleProtection(event, world, to.getX(), to.getY(), to.getZ(), Flags.FIRE_DAMAGE);
-        } else {
-            for (Terrain terrain : TerrainManager.allTerrains()) {
-                if (!terrain.world().equals(world) || !terrain.isWithin(to.getX(), to.getY(), to.getZ())) continue;
-
-                if (deny(terrain, Flags.FIRE_DAMAGE) || (!terrain.isWithin(from.getX(), from.getY(), from.getZ()) && deny(terrain, Flags.BUILD))) {
-                    event.setCancelled(true);
-                    break;
-                }
-            }
-        }
+            if (!blockBurn(world, to.getX(), to.getY(), to.getZ())) event.setCancelled(true);
+        } else if (!blockBurn(world, to.getX(), to.getY(), to.getZ(), from.getX(), from.getY(), from.getZ()))
+            event.setCancelled(true);
     }
 
-    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
-    public void onBlockSpread(BlockSpreadEvent event) {
-        Block from = event.getSource();
-        Block to = event.getBlock();
-        UUID world = to.getWorld().getUID();
-
-        for (Terrain terrain : TerrainManager.allTerrains()) {
-            if (!terrain.world().equals(world) || !terrain.isWithin(to.getX(), to.getY(), to.getZ())) continue;
-
-            if (!terrain.isWithin(from.getX(), from.getY(), from.getZ()) && deny(terrain, Flags.BUILD)) {
-                event.setCancelled(true);
-                break;
-            }
-        }
+    // Priority LOW to allow other plugins to add more blocks in LOWEST.
+    @EventHandler(priority = EventPriority.LOW, ignoreCancelled = true)
+    public void onBlockFertilize(BlockFertilizeEvent event) {
+        // Converting BlockState list to Block.
+        List<Block> blocks = BlockStateToBlockMapping.wrapBlockStates(event.getBlocks());
+        Block fertilized = event.getBlock();
+        // If the fertilized is outside a terrain and grows blocks inside, remove the blocks that are inside if flag BUILD is false.
+        if (!blockFertilize(fertilized.getWorld().getUID(), fertilized.getX(), fertilized.getY(), fertilized.getZ(), blocks))
+            event.setCancelled(true);
     }
 
-    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
-    public void onLeafDecay(LeavesDecayEvent event) {
-        Block block = event.getBlock();
-        handleProtection(event, block.getWorld().getUID(), block.getX(), block.getY(), block.getZ(), Flags.LEAF_DECAY);
-    }
-
-    @EventHandler(priority = EventPriority.LOW)
+    // Priority LOW to allow other plugins to add more blocks in LOWEST.
+    @EventHandler(priority = EventPriority.LOW, ignoreCancelled = true)
     public void onStructureGrow(StructureGrowEvent event) {
-        List<BlockState> blocks = event.getBlocks();
+        // Let BlockFertilizeEvent handle it.
+        if (event.isFromBonemeal()) return;
+        // Converting BlockState list to Block.
+        List<Block> blocks = BlockStateToBlockMapping.wrapBlockStates(event.getBlocks());
         Location loc = event.getLocation();
-        int x = loc.getBlockX();
-        int y = loc.getBlockY();
-        int z = loc.getBlockZ();
-        UUID world = event.getWorld().getUID();
-
-        for (Terrain terrain : TerrainManager.allTerrains()) {
-            if (!terrain.world().equals(world) || terrain.isWithin(x, y, z)) continue;
-            if (deny(terrain, Flags.BUILD)) {
-                blocks.removeIf(block -> terrain.isWithin(block.getX(), block.getY(), block.getZ()));
-            }
-        }
+        // If the sapling is outside a terrain and grows blocks inside, remove the blocks that are inside if flag BUILD is false.
+        if (!structureGrow(event.getWorld().getUID(), loc.getBlockX(), loc.getBlockY(), loc.getBlockZ(), blocks))
+            event.setCancelled(true);
     }
 
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
     public void onEntityBlockForm(EntityBlockFormEvent event) {
-        Entity entity = event.getEntity();
-        if (entity.getType() != EntityType.PLAYER) return;
-        if (entity.hasPermission("terrainer.bypass.frostwalk")) return;
-        handleProtection(event, entity, event.getBlock().getLocation(), Flags.FROST_WALK, null);
-    }
-
-    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
-    public void onEntityChangeBlock(EntityChangeBlockEvent event) {
-        if (event.getEntityType() != EntityType.FALLING_BLOCK) return;
+        if (event.getEntity().getType() != EntityType.PLAYER) return;
         Block block = event.getBlock();
-        Location loc = getOrigin(event.getEntity());
-        int x = loc.getBlockX();
-        int y = loc.getBlockY();
-        int z = loc.getBlockZ();
-        UUID world = block.getWorld().getUID();
-
-        for (Terrain terrain : TerrainManager.allTerrains()) {
-            if (!terrain.world().equals(world) || !terrain.isWithin(block.getX(), block.getY(), block.getZ())) continue;
-            if (!terrain.isWithin(x, y, z) && deny(terrain, Flags.BUILD)) {
-                event.setCancelled(true);
-                return;
-            }
-        }
-    }
-
-    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
-    public void onInventoryOpen(InventoryOpenEvent event) {
-        Location loc = event.getInventory().getLocation();
-        HumanEntity player = event.getPlayer();
-        if (loc == null || player.hasPermission("terrainer.bypass.containers")) return;
-
-        if (event.getInventory().getHolder() instanceof DoubleChest doubleChest) {
-            Location side = null;
-            Chest left = (Chest) doubleChest.getLeftSide();
-            Chest right = (Chest) doubleChest.getRightSide();
-
-            // Getting the other side of the chest.
-            if (left != null && loc.equals(left.getLocation())) {
-                if (right != null) side = right.getLocation();
-            } else if (right != null && loc.equals(right.getLocation())) {
-                if (left != null) side = left.getLocation();
-            }
-
-            if (side != null) {
-                // Checking if it's allowed for the other side.
-                if (handleProtection(event, player, side, Flags.CONTAINERS, "Protections.Containers")) {
-                    return;
-                }
-            }
-        }
-
-        handleProtection(event, player, loc, Flags.CONTAINERS, "Protections.Containers");
-    }
-
-    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
-    public void onEnter(TerrainEnterEvent event) {
-        Terrain terrain = event.terrain();
-        Player player = event.player();
-
-        if (!player.hasPermission("terrainer.bypass.enter")) {
-            if (!TerrainerPlugin.getPlayerUtil().hasAnyRelations(player, terrain) && deny(terrain, Flags.ENTER)) {
-                event.setCancelled(true);
-                lang.send(player, lang.get("Protections.Enter"));
-                return;
-            }
-        }
-        if ((player.isFlying() || player.getAllowFlight()) && !player.hasPermission("terrainer.bypass.fly")) {
-            if (!TerrainerPlugin.getPlayerUtil().hasAnyRelations(player, terrain) && deny(terrain, Flags.FLY)) {
-                if (player.getAllowFlight()) {
-                    player.getPersistentDataContainer().set(resetFly, PersistentDataType.INTEGER, 1);
-                }
-                player.setAllowFlight(false);
-                lang.send(player, lang.get("Protections.Fly"));
-            }
-        }
-        if (player.isGliding() && !player.hasPermission("terrainer.bypass.glide")) {
-            if (!TerrainerPlugin.getPlayerUtil().hasAnyRelations(player, terrain) && deny(terrain, Flags.GLIDE)) {
-                event.setCancelled(true);
-                lang.send(player, lang.get("Protections.Glide"));
-            }
-        }
-    }
-
-    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
-    public void onLeave(TerrainLeaveEvent event) {
-        Terrain terrain = event.terrain();
-        Player player = event.player();
-
-        if (!player.hasPermission("terrainer.bypass.leave") && !TerrainerPlugin.getPlayerUtil().hasAnyRelations(player, terrain) && deny(terrain, Flags.LEAVE)) {
+        if (!frostWalk(block.getWorld().getUID(), block.getX(), block.getY(), block.getZ(), (Player) event.getEntity()))
             event.setCancelled(true);
-            lang.send(player, lang.get("Protections.Leave"));
-            return;
-        }
-
-        String flyPermission = Configurations.CONFIG.getConfiguration().getString("Fly Permission").orElse("essentials.fly");
-
-        if (player.getPersistentDataContainer().has(resetFly, PersistentDataType.INTEGER) && player.hasPermission(flyPermission)) {
-            player.getPersistentDataContainer().remove(resetFly);
-            player.setAllowFlight(true);
-        }
     }
 
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
     public void onMount(EntityMountEvent event) {
-        if (event.getEntity().hasPermission("terrainer.bypass.entervehicles")) return;
-        handleProtection(event, event.getEntity(), event.getMount().getLocation(), Flags.ENTER_VEHICLES, "Protections.Enter Vehicles");
+        if (event.getEntityType() != EntityType.PLAYER) return;
+        Entity mount = event.getMount();
+        Location loc = mount.getLocation();
+        if (!mount(mount.getWorld().getUID(), loc.getBlockX(), loc.getBlockY(), loc.getBlockZ(), (Player) event.getEntity()))
+            event.setCancelled(true);
+    }
+
+
+    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
+    public void onVehicleDestroy(VehicleDestroyEvent event) {
+        Entity attacker = event.getAttacker();
+        if (attacker == null || attacker.getType() != EntityType.PLAYER) return;
+        Entity vehicle = event.getVehicle();
+        Location loc = vehicle.getLocation();
+        if (!vehicleDestroy(vehicle.getWorld().getUID(), loc.getBlockX(), loc.getBlockY(), loc.getBlockZ(), (Player) attacker, vehicle))
+            event.setCancelled(true);
+    }
+
+
+    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
+    public void onSignChange(SignChangeEvent event) {
+        Block sign = event.getBlock();
+        if (!signChange(sign.getWorld().getUID(), sign.getX(), sign.getY(), sign.getZ(), event.getPlayer()))
+            event.setCancelled(true);
     }
 
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
-    public void onDispense(BlockDispenseEvent event) {
-        Block block = event.getBlock();
-        Block frontBlock = block.getRelative(((Directional) block.getBlockData()).getFacing());
-        UUID world = block.getWorld().getUID();
-
-        for (Terrain terrain : TerrainManager.allTerrains()) {
-            if (!terrain.world().equals(world)) continue;
-
-            boolean dispenserIn = terrain.isWithin(block.getX(), block.getY(), block.getZ());
-            boolean frontIn = terrain.isWithin(frontBlock.getX(), frontBlock.getY(), frontBlock.getZ());
-
-            if ((dispenserIn && deny(terrain, Flags.DISPENSERS)) || (!dispenserIn && frontIn && deny(terrain, Flags.OUTSIDE_DISPENSERS))) {
-                event.setCancelled(true);
-                return;
+    public void onToggleFlight(PlayerToggleFlightEvent event) {
+        if (!event.isFlying()) return;
+        Player player = event.getPlayer();
+        Location loc = player.getLocation();
+        if (!startFlight(player.getWorld().getUID(), loc.getBlockX(), loc.getBlockY(), loc.getBlockZ(), player)) {
+            // Setting tag on player to return flight when leaving the terrain.
+            if (player.getAllowFlight()) {
+                String flyPermission = Configurations.CONFIG.getConfiguration().getString("Fly Permission").orElse("essentials.fly");
+                player.getPersistentDataContainer().set(resetFly, PersistentDataType.INTEGER, player.hasPermission(flyPermission) ? 1 : 0);
             }
+            player.setAllowFlight(false);
         }
     }
 
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
-    public void onVehicleDestroy(VehicleDestroyEvent event) {
-        //TODO: check if attacker is explosive.
-        Entity attacker = event.getAttacker();
-        if (attacker == null || attacker.getType() != EntityType.PLAYER) return;
-        if (attacker.hasPermission("terrainer.bypass.build")) return;
-        handleProtection(event, attacker, event.getVehicle().getLocation(), Flags.BUILD_VEHICLES, "Protections.Build Vehicles");
+    public void onToggleGlide(EntityToggleGlideEvent event) {
+        if (!event.isGliding() || event.getEntityType() != EntityType.PLAYER) return;
+        Player player = (Player) event.getEntity();
+        Location loc = player.getLocation();
+        if (!glide(player.getWorld().getUID(), loc.getBlockX(), loc.getBlockY(), loc.getBlockZ(), player))
+            event.setCancelled(true);
     }
+
+    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
+    public void onProjectileLaunch(ProjectileLaunchEvent event) {
+        Projectile proj = event.getEntity();
+        Player shooter = proj.getShooter() instanceof Player p ? p : null;
+        Location loc = proj.getLocation();
+        if (!projectileLaunch(proj.getWorld().getUID(), loc.getBlockX(), loc.getBlockY(), loc.getBlockZ(), shooter))
+            event.setCancelled(true);
+    }
+
+    //TODO: Update.
 
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
     public void onProjectileHit(ProjectileHitEvent event) {
@@ -1029,43 +626,83 @@ public final class ProtectionsListener extends Protections<Player, CommandSender
     }
 
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
-    public void onProjectileLaunch(ProjectileLaunchEvent event) {
-        Player shooter = event.getEntity().getShooter() instanceof Player p ? p : null;
-        if (shooter == null) {
-            Location loc = event.getLocation();
-            handleProtection(event, event.getEntity().getWorld().getUID(), loc.getBlockX(), loc.getBlockY(), loc.getBlockZ(), Flags.PROJECTILES);
-        } else {
-            if (shooter.hasPermission("terrainer.bypass.projectiles")) return;
-            handleProtection(event, shooter, event.getLocation(), Flags.PROJECTILES, "Protections.Projectiles");
-        }
-    }
+    public void onDispense(BlockDispenseEvent event) {
+        Block block = event.getBlock();
+        Block frontBlock = block.getRelative(((Directional) block.getBlockData()).getFacing());
+        UUID world = block.getWorld().getUID();
 
-    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
-    public void onSignChange(SignChangeEvent event) {
-        if (event.getPlayer().hasPermission("terrainer.bypass.signedit")) return;
-        handleProtection(event, event.getPlayer(), event.getBlock().getLocation(), Flags.SIGN_EDIT, "Protections.Sign Edit");
-    }
+        for (Terrain terrain : TerrainManager.allTerrains()) {
+            if (!terrain.world().equals(world)) continue;
 
-    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
-    public void onToggleFlight(PlayerToggleFlightEvent event) {
-        if (!event.isFlying()) return;
-        Player player = event.getPlayer();
-        if (player.hasPermission("terrainer.bypass.fly")) return;
-        if (handleProtection(event, player, player.getLocation(), Flags.FLY, "Protections.Fly")) {
-            if (player.getAllowFlight()) {
-                player.getPersistentDataContainer().set(resetFly, PersistentDataType.INTEGER, 1);
+            boolean dispenserIn = terrain.isWithin(block.getX(), block.getY(), block.getZ());
+            boolean frontIn = terrain.isWithin(frontBlock.getX(), frontBlock.getY(), frontBlock.getZ());
+
+            if ((dispenserIn && deny(terrain, Flags.DISPENSERS)) || (!dispenserIn && frontIn && deny(terrain, Flags.OUTSIDE_DISPENSERS))) {
+                event.setCancelled(true);
+                return;
             }
-            player.setAllowFlight(false);
+        }
+    }
+
+    private boolean deny(Terrain terrain, Flag<Boolean> flag) {
+        Boolean state = terrain.flags().getData(flag);
+        return state != null && !state;
+    }
+
+    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
+    public void onEnter(TerrainEnterEvent event) {
+        Terrain terrain = event.terrain();
+        Player player = event.player();
+
+        if (!player.hasPermission("terrainer.bypass.enter")) {
+            if (!TerrainerPlugin.getPlayerUtil().hasAnyRelations(player, terrain) && deny(terrain, Flags.ENTER)) {
+                event.setCancelled(true);
+                lang.send(player, lang.get("Protections.Enter"));
+                return;
+            }
+        }
+        if ((player.isFlying() || player.getAllowFlight()) && !player.hasPermission("terrainer.bypass.fly")) {
+            if (!TerrainerPlugin.getPlayerUtil().hasAnyRelations(player, terrain) && deny(terrain, Flags.FLY)) {
+                // Setting tag on player to return flight when leaving the terrain.
+                if (player.getAllowFlight()) {
+                    String flyPermission = Configurations.CONFIG.getConfiguration().getString("Fly Permission").orElse("essentials.fly");
+                    player.getPersistentDataContainer().set(resetFly, PersistentDataType.INTEGER, player.hasPermission(flyPermission) ? 1 : 0);
+                }
+                player.setAllowFlight(false);
+                if (player.isFlying()) lang.send(player, lang.get("Protections.Fly"));
+            }
+        }
+        if (player.isGliding() && !player.hasPermission("terrainer.bypass.glide")) {
+            if (!TerrainerPlugin.getPlayerUtil().hasAnyRelations(player, terrain) && deny(terrain, Flags.GLIDE)) {
+                event.setCancelled(true);
+                lang.send(player, lang.get("Protections.Glide"));
+            }
         }
     }
 
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
-    public void onToggleGlide(EntityToggleGlideEvent event) {
-        if (!event.isGliding() || event.getEntityType() != EntityType.PLAYER) return;
-        Entity player = event.getEntity();
-        if (player.hasPermission("terrainer.bypass.glide")) return;
-        handleProtection(event, player, player.getLocation(), Flags.GLIDE, "Protections.Glide");
+    public void onLeave(TerrainLeaveEvent event) {
+        Terrain terrain = event.terrain();
+        Player player = event.player();
+
+        if (!player.hasPermission("terrainer.bypass.leave") && !TerrainerPlugin.getPlayerUtil().hasAnyRelations(player, terrain) && deny(terrain, Flags.LEAVE)) {
+            event.setCancelled(true);
+            lang.send(player, lang.get("Protections.Leave"));
+            return;
+        }
+
+        Integer returnFlight = player.getPersistentDataContainer().get(resetFly, PersistentDataType.INTEGER);
+        if (returnFlight == null) return;
+        player.getPersistentDataContainer().remove(resetFly);
+
+        String flyPermission = Configurations.CONFIG.getConfiguration().getString("Fly Permission").orElse("essentials.fly");
+
+        // Checking fly permission only if the player had it before losing the flight.
+        if (returnFlight == 0 || player.hasPermission(flyPermission)) {
+            player.setAllowFlight(true);
+        }
     }
+
 
     @SuppressWarnings("deprecation")
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
@@ -1095,7 +732,7 @@ public final class ProtectionsListener extends Protections<Player, CommandSender
             }
         }
 
-        if (!terrain.borders().isEmpty() && Configurations.CONFIG.getConfiguration().getBoolean("Borders.On Enter").orElse(false)) {
+        if (!terrain.borders().isEmpty() && Boolean.TRUE.equals(terrain.flags().getData(Flags.SHOW_BORDERS)) && Configurations.CONFIG.getConfiguration().getBoolean("Borders.On Enter").orElse(false)) {
             bordersCommand.showBorders(player, Collections.singleton(terrain));
         }
     }
