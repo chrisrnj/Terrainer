@@ -196,6 +196,7 @@ public final class TerrainerPlugin extends JavaPlugin {
 
     @Override
     public void onEnable() {
+        logger.log("WARNING: Explosions AND Entity Damage ARE NOT BEING PROTECTED AT ALL IN THIS BUILD.", ConsoleLogger.Level.WARN);
         if (reload()) logger.log("Configurations loaded successfully.");
 
         PluginManager pm = getServer().getPluginManager();
