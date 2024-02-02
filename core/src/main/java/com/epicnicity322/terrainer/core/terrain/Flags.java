@@ -109,7 +109,6 @@ public final class Flags {
     /**
      * Allows blocks being damaged by explosives.
      */
-    //TODO:
     public static final @NotNull Flag<Boolean> EXPLOSION_DAMAGE = Flag.newBooleanFlag("Explosion Damage", true);
     /**
      * Allows blocks being burned by fire.
@@ -140,10 +139,6 @@ public final class Flags {
      * Allows everyone to drop items.
      */
     public static final @NotNull Flag<Boolean> ITEM_DROP = Flag.newBooleanFlag("Item Drop", false);
-    /**
-     * Allows everyone to use item frames.
-     */
-    public static final @NotNull Flag<Boolean> ITEM_FRAMES = Flag.newBooleanFlag("Item Frames", false);
     /**
      * Allows everyone to pick up items in a terrain.
      */
@@ -251,6 +246,11 @@ public final class Flags {
     //TODO:
     public static final @NotNull Flag<Boolean> PVP = Flag.newBooleanFlag("PvP", false);
     /**
+     * Allows everyone to rotate item frames.
+     */
+    //TODO:
+    public static final @NotNull Flag<Boolean> ROTATE_FRAMES = Flag.newBooleanFlag("Rotate Frames", false);
+    /**
      * Show particles at the terrain's boundaries.
      */
     public static final @NotNull Flag<Boolean> SHOW_BORDERS = Flag.newBooleanFlag("Show Borders", true);
@@ -285,10 +285,10 @@ public final class Flags {
     private static final @NotNull Set<Flag<?>> values = Set.of(ANVILS, ARMOR_STANDS, BLOCK_FORM, BLOCK_SPREAD, BUILD,
             BUILD_BOATS, BUILD_MINECARTS, BUTTONS, CONTAINERS, DISPENSERS, DOORS, EFFECTS, ENEMY_HARM, ENTER,
             ENTER_VEHICLES, ENTITY_HARM, ENTITY_INTERACTIONS, EXPLOSION_DAMAGE, FIRE_DAMAGE, FIRE_SPREAD, FLY,
-            FROST_WALK, GLIDE, INTERACTIONS, ITEM_DROP, ITEM_FRAMES, ITEM_PICKUP, LEAF_DECAY, LEAVE, LEAVE_MESSAGE,
-            LIGHTERS, LIQUID_FLOW, MESSAGE_LOCATION, MOB_SPAWN, MODS_CAN_EDIT_FLAGS, MODS_CAN_MANAGE_MODS,
-            OUTSIDE_DISPENSERS, OUTSIDE_PISTONS, OUTSIDE_PROJECTILES, PISTONS, PLANT, PLANT_GROW, PLOW, PREPARE,
-            PRESSURE_PLATES, PROJECTILES, PVP, SHOW_BORDERS, SIGN_CLICK, SIGN_EDIT, SPAWNERS, SPONGES, TRAMPLE,
+            FROST_WALK, GLIDE, INTERACTIONS, ITEM_DROP, ITEM_PICKUP, LEAF_DECAY, LEAVE, LEAVE_MESSAGE, LIGHTERS,
+            LIQUID_FLOW, MESSAGE_LOCATION, MOB_SPAWN, MODS_CAN_EDIT_FLAGS, MODS_CAN_MANAGE_MODS, OUTSIDE_DISPENSERS,
+            OUTSIDE_PISTONS, OUTSIDE_PROJECTILES, PISTONS, PLANT, PLANT_GROW, PLOW, PREPARE, PRESSURE_PLATES,
+            PROJECTILES, PVP, ROTATE_FRAMES, SHOW_BORDERS, SIGN_CLICK, SIGN_EDIT, SPAWNERS, SPONGES, TRAMPLE,
             VULNERABILITY);
 
     private Flags() {
