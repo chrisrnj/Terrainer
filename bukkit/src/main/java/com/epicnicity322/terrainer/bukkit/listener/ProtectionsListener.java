@@ -25,6 +25,7 @@ import com.epicnicity322.terrainer.bukkit.command.BordersCommand;
 import com.epicnicity322.terrainer.bukkit.event.terrain.TerrainEnterEvent;
 import com.epicnicity322.terrainer.bukkit.event.terrain.TerrainLeaveEvent;
 import com.epicnicity322.terrainer.bukkit.util.BlockStateToBlockMapping;
+import com.epicnicity322.terrainer.core.Coordinate;
 import com.epicnicity322.terrainer.core.config.Configurations;
 import com.epicnicity322.terrainer.core.protection.Protections;
 import com.epicnicity322.terrainer.core.terrain.Flag;
@@ -48,6 +49,8 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.block.*;
 import org.bukkit.event.entity.*;
 import org.bukkit.event.hanging.HangingBreakByEntityEvent;
+import org.bukkit.event.hanging.HangingBreakEvent;
+import org.bukkit.event.hanging.HangingPlaceEvent;
 import org.bukkit.event.inventory.InventoryOpenEvent;
 import org.bukkit.event.player.*;
 import org.bukkit.event.vehicle.VehicleDestroyEvent;
@@ -103,7 +106,7 @@ public final class ProtectionsListener extends Protections<Player, CommandSender
         };
     }
 
-    private static @NotNull Location getOrigin(@NotNull Entity entity) {
+    private static @NotNull Location origin(@NotNull Entity entity) {
         if (getOriginMethod) {
             return entity.getOrigin() == null ? entity.getLocation() : entity.getOrigin();
         } else {
@@ -218,13 +221,38 @@ public final class ProtectionsListener extends Protections<Player, CommandSender
     protected @NotNull Flag<Boolean> flagEntityInteraction(@NotNull Entity entity, @NotNull Material mainHand, @NotNull Material offHand, boolean sneaking) {
         return switch (entity.getType()) {
             case ARMOR_STAND -> Flags.ARMOR_STANDS;
-            case GLOW_ITEM_FRAME, ITEM_FRAME -> Flags.ITEM_FRAMES;
+            case GLOW_ITEM_FRAME, ITEM_FRAME -> Flags.ROTATE_FRAMES;
             case MINECART_CHEST, MINECART_HOPPER, CHEST_BOAT, DONKEY -> Flags.CONTAINERS;
             case BOAT, MINECART -> Flags.ENTER_VEHICLES;
             case CAMEL, HORSE, LLAMA, MULE, PIG, SKELETON_HORSE, STRIDER, TRADER_LLAMA, ZOMBIE_HORSE ->
                     !sneaking && mainHand == Material.AIR && offHand == Material.AIR ? Flags.ENTER_VEHICLES : Flags.ENTITY_INTERACTIONS;
             default -> Flags.ENTITY_INTERACTIONS;
         };
+    }
+
+    @Override
+    protected @NotNull Flag<Boolean> flagEntityExploded(@NotNull Entity entity) {
+        //TODO: Add flags
+        return Flags.ENTITY_HARM;
+    }
+
+    @Override
+    protected @NotNull Flag<Boolean> flagEntityHit(@NotNull Entity entity, @NotNull Entity damager) {
+        //TODO: Add flags
+        return Flags.ENTITY_HARM;
+    }
+
+    @Override
+    protected @Nullable Player entityOrShooterToPlayer(@NotNull Entity entity) {
+        if (entity instanceof Player player) return player;
+        if (entity instanceof Projectile proj && proj.getShooter() instanceof Player player) return player;
+        return null;
+    }
+
+    @Override
+    protected @NotNull Coordinate entityOrigin(@NotNull Entity entity) {
+        Location loc = origin(entity);
+        return new Coordinate(loc.getBlockX(), loc.getBlockY(), loc.getBlockZ());
     }
 
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
@@ -395,7 +423,7 @@ public final class ProtectionsListener extends Protections<Player, CommandSender
     public void onEntityChangeBlock(EntityChangeBlockEvent event) {
         if (event.getEntityType() != EntityType.FALLING_BLOCK) return;
         Block block = event.getBlock();
-        Location loc = getOrigin(event.getEntity());
+        Location loc = origin(event.getEntity());
         if (!fallingBlockFall(block.getWorld().getUID(), block.getX(), block.getY(), block.getZ(), loc.getBlockX(), loc.getBlockY(), loc.getBlockY()))
             event.setCancelled(true);
     }
@@ -415,7 +443,6 @@ public final class ProtectionsListener extends Protections<Player, CommandSender
     public void onPickupArrow(PlayerPickupArrowEvent event) {
         AbstractArrow arrow = event.getArrow();
         Location loc = arrow.getLocation();
-
         if (!pickupArrow(arrow.getWorld().getUID(), loc.getBlockX(), loc.getBlockY(), loc.getBlockZ(), event.getPlayer(), event.getFlyAtPlayer()))
             event.setCancelled(true);
     }
@@ -430,7 +457,7 @@ public final class ProtectionsListener extends Protections<Player, CommandSender
     public void onBlockSpread(BlockSpreadEvent event) {
         Block from = event.getSource();
         Block to = event.getBlock();
-        if (!blockSpread(to.getWorld().getUID(), to.getX(), to.getY(), to.getZ(), from.getX(), from.getY(), from.getZ()))
+        if (!blockSpread(to.getWorld().getUID(), to.getX(), to.getY(), to.getZ(), from.getX(), from.getY(), from.getZ(), event.getNewState().getType()))
             event.setCancelled(true);
     }
 
@@ -442,30 +469,100 @@ public final class ProtectionsListener extends Protections<Player, CommandSender
             event.setCancelled(true);
     }
 
-    //TODO: Implement
-
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
     public void onDamage(EntityDamageEvent event) {
+        if (event.getEntityType() != EntityType.PLAYER) return;
+        // Preventing checks for player damage being called twice.
+        if (event instanceof EntityDamageByEntityEvent || event instanceof EntityDamageByBlockEvent) return;
+        Entity player = event.getEntity();
+        Location loc = player.getLocation();
+        if (!playerDamage(player.getWorld().getUID(), loc.getBlockX(), loc.getBlockY(), loc.getBlockZ()))
+            event.setCancelled(true);
     }
 
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
-    public void onDamage(EntityDamageByBlockEvent event) {
+    public void onDamageByBlock(EntityDamageByBlockEvent event) {
+        Entity entity = event.getEntity();
+        Location loc = entity.getLocation();
+
+        if (event.getEntityType() == EntityType.PLAYER) {
+            if (!playerDamage(entity.getWorld().getUID(), loc.getBlockX(), loc.getBlockY(), loc.getBlockZ()))
+                event.setCancelled(true);
+            return;
+        }
+
+        Block block = event.getDamager();
+        if (block == null) return;
+        if (!entityDamageByBlock(entity.getWorld().getUID(), loc.getBlockX(), loc.getBlockY(), loc.getBlockZ(), block.getX(), block.getY(), block.getZ(), entity))
+            event.setCancelled(true);
     }
 
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
-    public void onDamage(EntityDamageByEntityEvent event) {
+    public void onDamageByEntity(EntityDamageByEntityEvent event) {
+        Entity entity = event.getEntity();
+        Location loc = entity.getLocation();
+
+        if (event.getEntityType() == EntityType.PLAYER) {
+            if (!playerDamage(entity.getWorld().getUID(), loc.getBlockX(), loc.getBlockY(), loc.getBlockZ())) {
+                event.setCancelled(true);
+                return;
+            }
+        }
+
+        Entity damager = event.getDamager();
+        if (!entityDamageByEntity(entity.getWorld().getUID(), loc.getBlockX(), loc.getBlockY(), loc.getBlockZ(), entity, damager, event.getCause() == EntityDamageEvent.DamageCause.ENTITY_EXPLOSION))
+            event.setCancelled(true);
     }
 
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
-    public void onHangingBreak(HangingBreakByEntityEvent event) {
+    public void onHangingPlace(HangingPlaceEvent event) {
+        if (event.getPlayer() == null) return;
+        Entity placed = event.getEntity();
+        Location loc = placed.getLocation();
+        // Material could be ITEM_FRAME, GLOW_ITEM_FRAME or PAINTING, but block place only checks for fire, so it doesn't matter.
+        if (!blockPlace(placed.getWorld().getUID(), loc.getBlockX(), loc.getBlockY(), loc.getBlockZ(), event.getPlayer(), Material.ITEM_FRAME))
+            event.setCancelled(true);
     }
 
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
+    public void onHangingBreak(HangingBreakEvent event) {
+        if (event.getCause() != HangingBreakEvent.RemoveCause.EXPLOSION) return;
+        if (event instanceof HangingBreakByEntityEvent) return;
+        Hanging hanging = event.getEntity();
+        Location loc = hanging.getLocation();
+        if (!explodeHanging(hanging.getWorld().getUID(), loc.getBlockX(), loc.getBlockY(), loc.getBlockZ()))
+            event.setCancelled(true);
+    }
+
+    // For some reason is not called when broke by a TNT
+    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
+    public void onHangingBreakByEntity(HangingBreakByEntityEvent event) {
+        Hanging hanging = event.getEntity();
+        Location loc = hanging.getLocation();
+        if (!entityDamageByEntity(hanging.getWorld().getUID(), loc.getBlockX(), loc.getBlockY(), loc.getBlockZ(), hanging, event.getRemover(), event.getCause() == HangingBreakEvent.RemoveCause.EXPLOSION))
+            event.setCancelled(true);
+    }
+
+    // Priority LOW to allow other plugins to add more blocks in LOWEST.
+    @EventHandler(priority = EventPriority.LOW, ignoreCancelled = true)
     public void onBlockExplode(BlockExplodeEvent event) {
+        Block block = event.getBlock();
+        BlockState state = event.getExplodedBlockState();
+        if (state != null) {
+            if (!blockExplode(block.getWorld().getUID(), state.getX(), state.getY(), state.getZ(), event.blockList()))
+                event.setCancelled(true);
+        } else {
+            if (!blockExplode(block.getWorld().getUID(), block.getX(), block.getY(), block.getZ(), event.blockList()))
+                event.setCancelled(true);
+        }
     }
 
-    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
+    // Priority LOW to allow other plugins to add more blocks in LOWEST.
+    @EventHandler(priority = EventPriority.LOW, ignoreCancelled = true)
     public void onEntityExplode(EntityExplodeEvent event) {
+        Location loc = origin(event.getEntity());
+        if (!entityExplode(event.getEntity().getWorld().getUID(), loc.getBlockX(), loc.getBlockY(), loc.getBlockZ(), event.blockList()))
+            event.setCancelled(true);
     }
 
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
@@ -568,8 +665,17 @@ public final class ProtectionsListener extends Protections<Player, CommandSender
     public void onProjectileLaunch(ProjectileLaunchEvent event) {
         Projectile proj = event.getEntity();
         Player shooter = proj.getShooter() instanceof Player p ? p : null;
+        if (shooter == null) return;
         Location loc = proj.getLocation();
         if (!projectileLaunch(proj.getWorld().getUID(), loc.getBlockX(), loc.getBlockY(), loc.getBlockZ(), shooter))
+            event.setCancelled(true);
+    }
+
+    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
+    public void onDispense(BlockDispenseEvent event) {
+        Block block = event.getBlock();
+        Block frontBlock = block.getRelative(((Directional) block.getBlockData()).getFacing());
+        if (!dispenserDispense(block.getWorld().getUID(), frontBlock.getX(), frontBlock.getY(), frontBlock.getZ(), block.getX(), block.getY(), block.getZ()))
             event.setCancelled(true);
     }
 
@@ -597,25 +703,6 @@ public final class ProtectionsListener extends Protections<Player, CommandSender
                 if (shooter != null) lang.send(shooter, lang.get("Protections.Projectiles"));
                 event.setCancelled(true);
                 projectile.remove();
-                return;
-            }
-        }
-    }
-
-    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
-    public void onDispense(BlockDispenseEvent event) {
-        Block block = event.getBlock();
-        Block frontBlock = block.getRelative(((Directional) block.getBlockData()).getFacing());
-        UUID world = block.getWorld().getUID();
-
-        for (Terrain terrain : TerrainManager.allTerrains()) {
-            if (!terrain.world().equals(world)) continue;
-
-            boolean dispenserIn = terrain.isWithin(block.getX(), block.getY(), block.getZ());
-            boolean frontIn = terrain.isWithin(frontBlock.getX(), frontBlock.getY(), frontBlock.getZ());
-
-            if ((dispenserIn && deny(terrain, Flags.DISPENSERS)) || (!dispenserIn && frontIn && deny(terrain, Flags.OUTSIDE_DISPENSERS))) {
-                event.setCancelled(true);
                 return;
             }
         }
