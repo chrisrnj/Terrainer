@@ -38,12 +38,24 @@ public final class BukkitPlayerUtil extends PlayerUtil<Player, CommandSender> {
     private final @NotNull TerrainerPlugin plugin;
     private final @NotNull NamespacedKey blockLimitKey;
     private final @NotNull NamespacedKey claimLimitKey;
+    private final @NotNull NamespacedKey resetFlyKey;
 
     public BukkitPlayerUtil(@NotNull TerrainerPlugin plugin) {
         super(TerrainerPlugin.getLanguage());
         this.plugin = plugin;
         blockLimitKey = new NamespacedKey(plugin, "block-limit");
         claimLimitKey = new NamespacedKey(plugin, "claim-limit");
+        resetFlyKey = new NamespacedKey(plugin, "reset-fly-on-leave");
+    }
+
+    @Override
+    public boolean canFly(@NotNull Player player) {
+        return player.getAllowFlight();
+    }
+
+    @Override
+    public void setResetFly(@NotNull Player player, boolean checkPermission) {
+        player.getPersistentDataContainer().set(resetFlyKey, PersistentDataType.INTEGER, checkPermission ? 1 : 0);
     }
 
     @Override

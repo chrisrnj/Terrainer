@@ -20,6 +20,7 @@ package com.epicnicity322.terrainer.core.protection;
 
 import com.epicnicity322.epicpluginlib.core.lang.LanguageHolder;
 import com.epicnicity322.terrainer.core.Coordinate;
+import com.epicnicity322.terrainer.core.config.Configurations;
 import com.epicnicity322.terrainer.core.terrain.Flag;
 import com.epicnicity322.terrainer.core.terrain.Flags;
 import com.epicnicity322.terrainer.core.terrain.Terrain;
@@ -427,10 +428,6 @@ public abstract class Protections<P extends R, R, M, B, E> {
         return handleOutsideBlockProtection(world, x, y, z, blocks, true, Flags.SPONGES, Flags.BUILD) && !blocks.isEmpty();
     }
 
-    protected boolean startFlight(@NotNull UUID world, double x, double y, double z, @NotNull P player) {
-        return handleProtection(player, world, x, y, z, Flags.FLY, true);
-    }
-
     protected boolean signChange(@NotNull UUID world, double x, double y, double z, @NotNull P player) {
         return handleProtection(player, world, x, y, z, Flags.SIGN_EDIT, true);
     }
@@ -585,5 +582,17 @@ public abstract class Protections<P extends R, R, M, B, E> {
         }
 
         return handleProtection(player, world, x, y, z, flag, message);
+    }
+
+    protected boolean startFlight(@NotNull UUID world, double x, double y, double z, @NotNull P player) {
+        if (!handleProtection(player, world, x, y, z, Flags.FLY, true)) {
+            if (playerUtil.canFly(player)) {
+                // Setting tag on player to return flight when leaving the terrain.
+                String flyPermission = Configurations.CONFIG.getConfiguration().getString("Fly Permission").orElse("essentials.fly");
+                playerUtil.setResetFly(player, playerUtil.hasPermission(player, flyPermission));
+            }
+            return false;
+        }
+        return true;
     }
 }
