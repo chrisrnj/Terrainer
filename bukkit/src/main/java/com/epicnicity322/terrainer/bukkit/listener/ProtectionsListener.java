@@ -444,7 +444,7 @@ public final class ProtectionsListener extends Protections<Player, CommandSender
         } else if (holder instanceof Container container) {
             if (!containerOpen(container.getWorld().getUID(), container.getX(), container.getY(), container.getZ(), (Player) event.getPlayer()))
                 event.setCancelled(true);
-        } else if (holder instanceof LivingEntity entity) {
+        } else if (holder instanceof ChestedHorse entity) {
             Location loc = entity.getLocation();
             if (!containerOpen(entity.getWorld().getUID(), loc.getBlockX(), loc.getBlockY(), loc.getBlockZ(), (Player) event.getPlayer()))
                 event.setCancelled(true);
