@@ -666,14 +666,8 @@ public final class ProtectionsListener extends Protections<Player, CommandSender
         if (!event.isFlying()) return;
         Player player = event.getPlayer();
         Location loc = player.getLocation();
-        if (!startFlight(player.getWorld().getUID(), loc.getBlockX(), loc.getBlockY(), loc.getBlockZ(), player)) {
-            // Setting tag on player to return flight when leaving the terrain.
-            if (player.getAllowFlight()) {
-                String flyPermission = Configurations.CONFIG.getConfiguration().getString("Fly Permission").orElse("essentials.fly");
-                player.getPersistentDataContainer().set(resetFly, PersistentDataType.INTEGER, player.hasPermission(flyPermission) ? 1 : 0);
-            }
+        if (!startFlight(player.getWorld().getUID(), loc.getBlockX(), loc.getBlockY(), loc.getBlockZ(), player))
             player.setAllowFlight(false);
-        }
     }
 
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
@@ -781,21 +775,8 @@ public final class ProtectionsListener extends Protections<Player, CommandSender
         if (!player.hasPermission("terrainer.bypass.leave") && !TerrainerPlugin.getPlayerUtil().hasAnyRelations(player, terrain) && deny(terrain, Flags.LEAVE)) {
             event.setCancelled(true);
             lang.send(player, lang.get("Protections.Leave"));
-            return;
-        }
-
-        Integer returnFlight = player.getPersistentDataContainer().get(resetFly, PersistentDataType.INTEGER);
-        if (returnFlight == null) return;
-        player.getPersistentDataContainer().remove(resetFly);
-
-        String flyPermission = Configurations.CONFIG.getConfiguration().getString("Fly Permission").orElse("essentials.fly");
-
-        // Checking fly permission only if the player had it before losing the flight.
-        if (returnFlight == 0 || player.hasPermission(flyPermission)) {
-            player.setAllowFlight(true);
         }
     }
-
 
     @SuppressWarnings("deprecation")
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
@@ -836,6 +817,18 @@ public final class ProtectionsListener extends Protections<Player, CommandSender
         Terrain terrain = event.terrain();
         Player player = event.player();
 
+        // Returning the player's ability to fly.
+        Integer returnFlight = player.getPersistentDataContainer().get(resetFly, PersistentDataType.INTEGER);
+        if (returnFlight != null) {
+            player.getPersistentDataContainer().remove(resetFly);
+
+            String flyPermission = Configurations.CONFIG.getConfiguration().getString("Fly Permission").orElse("essentials.fly");
+
+            // Checking fly permission only if the player had it before losing the flight.
+            if (returnFlight == 0 || player.hasPermission(flyPermission)) player.setAllowFlight(true);
+        }
+
+        // Removing effects from effects flag.
         Map<String, Integer> effects = terrain.flags().getData(Flags.EFFECTS);
         if (effects != null) {
             effects.forEach((effect, power) -> {
@@ -845,6 +838,7 @@ public final class ProtectionsListener extends Protections<Player, CommandSender
             });
         }
 
+        // Showing leave message.
         String messageLocation = terrain.flags().getData(Flags.MESSAGE_LOCATION);
         if (messageLocation != null && !(messageLocation = messageLocation.toLowerCase(Locale.ROOT)).equals("none")) {
             String leaveMessage = terrain.flags().getData(Flags.LEAVE_MESSAGE);
