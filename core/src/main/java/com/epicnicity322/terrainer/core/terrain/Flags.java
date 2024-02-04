@@ -35,12 +35,10 @@ public final class Flags {
     /**
      * Allows everyone to use anvils.
      */
-    //TODO:
     public static final @NotNull Flag<Boolean> ANVILS = Flag.newBooleanFlag("Anvils", false);
     /**
      * Allows everyone to use armor stands.
      */
-    //TODO:
     public static final @NotNull Flag<Boolean> ARMOR_STANDS = Flag.newBooleanFlag("Armor Stands", false);
     /**
      * Allows blocks such as ice, snow, cobblestone, obsidian, concrete to form.
@@ -57,12 +55,10 @@ public final class Flags {
     /**
      * Allows everyone to place and break boats.
      */
-    //TODO:
     public static final @NotNull Flag<Boolean> BUILD_BOATS = Flag.newBooleanFlag("Build Boats", false);
     /**
      * Allows everyone to place and break minecarts.
      */
-    //TODO:
     public static final @NotNull Flag<Boolean> BUILD_MINECARTS = Flag.newBooleanFlag("Build Minecarts", false);
     /**
      * Allows everyone to use buttons and levers.
@@ -81,13 +77,16 @@ public final class Flags {
      */
     public static final @NotNull Flag<Boolean> DOORS = Flag.newBooleanFlag("Doors", false);
     /**
+     * Prevents players from eating food in terrains.
+     */
+    public static final @NotNull Flag<Boolean> EAT = Flag.newBooleanFlag("Eat", true);
+    /**
      * Gives the effects to the players in the terrain like a beacon. Upon leaving the terrain, the effects are removed.
      */
     public static final @NotNull Flag<Map<String, Integer>> EFFECTS = Flag.newIntegerMapFlag("Effects", null);
     /**
      * Prevents players from harming enemy entities.
      */
-    //TODO:
     public static final @NotNull Flag<Boolean> ENEMY_HARM = Flag.newBooleanFlag("Enemy Harm", true);
     /**
      * Allows everyone to enter the terrain.
@@ -100,7 +99,6 @@ public final class Flags {
     /**
      * Allows everyone to harm mobs.
      */
-    //TODO:
     public static final @NotNull Flag<Boolean> ENTITY_HARM = Flag.newBooleanFlag("Entity Harm", false);
     /**
      * Allows everyone to interact with entities, breed entities and use armor stands in a terrain.
@@ -140,6 +138,10 @@ public final class Flags {
      */
     public static final @NotNull Flag<Boolean> ITEM_DROP = Flag.newBooleanFlag("Item Drop", false);
     /**
+     * Allows everyone to rotate and place items on item frames. Taking items off requires {@link Flags#BUILD}.
+     */
+    public static final @NotNull Flag<Boolean> ITEM_FRAMES = Flag.newBooleanFlag("Item Frames", false);
+    /**
      * Allows everyone to pick up items in a terrain.
      */
     public static final @NotNull Flag<Boolean> ITEM_PICKUP = Flag.newBooleanFlag("Item Pickup", false);
@@ -165,7 +167,6 @@ public final class Flags {
     /**
      * Allows everyone to use lighters such as fireballs or flint and steel.
      */
-    //TODO:
     public static final @NotNull Flag<Boolean> LIGHTERS = Flag.newBooleanFlag("Lighters", false);
     /**
      * Allows water and lava to flow.
@@ -205,7 +206,6 @@ public final class Flags {
     /**
      * Allows outside projectiles to land inside the terrain.
      */
-    //TODO:
     public static final @NotNull Flag<Boolean> OUTSIDE_PROJECTILES = Flag.newBooleanFlag("Outside Projectiles", false);
     /**
      * Allows pistons inside the terrain moving blocks.
@@ -226,10 +226,13 @@ public final class Flags {
     //TODO:
     public static final @NotNull Flag<Boolean> PLOW = Flag.newBooleanFlag("Plow", false);
     /**
+     * Allows everyone to drink or throw potions in the terrain.
+     */
+    public static final @NotNull Flag<Boolean> POTIONS = Flag.newBooleanFlag("Potions", false);
+    /**
      * Allows everyone to use preparing blocks, such as cartography tables, crafting tables, enchanting tables,
      * grindstones, looms, smithing tables, and stonecutters.
      */
-    //TODO:
     public static final @NotNull Flag<Boolean> PREPARE = Flag.newBooleanFlag("Prepare", true);
     /**
      * Allows everyone to press pressure plates.
@@ -238,18 +241,11 @@ public final class Flags {
     /**
      * Allows everyone to shoot projectiles.
      */
-    //TODO:
     public static final @NotNull Flag<Boolean> PROJECTILES = Flag.newBooleanFlag("Projectiles", false);
     /**
      * Allows players to engage in combat.
      */
-    //TODO:
     public static final @NotNull Flag<Boolean> PVP = Flag.newBooleanFlag("PvP", false);
-    /**
-     * Allows everyone to rotate item frames.
-     */
-    //TODO:
-    public static final @NotNull Flag<Boolean> ROTATE_FRAMES = Flag.newBooleanFlag("Rotate Frames", false);
     /**
      * Show particles at the terrain's boundaries.
      */
@@ -257,7 +253,6 @@ public final class Flags {
     /**
      * Allows everyone to right-click signs.
      */
-    //TODO:
     public static final @NotNull Flag<Boolean> SIGN_CLICK = Flag.newBooleanFlag("Sign Click", false);
     /**
      * Allows everyone to edit signs.
@@ -278,17 +273,16 @@ public final class Flags {
     /**
      * Do not freeze player's health and saturation.
      */
-    //TODO:
     public static final @NotNull Flag<Boolean> VULNERABILITY = Flag.newBooleanFlag("Vulnerability", true);
 
     private static final @NotNull HashSet<Flag<?>> customValues = new HashSet<>();
     private static final @NotNull Set<Flag<?>> values = Set.of(ANVILS, ARMOR_STANDS, BLOCK_FORM, BLOCK_SPREAD, BUILD,
-            BUILD_BOATS, BUILD_MINECARTS, BUTTONS, CONTAINERS, DISPENSERS, DOORS, EFFECTS, ENEMY_HARM, ENTER,
+            BUILD_BOATS, BUILD_MINECARTS, BUTTONS, CONTAINERS, DISPENSERS, DOORS, EAT, EFFECTS, ENEMY_HARM, ENTER,
             ENTER_VEHICLES, ENTITY_HARM, ENTITY_INTERACTIONS, EXPLOSION_DAMAGE, FIRE_DAMAGE, FIRE_SPREAD, FLY,
-            FROST_WALK, GLIDE, INTERACTIONS, ITEM_DROP, ITEM_PICKUP, LEAF_DECAY, LEAVE, LEAVE_MESSAGE, LIGHTERS,
-            LIQUID_FLOW, MESSAGE_LOCATION, MOB_SPAWN, MODS_CAN_EDIT_FLAGS, MODS_CAN_MANAGE_MODS, OUTSIDE_DISPENSERS,
-            OUTSIDE_PISTONS, OUTSIDE_PROJECTILES, PISTONS, PLANT, PLANT_GROW, PLOW, PREPARE, PRESSURE_PLATES,
-            PROJECTILES, PVP, ROTATE_FRAMES, SHOW_BORDERS, SIGN_CLICK, SIGN_EDIT, SPAWNERS, SPONGES, TRAMPLE,
+            FROST_WALK, GLIDE, INTERACTIONS, ITEM_DROP, ITEM_FRAMES, ITEM_PICKUP, LEAF_DECAY, LEAVE, LEAVE_MESSAGE,
+            LIGHTERS, LIQUID_FLOW, MESSAGE_LOCATION, MOB_SPAWN, MODS_CAN_EDIT_FLAGS, MODS_CAN_MANAGE_MODS,
+            OUTSIDE_DISPENSERS, OUTSIDE_PISTONS, OUTSIDE_PROJECTILES, PISTONS, PLANT, PLANT_GROW, PLOW, POTIONS, PREPARE,
+            PRESSURE_PLATES, PROJECTILES, PVP, SHOW_BORDERS, SIGN_CLICK, SIGN_EDIT, SPAWNERS, SPONGES, TRAMPLE,
             VULNERABILITY);
 
     private Flags() {

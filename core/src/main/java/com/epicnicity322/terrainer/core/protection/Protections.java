@@ -54,24 +54,27 @@ public abstract class Protections<P extends R, R, M, B, E> {
     protected abstract boolean isInteractable(@NotNull M material);
 
     /**
-     * Blocks that can be placed on the ground.
+     * Items that can be placed on the ground. Buckets of water, armor stands, item frames and paintings are some of the
+     * items that are not considered blocks that should be considered building items.
      *
      * @param material The material to test.
      * @return Whether this material is a block that can be placed.
      */
-    protected abstract boolean isBuildingItem(@Nullable M material);
-
-    /**
-     * Items that can make a fire when used.
-     *
-     * @param material The material to test.
-     * @return Whether this material can make fire.
-     */
-    protected abstract boolean isLighter(@Nullable M material);
+    protected abstract boolean isPlaceable(@Nullable M material);
 
     protected abstract boolean isFire(@NotNull M material);
 
     protected abstract boolean isBoat(@NotNull E entity);
+
+    /**
+     * Entities that are a lingering or splash potion projectile.
+     *
+     * @param entity The entity to test.
+     * @return Whether this entity is a potion.
+     */
+    protected abstract boolean isPotion(@NotNull E entity);
+
+    protected abstract boolean isPlayer(@NotNull E entity);
 
     protected abstract int x(@NotNull B block);
 
@@ -83,15 +86,20 @@ public abstract class Protections<P extends R, R, M, B, E> {
 
     protected abstract @NotNull Flag<Boolean> flagPhysicalInteraction(@NotNull M material);
 
-    protected abstract @NotNull Flag<Boolean> flagBlockRightClickInteraction(@NotNull M material);
+    protected abstract @NotNull Flag<Boolean> flagInteractableBlock(@NotNull M material, @Nullable M hand);
 
-    protected abstract @NotNull Flag<Boolean> flagItemUseInteraction(@NotNull M block, @NotNull M hand);
+    protected abstract @NotNull Flag<Boolean> flagItemUse(@NotNull M block, @Nullable M hand);
 
     protected abstract @NotNull Flag<Boolean> flagEntityInteraction(@NotNull E entity, @NotNull M mainHand, @NotNull M offHand, boolean sneaking);
 
-    protected abstract @NotNull Flag<Boolean> flagEntityExploded(@NotNull E entity);
-
-    protected abstract @NotNull Flag<Boolean> flagEntityHit(@NotNull E entity, @NotNull E damager);
+    /**
+     * Finds the appropriate flag for an entity being hit. This method will never be called when the victim is a player.
+     *
+     * @param entity  The victim being hit.
+     * @param damager The damager entity. Null if the entity was hit by an explosive block.
+     * @return The flag for entity being damaged.
+     */
+    protected abstract @NotNull Flag<Boolean> flagEntityHit(@NotNull E entity, @Nullable E damager);
 
     /**
      * Converts an Entity type to a Player type. If entity is a projectile then return shooter of the projectile.
@@ -431,8 +439,8 @@ public abstract class Protections<P extends R, R, M, B, E> {
         return handleProtection(player, world, x, y, z, Flags.FROST_WALK, false);
     }
 
-    protected boolean projectileLaunch(@NotNull UUID world, double x, double y, double z, @NotNull P shooter) {
-        return handleProtection(shooter, world, x, y, z, Flags.PROJECTILES, false);
+    protected boolean projectileLaunch(@NotNull UUID world, double x, double y, double z, @NotNull P shooter, @NotNull E projectile) {
+        return handleProtection(shooter, world, x, y, z, isPotion(projectile) ? Flags.POTIONS : Flags.PROJECTILES, true);
     }
 
     protected boolean glide(@NotNull UUID world, double x, double y, double z, @NotNull P player) {
@@ -440,39 +448,53 @@ public abstract class Protections<P extends R, R, M, B, E> {
     }
 
     protected boolean mount(@NotNull UUID world, double x, double y, double z, @NotNull P player) {
-        return handleProtection(player, world, x, y, z, Flags.ENTER_VEHICLES, false);
+        return handleProtection(player, world, x, y, z, Flags.ENTER_VEHICLES, true);
     }
 
     protected boolean vehicleDestroy(@NotNull UUID world, double x, double y, double z, @NotNull P player, @NotNull E vehicle) {
         return handleProtection(player, world, x, y, z, isBoat(vehicle) ? Flags.BUILD_BOATS : Flags.BUILD_MINECARTS, true);
     }
 
+    protected boolean itemConsume(@NotNull UUID world, double x, double y, double z, @NotNull P player, boolean potion) {
+        return handleProtection(player, world, x, y, z, potion ? Flags.POTIONS : Flags.EAT, true);
+    }
+
+    protected boolean projectileHit(@NotNull UUID world, double x, double y, double z, double fromX, double fromY, double fromZ, @NotNull E projectile, @Nullable P shooter) {
+        if (shooter == null)
+            return handleOutsideAction(world, x, y, z, fromX, fromY, fromZ, isPotion(projectile) ? Flags.POTIONS : Flags.OUTSIDE_PROJECTILES);
+
+        return handleProtection(shooter, world, x, y, z, isPotion(projectile) ? Flags.POTIONS : Flags.OUTSIDE_PROJECTILES, true);
+    }
+
     protected boolean playerDamage(@NotNull UUID world, double x, double y, double z) {
         return handleProtection(world, x, y, z, Flags.VULNERABILITY);
     }
 
-    protected boolean entityDamageByBlock(@NotNull UUID world, double x, double y, double z, double fromX, double fromY, double fromZ, @NotNull E entity) {
-        return handleBlockFromTo(world, x, y, z, fromX, fromY, fromZ, Flags.EXPLOSION_DAMAGE, flagEntityExploded(entity));
+    protected boolean entityDamageByExplodingBlock(@NotNull UUID world, double x, double y, double z, double fromX, double fromY, double fromZ, @NotNull E victim) {
+        return handleBlockFromTo(world, x, y, z, fromX, fromY, fromZ, Flags.EXPLOSION_DAMAGE, flagEntityHit(victim, null));
     }
 
-    protected boolean entityDamageByEntity(@NotNull UUID world, double x, double y, double z, @NotNull E entity, @NotNull E damager, boolean explosion) {
+    protected boolean entityDamageByEntity(@NotNull UUID world, double x, double y, double z, @NotNull E victim, @NotNull E damager, boolean explosion) {
+        if (isPlayer(victim)) {
+            return handleProtection(world, x, y, z, entityOrShooterToPlayer(damager) != null ? Flags.PVP : Flags.VULNERABILITY);
+        }
+
         P player;
+        Flag<Boolean> entityHitFlag = flagEntityHit(victim, damager);
 
         if (explosion) {
             Coordinate origin = entityOrigin(damager);
-            return handleBlockFromTo(world, x, y, z, origin.x(), origin.y(), origin.z(), Flags.EXPLOSION_DAMAGE, flagEntityExploded(entity));
-        } else if ((player = entityOrShooterToPlayer(damager)) != null) {
-            return handleProtection(player, world, x, y, z, Flags.BUILD, flagEntityHit(entity, damager));
+            return handleBlockFromTo(world, x, y, z, origin.x(), origin.y(), origin.z(), Flags.EXPLOSION_DAMAGE, entityHitFlag);
+        } else if ((player = entityOrShooterToPlayer(damager)) != null) { // When it's a player hitting an entity.
+            return handleProtection(player, world, x, y, z, entityHitFlag, true);
         } else { // Usually reached when an arrow is shot by a dispenser or other type of entity hits an entity.
-            // Checking if victim is a player.
-            if (entityOrShooterToPlayer(entity) != null) return true;
             Coordinate origin = entityOrigin(damager);
-            return handleOutsideAction(world, x, y, z, origin.x(), origin.y(), origin.z(), flagEntityHit(entity, damager));
+            return handleOutsideAction(world, x, y, z, origin.x(), origin.y(), origin.z(), entityHitFlag);
         }
     }
 
     protected boolean entityExplode(@NotNull UUID world, double x, double y, double z, @NotNull List<B> blocks) {
-        return handleOutsideBlockProtection(world, x, y, z, blocks, true, Flags.EXPLOSION_DAMAGE, Flags.BUILD) && !blocks.isEmpty();
+        return handleOutsideBlockProtection(world, x, y, z, blocks, true, Flags.EXPLOSION_DAMAGE, Flags.BUILD);
     }
 
     /**
@@ -484,7 +506,7 @@ public abstract class Protections<P extends R, R, M, B, E> {
     }
 
     protected boolean blockExplode(@NotNull UUID world, double x, double y, double z, @NotNull List<B> blocks) {
-        return handleOutsideBlockProtection(world, x, y, z, blocks, true, Flags.EXPLOSION_DAMAGE, Flags.BUILD) && !blocks.isEmpty();
+        return handleOutsideBlockProtection(world, x, y, z, blocks, true, Flags.EXPLOSION_DAMAGE, Flags.BUILD);
     }
 
     protected boolean blockFertilize(@NotNull UUID world, double x, double y, double z, @NotNull List<B> blocks) {
@@ -545,22 +567,23 @@ public abstract class Protections<P extends R, R, M, B, E> {
 
     protected boolean rightClickInteract(@NotNull UUID world, double x, double y, double z, @NotNull P player, @NotNull M material, @Nullable M hand) {
         Flag<Boolean> flag;
+        boolean message = true;
 
         if (isInteractable(material)) {
-            if (playerUtil.isSneaking(player) && isBuildingItem(hand)) {
+            if (playerUtil.isSneaking(player) && isPlaceable(hand)) {
                 // Let block place/bucket fill event handle it.
                 return true;
             } else {
-                flag = flagBlockRightClickInteraction(material);
+                flag = flagInteractableBlock(material, hand);
             }
-        } else if (isBuildingItem(hand)) {
+        } else if (isPlaceable(hand)) {
             // Let block place/bucket fill event handle it.
             return true;
         } else {
-            if (hand == null) return true;
-            flag = flagItemUseInteraction(material, hand);
+            if (hand == null) message = false;
+            flag = flagItemUse(material, hand);
         }
 
-        return handleProtection(player, world, x, y, z, flag, true);
+        return handleProtection(player, world, x, y, z, flag, message);
     }
 }

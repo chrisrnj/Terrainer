@@ -31,7 +31,6 @@ import com.epicnicity322.terrainer.core.protection.Protections;
 import com.epicnicity322.terrainer.core.terrain.Flag;
 import com.epicnicity322.terrainer.core.terrain.Flags;
 import com.epicnicity322.terrainer.core.terrain.Terrain;
-import com.epicnicity322.terrainer.core.terrain.TerrainManager;
 import net.md_5.bungee.api.ChatMessageType;
 import net.md_5.bungee.api.chat.TextComponent;
 import org.apache.commons.lang3.mutable.Mutable;
@@ -43,6 +42,7 @@ import org.bukkit.boss.BarStyle;
 import org.bukkit.boss.BossBar;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.*;
+import org.bukkit.event.Cancellable;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
@@ -56,6 +56,7 @@ import org.bukkit.event.player.*;
 import org.bukkit.event.vehicle.VehicleDestroyEvent;
 import org.bukkit.event.world.StructureGrowEvent;
 import org.bukkit.inventory.InventoryHolder;
+import org.bukkit.inventory.meta.PotionMeta;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
@@ -114,6 +115,10 @@ public final class ProtectionsListener extends Protections<Player, CommandSender
         }
     }
 
+    private static boolean tryingToEnterVehicle(@NotNull Material mainHand, @NotNull Material offHand, boolean sneaking) {
+        return !sneaking && mainHand == Material.AIR && offHand == Material.AIR;
+    }
+
     @Override
     @SuppressWarnings("deprecation")
     protected boolean isInteractable(@NotNull Material material) {
@@ -121,20 +126,15 @@ public final class ProtectionsListener extends Protections<Player, CommandSender
     }
 
     @Override
-    protected boolean isBuildingItem(@Nullable Material material) {
+    protected boolean isPlaceable(@Nullable Material material) {
         if (material == null) return false;
         if (material.isBlock()) return true;
 
         return switch (material) {
-            case ARMOR_STAND, AXOLOTL_BUCKET, BUCKET, CHEST_MINECART, COD_BUCKET, COMMAND_BLOCK_MINECART, FURNACE_MINECART, GLOW_ITEM_FRAME, HOPPER_MINECART, ITEM_FRAME, LAVA_BUCKET, MINECART, PAINTING, POWDER_SNOW_BUCKET, PUFFERFISH_BUCKET, SALMON_BUCKET, STRING, TADPOLE_BUCKET, TNT_MINECART, TROPICAL_FISH_BUCKET, WATER_BUCKET ->
+            case ARMOR_STAND, AXOLOTL_BUCKET, BUCKET, CHEST_MINECART, COD_BUCKET, COMMAND_BLOCK_MINECART, END_CRYSTAL, FURNACE_MINECART, GLOW_ITEM_FRAME, HOPPER_MINECART, ITEM_FRAME, LAVA_BUCKET, MINECART, PAINTING, POWDER_SNOW_BUCKET, PUFFERFISH_BUCKET, SALMON_BUCKET, STRING, TADPOLE_BUCKET, TNT_MINECART, TROPICAL_FISH_BUCKET, WATER_BUCKET ->
                     true;
             default -> material.name().endsWith("BOAT");
         };
-    }
-
-    @Override
-    protected boolean isLighter(@Nullable Material material) {
-        return material == Material.FLINT_AND_STEEL || material == Material.FIRE_CHARGE;
     }
 
     @Override
@@ -145,6 +145,16 @@ public final class ProtectionsListener extends Protections<Player, CommandSender
     @Override
     protected boolean isBoat(@NotNull Entity entity) {
         return entity.getType() == EntityType.BOAT || entity.getType() == EntityType.CHEST_BOAT;
+    }
+
+    @Override
+    protected boolean isPotion(@NotNull Entity entity) {
+        return entity.getType() == EntityType.SPLASH_POTION;
+    }
+
+    @Override
+    protected boolean isPlayer(@NotNull Entity entity) {
+        return entity.getType() == EntityType.PLAYER;
     }
 
     @Override
@@ -174,8 +184,9 @@ public final class ProtectionsListener extends Protections<Player, CommandSender
     @Override
     protected @NotNull Flag<Boolean> flagEntityPlaced(@NotNull Entity entity) {
         return switch (entity.getType()) {
-            case MINECART, MINECART_CHEST, MINECART_HOPPER, MINECART_COMMAND, MINECART_FURNACE, MINECART_TNT, MINECART_MOB_SPAWNER ->
+            case MINECART, MINECART_CHEST, MINECART_HOPPER, MINECART_COMMAND, MINECART_FURNACE, MINECART_MOB_SPAWNER ->
                     Flags.BUILD_MINECARTS;
+            case MINECART_TNT -> Flags.BUILD;
             case BOAT, CHEST_BOAT -> Flags.BUILD_BOATS;
             // ARMOR_STAND, ENDER_CRYSTAL
             default -> Flags.BUILD;
@@ -196,8 +207,9 @@ public final class ProtectionsListener extends Protections<Player, CommandSender
     }
 
     @Override
-    protected @NotNull Flag<Boolean> flagBlockRightClickInteraction(@NotNull Material material) {
+    protected @NotNull Flag<Boolean> flagInteractableBlock(@NotNull Material material, @Nullable Material hand) {
         if (isContainer(material)) return Flags.CONTAINERS;
+        if (isPrepareBlock(material)) return Flags.PREPARE;
 
         String typeName = material.name();
         int underscore = typeName.lastIndexOf('_');
@@ -207,39 +219,59 @@ public final class ProtectionsListener extends Protections<Player, CommandSender
             case "LEVER", "BUTTON" -> Flags.BUTTONS;
             case "DOOR", "GATE", "TRAPDOOR" -> Flags.DOORS;
             case "SIGN" -> Flags.SIGN_CLICK;
+            case "CAKE" ->
+                    hand == Material.FLINT_AND_STEEL || hand == Material.FIRE_CHARGE ? Flags.LIGHTERS : Flags.EAT;
+            case "ANVIL" -> Flags.ANVILS;
+            case "CANDLE", "CAMPFIRE" -> Flags.LIGHTERS;
             default -> Flags.INTERACTIONS;
         };
     }
 
     @Override
-    protected @NotNull Flag<Boolean> flagItemUseInteraction(@NotNull Material block, @NotNull Material hand) {
-        //TODO: Add flags
-        return Flags.INTERACTIONS;
+    protected @NotNull Flag<Boolean> flagItemUse(@NotNull Material block, @Nullable Material hand) {
+        if (hand == null) return Flags.INTERACTIONS;
+
+        return switch (hand) {
+            case FLINT_AND_STEEL, FIRE_CHARGE -> Flags.LIGHTERS;
+            case POTION, LINGERING_POTION, SPLASH_POTION -> Flags.POTIONS;
+            default -> hand.isEdible() ? Flags.EAT : Flags.INTERACTIONS;
+        };
     }
 
     @Override
     protected @NotNull Flag<Boolean> flagEntityInteraction(@NotNull Entity entity, @NotNull Material mainHand, @NotNull Material offHand, boolean sneaking) {
         return switch (entity.getType()) {
             case ARMOR_STAND -> Flags.ARMOR_STANDS;
-            case GLOW_ITEM_FRAME, ITEM_FRAME -> Flags.ROTATE_FRAMES;
-            case MINECART_CHEST, MINECART_HOPPER, CHEST_BOAT, DONKEY -> Flags.CONTAINERS;
+            case GLOW_ITEM_FRAME, ITEM_FRAME -> Flags.ITEM_FRAMES;
+            case MINECART_CHEST, MINECART_HOPPER, CHEST_BOAT -> Flags.CONTAINERS;
+            case DONKEY, MULE, LLAMA, TRADER_LLAMA ->
+                    ((ChestedHorse) entity).isCarryingChest() ? Flags.CONTAINERS : tryingToEnterVehicle(mainHand, offHand, sneaking) ? Flags.ENTER_VEHICLES : Flags.ENTITY_INTERACTIONS;
             case BOAT, MINECART -> Flags.ENTER_VEHICLES;
-            case CAMEL, HORSE, LLAMA, MULE, PIG, SKELETON_HORSE, STRIDER, TRADER_LLAMA, ZOMBIE_HORSE ->
-                    !sneaking && mainHand == Material.AIR && offHand == Material.AIR ? Flags.ENTER_VEHICLES : Flags.ENTITY_INTERACTIONS;
+            case CAMEL, HORSE, SKELETON_HORSE, ZOMBIE_HORSE ->
+                    tryingToEnterVehicle(mainHand, offHand, sneaking) ? Flags.ENTER_VEHICLES : Flags.ENTITY_INTERACTIONS;
+            case PIG, STRIDER ->
+                    (((Steerable) entity).hasSaddle() && mainHand == Material.AIR && offHand == Material.AIR) ? Flags.ENTER_VEHICLES : Flags.ENTITY_INTERACTIONS;
             default -> Flags.ENTITY_INTERACTIONS;
         };
     }
 
     @Override
-    protected @NotNull Flag<Boolean> flagEntityExploded(@NotNull Entity entity) {
-        //TODO: Add flags
-        return Flags.ENTITY_HARM;
-    }
-
-    @Override
-    protected @NotNull Flag<Boolean> flagEntityHit(@NotNull Entity entity, @NotNull Entity damager) {
-        //TODO: Add flags
-        return Flags.ENTITY_HARM;
+    protected @NotNull Flag<Boolean> flagEntityHit(@NotNull Entity entity, @Nullable Entity damager) {
+        return switch (entity.getType()) {
+            case ARMOR_STAND -> Flags.ARMOR_STANDS;
+            case ITEM_FRAME, GLOW_ITEM_FRAME, PAINTING -> Flags.BUILD;
+            case CHEST_BOAT, MINECART_CHEST, MINECART_HOPPER -> Flags.CONTAINERS;
+            case MINECART -> Flags.BUILD_MINECARTS;
+            default -> {
+                if (isEnemy(entity)) {
+                    yield Flags.ENEMY_HARM;
+                } else if (entity instanceof Mob) {
+                    yield Flags.ENTITY_HARM;
+                } else {
+                    yield Flags.BUILD;
+                }
+            }
+        };
     }
 
     @Override
@@ -493,7 +525,7 @@ public final class ProtectionsListener extends Protections<Player, CommandSender
 
         Block block = event.getDamager();
         if (block == null) return;
-        if (!entityDamageByBlock(entity.getWorld().getUID(), loc.getBlockX(), loc.getBlockY(), loc.getBlockZ(), block.getX(), block.getY(), block.getZ(), entity))
+        if (!entityDamageByExplodingBlock(entity.getWorld().getUID(), loc.getBlockX(), loc.getBlockY(), loc.getBlockZ(), block.getX(), block.getY(), block.getZ(), entity))
             event.setCancelled(true);
     }
 
@@ -501,14 +533,6 @@ public final class ProtectionsListener extends Protections<Player, CommandSender
     public void onDamageByEntity(EntityDamageByEntityEvent event) {
         Entity entity = event.getEntity();
         Location loc = entity.getLocation();
-
-        if (event.getEntityType() == EntityType.PLAYER) {
-            if (!playerDamage(entity.getWorld().getUID(), loc.getBlockX(), loc.getBlockY(), loc.getBlockZ())) {
-                event.setCancelled(true);
-                return;
-            }
-        }
-
         Entity damager = event.getDamager();
         if (!entityDamageByEntity(entity.getWorld().getUID(), loc.getBlockX(), loc.getBlockY(), loc.getBlockZ(), entity, damager, event.getCause() == EntityDamageEvent.DamageCause.ENTITY_EXPLOSION))
             event.setCancelled(true);
@@ -667,7 +691,7 @@ public final class ProtectionsListener extends Protections<Player, CommandSender
         Player shooter = proj.getShooter() instanceof Player p ? p : null;
         if (shooter == null) return;
         Location loc = proj.getLocation();
-        if (!projectileLaunch(proj.getWorld().getUID(), loc.getBlockX(), loc.getBlockY(), loc.getBlockZ(), shooter))
+        if (!projectileLaunch(proj.getWorld().getUID(), loc.getBlockX(), loc.getBlockY(), loc.getBlockZ(), shooter, proj))
             event.setCancelled(true);
     }
 
@@ -679,33 +703,38 @@ public final class ProtectionsListener extends Protections<Player, CommandSender
             event.setCancelled(true);
     }
 
-    //TODO: Update.
-
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
     public void onProjectileHit(ProjectileHitEvent event) {
-        if (!getOriginMethod) return;
-
         Projectile projectile = event.getEntity();
-        Location originLoc = projectile.getOrigin();
-        if (originLoc == null) return;
+        // Let potion events handle it
+        if (projectile.getType() == EntityType.SPLASH_POTION) return;
+        projectileHit(projectile, event);
+    }
+
+    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
+    public void onPotionSplash(PotionSplashEvent event) {
+        projectileHit(event.getEntity(), event);
+    }
+
+    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
+    public void onLingeringPotionSplash(LingeringPotionSplashEvent event) {
+        projectileHit(event.getEntity(), event);
+    }
+
+    private void projectileHit(@NotNull Projectile projectile, @NotNull Cancellable event) {
         Player shooter = projectile.getShooter() instanceof Player p ? p : null;
-        if (shooter != null && shooter.hasPermission("terrainer.bypass.outsideprojectiles")) return;
+        Location loc = projectile.getLocation();
+        Location from = origin(projectile);
+        if (!projectileHit(projectile.getWorld().getUID(), loc.getBlockX(), loc.getBlockY(), loc.getBlockZ(), from.getBlockX(), from.getBlockY(), from.getBlockZ(), projectile, shooter))
+            event.setCancelled(true);
+    }
 
-        int originX = originLoc.getBlockX(), originY = originLoc.getBlockY(), originZ = originLoc.getBlockZ();
-        Location hitLoc = event.getHitEntity() == null ? Objects.requireNonNull(event.getHitBlock()).getLocation() : event.getHitEntity().getLocation();
-        int x = hitLoc.getBlockX(), y = hitLoc.getBlockY(), z = hitLoc.getBlockZ();
-        UUID world = projectile.getWorld().getUID();
-
-        for (Terrain terrain : TerrainManager.allTerrains()) {
-            if (!terrain.world().equals(world)) continue;
-
-            if (!terrain.isWithin(originX, originY, originZ) && terrain.isWithin(x, y, z) && deny(terrain, Flags.OUTSIDE_PROJECTILES)) {
-                if (shooter != null) lang.send(shooter, lang.get("Protections.Projectiles"));
-                event.setCancelled(true);
-                projectile.remove();
-                return;
-            }
-        }
+    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
+    public void onItemConsume(PlayerItemConsumeEvent event) {
+        Player player = event.getPlayer();
+        Location loc = player.getLocation();
+        if (!itemConsume(player.getWorld().getUID(), loc.getBlockX(), loc.getBlockY(), loc.getBlockZ(), player, event.getItem().hasItemMeta() && event.getItem().getItemMeta() instanceof PotionMeta))
+            event.setCancelled(true);
     }
 
     private boolean deny(Terrain terrain, Flag<Boolean> flag) {
