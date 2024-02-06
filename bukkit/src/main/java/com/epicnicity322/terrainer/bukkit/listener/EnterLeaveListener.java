@@ -40,11 +40,13 @@ import org.bukkit.event.player.*;
 import org.bukkit.event.vehicle.VehicleMoveEvent;
 import org.bukkit.util.Vector;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
 
 public final class EnterLeaveListener implements Listener {
     private static final @NotNull HashSet<UUID> ignoredPlayersTeleportEvent = new HashSet<>(4);
+    private static final @NotNull HashSet<UUID> ignoredPlayersDismountEvent = new HashSet<>(4);
     private static final @NotNull Vector zero = new Vector(0, 0, 0);
     private static @NotNull List<String> commandsOnEntryCancelled = Collections.emptyList();
 
@@ -85,7 +87,13 @@ public final class EnterLeaveListener implements Listener {
             to.setZ(from.getBlockZ() + 0.5);
             if (toY != fromY) to.setY(from.getBlockY());
             event.setCancelled(false);
+            // The change of the TO location will count as teleport as soon as the event finishes being called.
             ignoredPlayersTeleportEvent.add(player.getUniqueId());
+            // If player is in a vehicle, ignore dismount event (player teleport will trigger it) and teleport the vehicle as well.
+            if (player.getVehicle() != null) {
+                ignoredPlayersDismountEvent.add(player.getUniqueId());
+                player.getVehicle().teleport(to);
+            }
         }
     }
 
@@ -126,7 +134,6 @@ public final class EnterLeaveListener implements Listener {
                     Bukkit.getPluginManager().callEvent(leave);
                     if (leave.isCancelled()) {
                         cancel = true;
-                        vehicle.removePassenger(player);
                     }
                 }
             } else if (inTo && !inFrom) {
@@ -135,13 +142,26 @@ public final class EnterLeaveListener implements Listener {
                     Bukkit.getPluginManager().callEvent(enter);
                     if (enter.isCancelled()) {
                         cancel = true;
-                        vehicle.removePassenger(player);
                     }
                 }
             }
         }
 
-        if (cancel) vehicle.setVelocity(zero);
+        if (cancel) {
+            vehicle.setVelocity(zero);
+            to.setX(from.getBlockX() + 0.5);
+            to.setZ(from.getBlockZ() + 0.5);
+            // Teleporting the players back in, ignoring the teleport and dismount events.
+            for (Player player : players) {
+                ignoredPlayersTeleportEvent.add(player.getUniqueId());
+                ignoredPlayersDismountEvent.add(player.getUniqueId());
+                Location tp = to.clone();
+                tp.setYaw(player.getYaw());
+                tp.setPitch(player.getPitch());
+                player.teleport(tp);
+            }
+            vehicle.teleport(to);
+        }
     }
 
     @EventHandler(priority = EventPriority.HIGHEST)
@@ -245,8 +265,10 @@ public final class EnterLeaveListener implements Listener {
     @EventHandler
     public void onDismount(EntityDismountEvent event) {
         if (!(event.getEntity() instanceof Player player)) return;
+        if (ignoredPlayersDismountEvent.remove(player.getUniqueId())) return;
         Location from = event.getDismounted().getLocation(), to = player.getLocation();
         if (handleFromTo(from, to, player, TerrainEvent.EnterLeaveReason.DISMOUNT, false)) {
+            ignoredPlayersTeleportEvent.add(player.getUniqueId());
             player.teleport(from);
         }
     }
