@@ -150,6 +150,7 @@ public final class EnterLeaveListener implements Listener {
             vehicle.setVelocity(zero);
             to.setX(from.getBlockX() + 0.5);
             to.setZ(from.getBlockZ() + 0.5);
+            if (toY != fromY) to.setY(from.getBlockY());
             // Teleporting the players back in, ignoring the teleport and dismount events.
             for (Player player : players) {
                 ignoredPlayersTeleportEvent.add(player.getUniqueId());
