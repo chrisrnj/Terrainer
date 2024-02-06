@@ -40,7 +40,6 @@ import org.bukkit.event.player.*;
 import org.bukkit.event.vehicle.VehicleMoveEvent;
 import org.bukkit.util.Vector;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
 
