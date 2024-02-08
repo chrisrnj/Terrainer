@@ -22,11 +22,14 @@ import com.epicnicity322.epicpluginlib.bukkit.lang.MessageSender;
 import com.epicnicity322.epicpluginlib.bukkit.reflection.ReflectionUtil;
 import com.epicnicity322.terrainer.bukkit.TerrainerPlugin;
 import com.epicnicity322.terrainer.bukkit.command.BordersCommand;
+import com.epicnicity322.terrainer.bukkit.event.terrain.TerrainCanEnterEvent;
+import com.epicnicity322.terrainer.bukkit.event.terrain.TerrainCanLeaveEvent;
 import com.epicnicity322.terrainer.bukkit.event.terrain.TerrainEnterEvent;
 import com.epicnicity322.terrainer.bukkit.event.terrain.TerrainLeaveEvent;
 import com.epicnicity322.terrainer.bukkit.util.BlockStateToBlockMapping;
 import com.epicnicity322.terrainer.core.Coordinate;
 import com.epicnicity322.terrainer.core.config.Configurations;
+import com.epicnicity322.terrainer.core.event.TerrainEvent;
 import com.epicnicity322.terrainer.core.protection.Protections;
 import com.epicnicity322.terrainer.core.terrain.Flag;
 import com.epicnicity322.terrainer.core.terrain.Flags;
@@ -737,45 +740,33 @@ public final class ProtectionsListener extends Protections<Player, CommandSender
     }
 
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
-    public void onEnter(TerrainEnterEvent event) {
+    public void canEnter(TerrainCanEnterEvent event) {
         Terrain terrain = event.terrain();
         Player player = event.player();
+        Boolean enter = terrain.flags().getData(Flags.ENTER);
+        if (enter == null) return;
+        if (enter || player.hasPermission(Flags.ENTER.bypassPermission()) || TerrainerPlugin.getPlayerUtil().hasAnyRelations(player, terrain)) {
+            event.setCanEnter(TerrainEvent.CanEnterLeave.ALLOW);
+            return;
+        }
 
-        if (!player.hasPermission("terrainer.bypass.enter")) {
-            if (!TerrainerPlugin.getPlayerUtil().hasAnyRelations(player, terrain) && deny(terrain, Flags.ENTER)) {
-                event.setCancelled(true);
-                lang.send(player, lang.get("Protections.Enter"));
-                return;
-            }
-        }
-        if ((player.isFlying() || player.getAllowFlight()) && !player.hasPermission("terrainer.bypass.fly")) {
-            if (!TerrainerPlugin.getPlayerUtil().hasAnyRelations(player, terrain) && deny(terrain, Flags.FLY)) {
-                // Setting tag on player to return flight when leaving the terrain.
-                if (player.getAllowFlight()) {
-                    String flyPermission = Configurations.CONFIG.getConfiguration().getString("Fly Permission").orElse("essentials.fly");
-                    player.getPersistentDataContainer().set(resetFly, PersistentDataType.INTEGER, player.hasPermission(flyPermission) ? 1 : 0);
-                }
-                player.setAllowFlight(false);
-                if (player.isFlying()) lang.send(player, lang.get("Protections.Fly"));
-            }
-        }
-        if (player.isGliding() && !player.hasPermission("terrainer.bypass.glide")) {
-            if (!TerrainerPlugin.getPlayerUtil().hasAnyRelations(player, terrain) && deny(terrain, Flags.GLIDE)) {
-                event.setCancelled(true);
-                lang.send(player, lang.get("Protections.Glide"));
-            }
-        }
+        event.setCanEnter(TerrainEvent.CanEnterLeave.DENY);
+        lang.send(player, lang.get("Protections." + Flags.ENTER.id()));
     }
 
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
-    public void onLeave(TerrainLeaveEvent event) {
+    public void canLeave(TerrainCanLeaveEvent event) {
         Terrain terrain = event.terrain();
         Player player = event.player();
-
-        if (!player.hasPermission("terrainer.bypass.leave") && !TerrainerPlugin.getPlayerUtil().hasAnyRelations(player, terrain) && deny(terrain, Flags.LEAVE)) {
-            event.setCancelled(true);
-            lang.send(player, lang.get("Protections.Leave"));
+        Boolean leave = terrain.flags().getData(Flags.LEAVE);
+        if (leave == null) return;
+        if (leave || player.hasPermission(Flags.LEAVE.bypassPermission()) || TerrainerPlugin.getPlayerUtil().hasAnyRelations(player, terrain)) {
+            event.setCanLeave(TerrainEvent.CanEnterLeave.ALLOW);
+            return;
         }
+
+        event.setCanLeave(TerrainEvent.CanEnterLeave.DENY);
+        lang.send(player, lang.get("Protections." + Flags.LEAVE.id()));
     }
 
     @SuppressWarnings("deprecation")
@@ -784,6 +775,28 @@ public final class ProtectionsListener extends Protections<Player, CommandSender
         Terrain terrain = event.terrain();
         Player player = event.player();
 
+        // Checking fly flag.
+        if ((player.isFlying() || player.getAllowFlight()) && !player.hasPermission(Flags.FLY.bypassPermission())) {
+            if (!TerrainerPlugin.getPlayerUtil().hasAnyRelations(player, terrain) && deny(terrain, Flags.FLY)) {
+                // Setting tag on player to return flight when leaving the terrain.
+                if (player.getAllowFlight()) {
+                    String flyPermission = Configurations.CONFIG.getConfiguration().getString("Fly Permission").orElse("essentials.fly");
+                    player.getPersistentDataContainer().set(resetFly, PersistentDataType.INTEGER, player.hasPermission(flyPermission) ? 1 : 0);
+                }
+                player.setAllowFlight(false);
+                if (player.isFlying()) lang.send(player, lang.get("Protections." + Flags.FLY.id()));
+            }
+        }
+
+        // Checking glide flag.
+        if (player.isGliding() && !player.hasPermission(Flags.GLIDE.bypassPermission())) {
+            if (!TerrainerPlugin.getPlayerUtil().hasAnyRelations(player, terrain) && deny(terrain, Flags.GLIDE)) {
+                player.setGliding(false);
+                lang.send(player, lang.get("Protections." + Flags.GLIDE.id()));
+            }
+        }
+
+        // Applying effects of effects flag.
         Map<String, Integer> effects = terrain.flags().getData(Flags.EFFECTS);
         if (effects != null) {
             effects.forEach((effect, power) -> {
@@ -793,6 +806,7 @@ public final class ProtectionsListener extends Protections<Player, CommandSender
             });
         }
 
+        // Showing enter message.
         String messageLocation = terrain.flags().getData(Flags.MESSAGE_LOCATION);
         if (messageLocation != null && !(messageLocation = messageLocation.toLowerCase(Locale.ROOT)).equals("none")) {
             String message = ChatColor.translateAlternateColorCodes('&', lang.get("Enter Leave Messages Format").replace("<name>", terrain.name()).replace("<message>", terrain.description()));
@@ -806,6 +820,7 @@ public final class ProtectionsListener extends Protections<Player, CommandSender
             }
         }
 
+        // Showing borders.
         if (!terrain.borders().isEmpty() && Boolean.TRUE.equals(terrain.flags().getData(Flags.SHOW_BORDERS)) && Configurations.CONFIG.getConfiguration().getBoolean("Borders.On Enter").orElse(false)) {
             bordersCommand.showBorders(player, Collections.singleton(terrain));
         }

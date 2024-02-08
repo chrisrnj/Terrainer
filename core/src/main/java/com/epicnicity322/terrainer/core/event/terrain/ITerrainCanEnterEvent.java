@@ -23,12 +23,12 @@ import com.epicnicity322.terrainer.core.event.TerrainEvent;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * When a player has entered a terrain.
+ * An event that's called solely to determine whether a player can enter a terrain.
  *
  * @param <L> The location class of the platform.
  * @param <P> The player class of the platform.
  */
-public interface ITerrainEnterEvent<L, P> extends TerrainEvent, PlayerEvent<P> {
+public interface ITerrainCanEnterEvent<L, P> extends TerrainEvent, PlayerEvent<P> {
     /**
      * @return The location the player was before entering the terrain.
      */
@@ -43,4 +43,12 @@ public interface ITerrainEnterEvent<L, P> extends TerrainEvent, PlayerEvent<P> {
      * @return What caused the enter event.
      */
     @NotNull EnterLeaveReason reason();
+
+    /**
+     * @return Whether the player is allowed to enter the terrain.
+     * @see com.epicnicity322.terrainer.core.event.TerrainEvent.CanEnterLeave
+     */
+    @NotNull CanEnterLeave canEnter();
+
+    void setCanEnter(@NotNull CanEnterLeave canEnter);
 }

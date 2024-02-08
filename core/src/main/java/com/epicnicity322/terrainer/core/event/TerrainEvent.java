@@ -31,6 +31,24 @@ public interface TerrainEvent {
     @NotNull Terrain terrain();
 
     /**
+     * Determine whether a player can enter or leave a terrain.
+     */
+    enum CanEnterLeave {
+        /**
+         * Allow the player to enter or leave.
+         */
+        ALLOW,
+        /**
+         * No verdict made, allow entry or leave.
+         */
+        DEFAULT,
+        /**
+         * Deny the player from entering or leaving.
+         */
+        DENY
+    }
+
+    /**
      * Reason why an enter or leave event is called.
      */
     enum EnterLeaveReason {

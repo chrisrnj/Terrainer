@@ -23,7 +23,7 @@ import com.epicnicity322.terrainer.core.event.TerrainEvent;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * When a player leaves a terrain.
+ * When a player has left a terrain.
  *
  * @param <L> The location class of the platform.
  * @param <P> The player class of the platform.

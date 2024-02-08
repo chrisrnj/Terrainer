@@ -22,27 +22,29 @@ import com.epicnicity322.terrainer.core.event.terrain.ITerrainEnterEvent;
 import com.epicnicity322.terrainer.core.terrain.Terrain;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
-import org.bukkit.event.Cancellable;
 import org.bukkit.event.Event;
 import org.bukkit.event.HandlerList;
 import org.jetbrains.annotations.NotNull;
 
-public class TerrainEnterEvent extends Event implements ITerrainEnterEvent<Location, Player>, Cancellable {
+/**
+ * When a player has entered a terrain.
+ *
+ * @see TerrainCanEnterEvent
+ */
+public class TerrainEnterEvent extends Event implements ITerrainEnterEvent<Location, Player> {
     private static final @NotNull HandlerList handlers = new HandlerList();
     private final @NotNull Location from;
     private final @NotNull Location to;
     private final @NotNull Player player;
     private final @NotNull Terrain terrain;
     private final @NotNull EnterLeaveReason reason;
-    private boolean cancelled;
 
-    public TerrainEnterEvent(@NotNull Location from, @NotNull Location to, @NotNull Player player, @NotNull Terrain terrain, @NotNull EnterLeaveReason reason, boolean cancelled) {
+    public TerrainEnterEvent(@NotNull Location from, @NotNull Location to, @NotNull Player player, @NotNull Terrain terrain, @NotNull EnterLeaveReason reason) {
         this.from = from;
         this.to = to;
         this.player = player;
         this.terrain = terrain;
         this.reason = reason;
-        this.cancelled = cancelled;
     }
 
     public static @NotNull HandlerList getHandlerList() {
@@ -52,16 +54,6 @@ public class TerrainEnterEvent extends Event implements ITerrainEnterEvent<Locat
     @Override
     public @NotNull HandlerList getHandlers() {
         return handlers;
-    }
-
-    @Override
-    public boolean isCancelled() {
-        return cancelled;
-    }
-
-    @Override
-    public void setCancelled(boolean cancelled) {
-        this.cancelled = cancelled;
     }
 
     @Override
