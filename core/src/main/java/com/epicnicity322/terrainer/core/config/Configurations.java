@@ -174,6 +174,11 @@ public final class Configurations {
               # A cooldown to prevent players from getting a lot of wands in a short amount of time.
               # Bypass: terrainer.wand.selector.nocooldown
               Cooldown: 7200 #seconds
+              # Allows selecting block by far away, without clicking at it.
+              Far Selection:
+                Enabled: true
+                # The max distance from the player to allow the far selection.
+                Max Distance: 20
                         
             # Markers that show up when a player selects a position.
             Markers:

@@ -31,6 +31,7 @@ import com.epicnicity322.terrainer.core.terrain.TerrainManager;
 import com.epicnicity322.terrainer.core.util.TerrainerUtil;
 import com.epicnicity322.yamlhandler.Configuration;
 import org.bukkit.Bukkit;
+import org.bukkit.FluidCollisionMode;
 import org.bukkit.NamespacedKey;
 import org.bukkit.World;
 import org.bukkit.block.Block;
@@ -54,9 +55,13 @@ import java.util.UUID;
 public final class SelectionListener implements Listener {
     private static @NotNull ItemStack selector = InventoryUtils.getItemStack("Selector Wand", Configurations.CONFIG.getConfiguration(), TerrainerPlugin.getLanguage());
     private static @NotNull ItemStack info = InventoryUtils.getItemStack("Info Wand", Configurations.CONFIG.getConfiguration(), TerrainerPlugin.getLanguage());
-    private static boolean selectorUnique = false;
+    private static boolean selectorUnique = true;
     private static boolean infoUnique = false;
     private static boolean leftAndRight = false;
+    private static boolean cancelSelectorInteraction = true;
+    private static boolean cancelInfoInteraction = true;
+    private static boolean farSelection = true;
+    private static int farSelectionDistance = 20;
     private final @NotNull NamespacedKey selectorWandKey;
     private final @NotNull NamespacedKey infoWandKey;
     private final @NotNull BordersCommand bordersCommand;
@@ -92,7 +97,7 @@ public final class SelectionListener implements Listener {
     public static void reloadItems(@NotNull NamespacedKey selectorWandKey, @NotNull NamespacedKey infoWandKey) {
         Configuration config = Configurations.CONFIG.getConfiguration();
         selector = InventoryUtils.getItemStack("Selector Wand", config, TerrainerPlugin.getLanguage());
-        selectorUnique = config.getBoolean("Selector Wand.Unique").orElse(false);
+        selectorUnique = config.getBoolean("Selector Wand.Unique").orElse(true);
         if (selectorUnique) {
             ItemMeta meta = selector.getItemMeta();
             meta.getPersistentDataContainer().set(selectorWandKey, PersistentDataType.INTEGER, 1);
@@ -101,6 +106,10 @@ public final class SelectionListener implements Listener {
         leftAndRight = config.getBoolean("Selector Wand.Left And Right Click").orElse(false);
         info = InventoryUtils.getItemStack("Info Wand", config, TerrainerPlugin.getLanguage());
         infoUnique = config.getBoolean("Info Wand.Unique").orElse(false);
+        cancelSelectorInteraction = config.getBoolean("Selector Wand.Cancel Interaction").orElse(true);
+        cancelInfoInteraction = config.getBoolean("Info Wand.Cancel Interaction").orElse(false);
+        farSelection = config.getBoolean("Selector Wand.Far Selection.Enabled").orElse(true);
+        farSelectionDistance = config.getNumber("Selector Wand.Far Selection.Max Distance").orElse(20).intValue();
         if (infoUnique) {
             ItemMeta meta = info.getItemMeta();
             meta.getPersistentDataContainer().set(infoWandKey, PersistentDataType.INTEGER, 1);
@@ -108,32 +117,40 @@ public final class SelectionListener implements Listener {
         }
     }
 
+    // TODO: Player Item Held, if holding selection wand then show current selection or current terrain if has permission.
+    // TODO: Show 4 corners of selection with markers
+
     @EventHandler(priority = EventPriority.LOW)
     public void onInteract(PlayerInteractEvent event) {
         ItemStack hand = event.getItem();
         if (hand == null) return;
-        boolean left = true;
-
-        if (event.getAction() == Action.RIGHT_CLICK_BLOCK) left = false;
-        else if (!leftAndRight || event.getAction() != Action.LEFT_CLICK_BLOCK) return;
-
+        Action action = event.getAction();
         Player player = event.getPlayer();
         Block block = event.getClickedBlock();
-        if (block == null) return;
 
-        if (!event.isCancelled() && isWand(hand, selector, selectorUnique, selectorWandKey) && player.hasPermission("terrainer.select.wand")) {
-            if (Configurations.CONFIG.getConfiguration().getBoolean("Selector Wand.Cancel Interaction").orElse(false)) {
-                event.setCancelled(true);
-            }
+        if (action == Action.PHYSICAL) return;
+        boolean left = action == Action.LEFT_CLICK_AIR || action == Action.LEFT_CLICK_BLOCK;
 
-            MessageSender lang = TerrainerPlugin.getLanguage();
+        if (leftAndRight || !left) {
+            if (isWand(hand, selector, selectorUnique, selectorWandKey) && player.hasPermission("terrainer.select.wand")) {
+                if (cancelSelectorInteraction) event.setCancelled(true);
+                if (block == null || block.isEmpty()) if (farSelection) {
+                    block = player.getTargetBlockExact(farSelectionDistance, FluidCollisionMode.NEVER);
+                    if (block == null) return;
+                } else return;
 
-            if (!player.hasPermission("terrainer.world." + block.getWorld().getName().toLowerCase(Locale.ROOT))) {
-                lang.send(player, lang.get("Select.Error.World"));
-            } else {
-                WorldCoordinate[] selections = TerrainManager.getSelection(player.getUniqueId());
+                MessageSender lang = TerrainerPlugin.getLanguage();
                 BukkitPlayerUtil util = TerrainerPlugin.getPlayerUtil();
+                World world = block.getWorld();
 
+                if (!player.hasPermission("terrainer.world." + world.getName().toLowerCase(Locale.ROOT))) {
+                    lang.send(player, lang.get("Select.Error.World"));
+                    return;
+                }
+
+                WorldCoordinate[] selections = TerrainManager.getSelection(player.getUniqueId());
+
+                // Clear if we are using only right clicks and both points are already selected.
                 if (!leftAndRight && selections[0] != null && selections[1] != null) {
                     selections[0] = null;
                     selections[1] = null;
@@ -144,10 +161,11 @@ public final class SelectionListener implements Listener {
                 boolean first = leftAndRight ? left : selections[0] == null;
                 int x = block.getX(), y = first ? Integer.MIN_VALUE : Integer.MAX_VALUE, z = block.getZ();
 
-                selections[first ? 0 : 1] = new WorldCoordinate(block.getWorld().getUID(), new Coordinate(x, y, z));
+                selections[first ? 0 : 1] = new WorldCoordinate(world.getUID(), new Coordinate(x, y, z));
 
-                //Showing markers
+                // Showing marker.
                 util.showMarker(player, first, x, block.getY(), z);
+                // Getting other selection and showing marker for it.
                 WorldCoordinate other = selections[first ? 1 : 0];
                 if (other != null) {
                     int otherY = (int) other.coordinate().y();
@@ -162,10 +180,10 @@ public final class SelectionListener implements Listener {
             }
         }
 
-        if (!left && isWand(hand, info, infoUnique, infoWandKey) && player.hasPermission("terrainer.info.wand")) {
-            if (Configurations.CONFIG.getConfiguration().getBoolean("Info Wand.Cancel Interaction").orElse(false)) {
-                event.setCancelled(true);
-            }
+        if (action != Action.RIGHT_CLICK_BLOCK || block == null) return;
+
+        if (isWand(hand, info, infoUnique, infoWandKey) && player.hasPermission("terrainer.info.wand")) {
+            if (cancelInfoInteraction) event.setCancelled(true);
             sendInfo(player, block);
         }
     }
