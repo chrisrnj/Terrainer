@@ -35,6 +35,8 @@ import org.bukkit.event.Listener;
  * they don't own.
  */
 public class FlagListener implements Listener {
+    // TODO: Remove/Add effects from EFFECTS flag on unset/set.
+
     @EventHandler(priority = EventPriority.LOWEST)
     public void onFlagSet(UserFlagSetEvent event) {
         Flag<?> flag = event.flag();

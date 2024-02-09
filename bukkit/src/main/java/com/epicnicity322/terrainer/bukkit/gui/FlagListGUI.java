@@ -152,6 +152,7 @@ public class FlagListGUI extends ListGUI<FlagListGUI.FlagEntry> {
 
             boolean anvil = Configurations.CONFIG.getConfiguration().getBoolean("Input.Anvil GUI.Enabled").orElse(false);
 
+            // TODO: Input starts with previous set value.
             if (!anvil || !InputGetterUtil.askAnvilInput(player, InventoryUtils.getItemStack("Input.Anvil GUI", Configurations.CONFIG.getConfiguration(), TerrainerPlugin.getLanguage()), onInput)) {
                 // Anvil could not be open, asking for input in chat.
                 long chatInterval = Configurations.CONFIG.getConfiguration().getNumber("Input.Chat Interval").orElse(200).longValue();
