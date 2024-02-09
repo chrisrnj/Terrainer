@@ -23,10 +23,7 @@ import com.epicnicity322.terrainer.core.config.Configurations;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.HashSet;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 /**
  * A class with default terrain flags. You may add
@@ -65,6 +62,11 @@ public final class Flags {
      */
     public static final @NotNull Flag<Boolean> BUTTONS = Flag.newBooleanFlag("Buttons", false);
     /**
+     * A list of commands, separated by comma, that are not allowed to be executed in the terrain. Add * to the list to make it a whitelist.
+     */
+    //TODO:
+    public static final @NotNull Flag<List<String>> COMMAND_BLACKLIST = Flag.newListFlag("Command Blacklist", null);
+    /**
      * Allows everyone to open barrels, chests, hoppers, and other containers.
      */
     public static final @NotNull Flag<Boolean> CONTAINERS = Flag.newBooleanFlag("Containers", false);
@@ -92,6 +94,16 @@ public final class Flags {
      * Allows everyone to enter the terrain.
      */
     public static final @NotNull Flag<Boolean> ENTER = Flag.newBooleanFlag("Enter", true);
+    /**
+     * A list of commands to execute on console when a player enters the terrain. Use %p for the player's name, %t for the terrain's ID.
+     */
+    //TODO:
+    public static final @NotNull Flag<List<String>> ENTER_CONSOLE_COMMANDS = Flag.newListFlag("Enter Console Commands", null);
+    /**
+     * A list of commands to execute as the player when a player enters the terrain. Use %p for the player's name, %t for the terrain's ID.
+     */
+    //TODO:
+    public static final @NotNull Flag<List<String>> ENTER_PLAYER_COMMANDS = Flag.newListFlag("Enter Player Commands", null);
     /**
      * Allows everyone to enter vehicles.
      */
@@ -154,6 +166,11 @@ public final class Flags {
      */
     public static final @NotNull Flag<Boolean> LEAVE = Flag.newBooleanFlag("Leave", true);
     /**
+     * A list of commands to execute on console when a player leaves the terrain. Use %p for the player's name, %t for the terrain's ID.
+     */
+    //TODO:
+    public static final @NotNull Flag<List<String>> LEAVE_CONSOLE_COMMANDS = Flag.newListFlag("Leave Console Commands", null);
+    /**
      * Sends a leave message to the player leaving the terrain. When this flag has no data, the default farewell message
      * in language is used.
      */
@@ -164,6 +181,11 @@ public final class Flags {
         }
         return input.trim();
     });
+    /**
+     * A list of commands to execute as the player when a player leaves the terrain. Use %p for the player's name, %t for the terrain's ID.
+     */
+    //TODO:
+    public static final @NotNull Flag<List<String>> LEAVE_PLAYER_COMMANDS = Flag.newListFlag("Leave Player Commands", null);
     /**
      * Allows everyone to use lighters such as fireballs or flint and steel.
      */
@@ -277,13 +299,14 @@ public final class Flags {
 
     private static final @NotNull HashSet<Flag<?>> customValues = new HashSet<>();
     private static final @NotNull Set<Flag<?>> values = Set.of(ANVILS, ARMOR_STANDS, BLOCK_FORM, BLOCK_SPREAD, BUILD,
-            BUILD_BOATS, BUILD_MINECARTS, BUTTONS, CONTAINERS, DISPENSERS, DOORS, EAT, EFFECTS, ENEMY_HARM, ENTER,
-            ENTER_VEHICLES, ENTITY_HARM, ENTITY_INTERACTIONS, EXPLOSION_DAMAGE, FIRE_DAMAGE, FIRE_SPREAD, FLY,
-            FROST_WALK, GLIDE, INTERACTIONS, ITEM_DROP, ITEM_FRAMES, ITEM_PICKUP, LEAF_DECAY, LEAVE, LEAVE_MESSAGE,
-            LIGHTERS, LIQUID_FLOW, MESSAGE_LOCATION, MOB_SPAWN, MODS_CAN_EDIT_FLAGS, MODS_CAN_MANAGE_MODS,
-            OUTSIDE_DISPENSERS, OUTSIDE_PISTONS, OUTSIDE_PROJECTILES, PISTONS, PLANT, PLANT_GROW, PLOW, POTIONS, PREPARE,
-            PRESSURE_PLATES, PROJECTILES, PVP, SHOW_BORDERS, SIGN_CLICK, SIGN_EDIT, SPAWNERS, SPONGES, TRAMPLE,
-            VULNERABILITY);
+            BUILD_BOATS, BUILD_MINECARTS, BUTTONS, COMMAND_BLACKLIST, CONTAINERS, DISPENSERS, DOORS, EAT, EFFECTS,
+            ENEMY_HARM, ENTER, ENTER_CONSOLE_COMMANDS, ENTER_PLAYER_COMMANDS, ENTER_VEHICLES, ENTITY_HARM,
+            ENTITY_INTERACTIONS, EXPLOSION_DAMAGE, FIRE_DAMAGE, FIRE_SPREAD, FLY, FROST_WALK, GLIDE, INTERACTIONS,
+            ITEM_DROP, ITEM_FRAMES, ITEM_PICKUP, LEAF_DECAY, LEAVE, LEAVE_CONSOLE_COMMANDS, LEAVE_MESSAGE,
+            LEAVE_PLAYER_COMMANDS, LIGHTERS, LIQUID_FLOW, MESSAGE_LOCATION, MOB_SPAWN, MODS_CAN_EDIT_FLAGS,
+            MODS_CAN_MANAGE_MODS, OUTSIDE_DISPENSERS, OUTSIDE_PISTONS, OUTSIDE_PROJECTILES, PISTONS, PLANT, PLANT_GROW,
+            PLOW, POTIONS, PREPARE, PRESSURE_PLATES, PROJECTILES, PVP, SHOW_BORDERS, SIGN_CLICK, SIGN_EDIT, SPAWNERS,
+            SPONGES, TRAMPLE, VULNERABILITY);
 
     private Flags() {
     }
