@@ -19,26 +19,36 @@
 package com.epicnicity322.terrainer.bukkit.listener;
 
 import com.epicnicity322.terrainer.bukkit.TerrainerPlugin;
+import com.epicnicity322.terrainer.bukkit.event.flag.FlagSetEvent;
+import com.epicnicity322.terrainer.bukkit.event.flag.FlagUnsetEvent;
 import com.epicnicity322.terrainer.bukkit.event.flag.UserFlagSetEvent;
 import com.epicnicity322.terrainer.bukkit.event.flag.UserFlagUnsetEvent;
 import com.epicnicity322.terrainer.core.terrain.Flag;
 import com.epicnicity322.terrainer.core.terrain.Flags;
+import com.epicnicity322.terrainer.core.terrain.Terrain;
+import org.bukkit.Bukkit;
+import org.bukkit.Location;
+import org.bukkit.World;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
+import org.bukkit.potion.PotionEffect;
+import org.bukkit.potion.PotionEffectType;
+import org.jetbrains.annotations.NotNull;
+
+import java.util.Map;
 
 /**
- * A listener just for checking if the player is allowed to edit flags based if they are the owner of the terrain.
+ * A listener of flag set and unset events. Used for applying effects when the {@link Flags#EFFECTS} is set/unset, and
+ * for enforcing the flags {@link Flags#MODS_CAN_MANAGE_MODS} and {@link Flags#MODS_CAN_EDIT_FLAGS}.
  * <p>
  * Players with permission {@link Flag#editPermission()} + ".others" are always allowed to edit the flags in terrains
  * they don't own.
  */
 public final class FlagListener implements Listener {
-    // TODO: Remove/Add effects from EFFECTS flag on unset/set.
-
     @EventHandler(priority = EventPriority.LOWEST)
-    public void onFlagSet(UserFlagSetEvent event) {
+    public void onUserFlagSet(UserFlagSetEvent event) {
         Flag<?> flag = event.flag();
 
         if (flag != Flags.MODS_CAN_MANAGE_MODS && flag != Flags.MODS_CAN_EDIT_FLAGS) return;
@@ -52,7 +62,7 @@ public final class FlagListener implements Listener {
     }
 
     @EventHandler(priority = EventPriority.LOWEST)
-    public void onFlagUnset(UserFlagUnsetEvent event) {
+    public void onUserFlagUnset(UserFlagUnsetEvent event) {
         Flag<?> flag = event.flag();
 
         if (flag != Flags.MODS_CAN_MANAGE_MODS && flag != Flags.MODS_CAN_EDIT_FLAGS) return;
@@ -62,6 +72,61 @@ public final class FlagListener implements Listener {
         if (!player.getUniqueId().equals(event.terrain().owner())) {
             TerrainerPlugin.getLanguage().send(player, TerrainerPlugin.getLanguage().get("Flags.Error.Not Owner"));
             event.setCancelled(true);
+        }
+    }
+
+    @SuppressWarnings({"unchecked", "deprecation"})
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onFlagSet(FlagSetEvent<?> event) {
+        Flag<?> flag = event.flag();
+        if (flag != Flags.EFFECTS) return;
+        Terrain terrain = event.terrain();
+        World world = Bukkit.getWorld(terrain.world());
+        if (world == null) return;
+
+        // Removing previous effects from players within the terrain.
+        removeEffects(terrain, world);
+
+        // Applying new effects to players within the terrain.
+        Map<String, Integer> newEffects = (Map<String, Integer>) event.data();
+
+        for (Player player : world.getPlayers()) {
+            Location loc = player.getLocation();
+            if (!terrain.isWithin(loc.getBlockX(), loc.getBlockY(), loc.getBlockZ())) continue;
+            newEffects.forEach((effect, power) -> {
+                PotionEffectType type = PotionEffectType.getByName(effect);
+                if (type == null) return;
+                player.addPotionEffect(new PotionEffect(type, Integer.MAX_VALUE, power, false, false));
+            });
+        }
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onFlagUnset(FlagUnsetEvent<?> event) {
+        Flag<?> flag = event.flag();
+        if (flag != Flags.EFFECTS) return;
+        Terrain terrain = event.terrain();
+        World world = Bukkit.getWorld(terrain.world());
+        if (world == null) return;
+
+        // Removing effects from players within the terrain.
+        removeEffects(terrain, world);
+    }
+
+    @SuppressWarnings("deprecation")
+    private void removeEffects(@NotNull Terrain terrain, @NotNull World world) {
+        Map<String, Integer> previousEffects = terrain.flags().getData(Flags.EFFECTS);
+
+        if (previousEffects != null) {
+            for (Player player : world.getPlayers()) {
+                Location loc = player.getLocation();
+                if (!terrain.isWithin(loc.getBlockX(), loc.getBlockY(), loc.getBlockZ())) continue;
+                previousEffects.forEach((effect, power) -> {
+                    PotionEffectType type = PotionEffectType.getByName(effect);
+                    if (type == null) return;
+                    player.removePotionEffect(type);
+                });
+            }
         }
     }
 }
