@@ -19,6 +19,7 @@
 package com.epicnicity322.terrainer.core.util;
 
 import com.epicnicity322.epicpluginlib.core.lang.LanguageHolder;
+import com.epicnicity322.epicpluginlib.core.logger.ConsoleLogger;
 import com.epicnicity322.terrainer.core.Coordinate;
 import com.epicnicity322.terrainer.core.Terrainer;
 import com.epicnicity322.terrainer.core.WorldCoordinate;
@@ -31,10 +32,7 @@ import com.epicnicity322.terrainer.core.terrain.WorldTerrain;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Objects;
-import java.util.UUID;
+import java.util.*;
 
 /**
  * All sorts of utility methods for claiming and testing terrains.
@@ -51,7 +49,7 @@ public abstract class PlayerUtil<P extends R, R> {
      * The default permission based claim limits set up on config.
      */
     private static final @NotNull HashMap<String, Integer> defaultClaimLimits = new HashMap<>(8);
-    private static final @NotNull HashMap<UUID, Integer[]> markers = new HashMap<>();
+    private static final @NotNull HashMap<UUID, ArrayList<Integer>> markers = new HashMap<>();
     private final @NotNull LanguageHolder<?, R> lang;
 
     protected PlayerUtil(@NotNull LanguageHolder<?, R> lang) {
@@ -87,6 +85,8 @@ public abstract class PlayerUtil<P extends R, R> {
     protected abstract @NotNull UUID getUniqueId(@NotNull P player);
 
     protected abstract @NotNull R getConsoleRecipient();
+
+    // TODO: Check if terrain is intersecting another and remove intersection area from used blocks. Switch ON/OFF in config.
 
     /**
      * Attempts to claim a terrain with the player as owner.
@@ -152,12 +152,13 @@ public abstract class PlayerUtil<P extends R, R> {
 
         terrain.setOwner(player == null ? null : getUniqueId(player));
         if (TerrainManager.add(terrain)) {
-            lang.send(receiver, lang.get("Create.Success").replace("<name>", terrain.name())
-                    .replace("<used>", Long.toString(usedBlocks)).replace("<max>", Long.toString(maxBlocks)));
+            lang.send(receiver, lang.get("Create.Success").replace("<name>", terrain.name()).replace("<used>", Long.toString(usedBlocks)).replace("<max>", Long.toString(maxBlocks)));
             return true;
         }
         return false;
     }
+
+    // TODO: Check if terrain is intersecting another and remove intersection area from used blocks. Switch ON/OFF in config.
 
     /**
      * Gets the sum of the areas of all terrains owned by the specified player.
@@ -333,48 +334,126 @@ public abstract class PlayerUtil<P extends R, R> {
         return true;
     }
 
-    /**
-     * Sends a visual marker
-     *
-     * @param player The player to remove the marker.
-     * @param first  If the first or second marker should be removed.
-     */
-    public final void removeMarker(@NotNull P player, boolean first) {
-        UUID playerId = getUniqueId(player);
-        Integer[] markersIDs = markers.get(playerId);
-        if (markersIDs == null) return;
-        Integer markerId = markersIDs[first ? 0 : 1];
-        markersIDs[first ? 0 : 1] = null;
-        if (markerId == null) return;
+    protected abstract @NotNull WorldCoordinate location(@NotNull P player);
 
-        try {
-            killMarker(player, markerId);
-        } catch (Throwable t) {
-            Terrainer.logger().log("Could not kill marker with entity ID: " + markerId + " for player: " + getOwnerName(playerId));
-            t.printStackTrace();
+    private void addOverlapping(@NotNull List<Terrain> terrains, @NotNull P player) {
+        if (terrains.isEmpty()) return;
+
+        boolean overlapPermission = hasPermission(player, "terrainer.bypass.overlap");
+        UUID uuid = getUniqueId(player);
+
+        for (Terrain terrain : new ArrayList<>(terrains)) {
+            if (!Objects.equals(terrain.owner(), uuid) && !overlapPermission) continue;
+            for (Terrain t1 : TerrainManager.terrains(terrain.world())) {
+                if (t1 != terrain && terrain.isOverlapping(t1) && (Objects.equals(t1.owner(), uuid) || overlapPermission)) {
+                    terrains.add(t1);
+                }
+            }
         }
-        if (markersIDs[0] == null && markersIDs[1] == null) markers.remove(playerId);
     }
 
-    /**
-     * Sends a visual marker to the player using a fake entity with glow effect.
-     *
-     * @param player The player to show the marker to.
-     * @param first  If this is the first or second selection.
-     * @param x      X coordinate.
-     * @param y      Y coordinate.
-     * @param z      Z coordinate.
-     */
-    public final void showMarker(@NotNull P player, boolean first, int x, int y, int z) {
-        if (!Configurations.CONFIG.getConfiguration().getBoolean("Markers.Enabled").orElse(false)) return;
-        removeMarker(player, first);
+    private void spawnAtY(@NotNull Coordinate min, @NotNull Coordinate max, @NotNull P player, int y, @NotNull ArrayList<Integer> ids) throws Throwable {
+        // Left Bottom Corner
+        ids.add(spawnMarker(player, min.x(), y, min.z()));
+        // Left Upper Corner
+        ids.add(spawnMarker(player, min.x(), y, max.z()));
+        // Right Bottom Corner
+        ids.add(spawnMarker(player, max.x(), y, min.z()));
+        // Right Upper Corner
+        ids.add(spawnMarker(player, max.x(), y, max.z()));
+
+        if (max.x() - min.x() > 6 && max.z() - min.z() > 6) {
+            // Left Bottom Corner
+            ids.add(spawnMarker(player, min.x(), y, min.z() + 1));
+            ids.add(spawnMarker(player, min.x() + 1, y, min.z()));
+            // Left Upper Corner
+            ids.add(spawnMarker(player, min.x(), y, max.z() - 1));
+            ids.add(spawnMarker(player, min.x() + 1, y, max.z()));
+            // Right Bottom Corner
+            ids.add(spawnMarker(player, max.x(), y, min.z() + 1));
+            ids.add(spawnMarker(player, max.x() - 1, y, min.z()));
+            // Right Upper Corner
+            ids.add(spawnMarker(player, max.x(), y, max.z() - 1));
+            ids.add(spawnMarker(player, max.x() - 1, y, max.z()));
+        }
+    }
+
+    private void spawnMarkersAtBorders(@Nullable Coordinate min, @Nullable Coordinate max, @NotNull P player, int y, boolean fromATerrain) {
         try {
-            int marker = spawnMarker(player, x, y, z);
-            markers.computeIfAbsent(getUniqueId(player), k -> new Integer[2])[first ? 0 : 1] = marker;
+            UUID uuid = getUniqueId(player);
+
+            if (min != null && max != null) {
+                Coordinate tempMin = min, tempMax = max;
+                min = new Coordinate(Math.min(tempMin.x(), tempMax.x()), Math.min(tempMin.y(), tempMax.y()), Math.min(tempMin.z(), tempMax.z()));
+                max = new Coordinate(Math.max(tempMin.x(), tempMax.x()), Math.max(tempMin.y(), tempMax.y()), Math.max(tempMin.z(), tempMax.z()));
+                ArrayList<Integer> ids = markers.computeIfAbsent(uuid, k -> new ArrayList<>());
+
+                if (min.y() == Integer.MIN_VALUE || max.y() == Integer.MAX_VALUE) {
+                    // 2D terrain.
+                    spawnAtY(min, max, player, y, ids);
+                    return;
+                }
+
+                // 3D terrain.
+                spawnAtY(min, max, player, (int) min.y(), ids);
+                spawnAtY(min, max, player, (int) max.y(), ids);
+
+                if (max.x() - min.x() > 6 && max.z() - min.z() > 6 && max.y() - min.y() > 6) {
+                    ids.add(spawnMarker(player, min.x(), min.y() + 1, min.z()));
+                    ids.add(spawnMarker(player, min.x(), min.y() + 1, max.z()));
+                    ids.add(spawnMarker(player, max.x(), min.y() + 1, min.z()));
+                    ids.add(spawnMarker(player, max.x(), min.y() + 1, max.z()));
+                    ids.add(spawnMarker(player, min.x(), max.y() - 1, min.z()));
+                    ids.add(spawnMarker(player, min.x(), max.y() - 1, max.z()));
+                    ids.add(spawnMarker(player, max.x(), max.y() - 1, min.z()));
+                    ids.add(spawnMarker(player, max.x(), max.y() - 1, max.z()));
+                }
+                return;
+            }
+
+            if (max != null) min = max;
+            if (min == null) return;
+            markers.computeIfAbsent(uuid, k -> new ArrayList<>()).add(spawnMarker(player, (int) min.x(), y, (int) min.z()));
         } catch (Throwable t) {
-            Terrainer.logger().log("Could not spawn marker at X:" + x + " Y:" + y + " Z:" + z + " for player: " + getOwnerName(getUniqueId(player)));
+            Terrainer.logger().log("Failed to spawn marker entity for player " + getOwnerName(getUniqueId(player)), ConsoleLogger.Level.WARN);
             t.printStackTrace();
         }
+    }
+
+    public final void showMarkers(@NotNull P player) {
+        showMarkers(player, (int) location(player).coordinate().y() - 1);
+    }
+
+    public void showMarkers(@NotNull P player, int y) {
+        removeMarkers(player);
+        WorldCoordinate location = location(player);
+        var terrains = TerrainManager.getTerrainsAt(location);
+        addOverlapping(terrains, player);
+
+        for (Terrain terrain : terrains) {
+            int terrainY = y;
+
+            if (terrain.maxDiagonal().y() < y) terrainY = (int) terrain.maxDiagonal().y();
+            else if (terrain.minDiagonal().y() > y) terrainY = (int) terrain.minDiagonal().y();
+
+            spawnMarkersAtBorders(terrain.minDiagonal(), terrain.maxDiagonal(), player, terrainY, true);
+        }
+
+        WorldCoordinate[] selections = TerrainManager.getSelection(getUniqueId(player));
+        spawnMarkersAtBorders(selections[0] == null ? null : selections[0].coordinate(), selections[1] == null ? null : selections[1].coordinate(), player, y, false);
+    }
+
+    public void removeMarkers(@NotNull P player) {
+        ArrayList<Integer> ids = markers.get(getUniqueId(player));
+        if (ids == null) return;
+        ids.forEach(id -> {
+            try {
+                killMarker(player, id);
+            } catch (Throwable t) {
+                Terrainer.logger().log("Failed to kill marker entity with ID " + id + " for player " + getOwnerName(getUniqueId(player)), ConsoleLogger.Level.WARN);
+                t.printStackTrace();
+            }
+        });
     }
 
     /**
@@ -394,5 +473,5 @@ public abstract class PlayerUtil<P extends R, R> {
      * @param z      Z coordinate.
      * @return The marker's entity ID.
      */
-    protected abstract int spawnMarker(@NotNull P player, int x, int y, int z) throws Throwable;
+    protected abstract int spawnMarker(@NotNull P player, double x, double y, double z) throws Throwable;
 }

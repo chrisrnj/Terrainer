@@ -19,9 +19,12 @@
 package com.epicnicity322.terrainer.bukkit.util;
 
 import com.epicnicity322.terrainer.bukkit.TerrainerPlugin;
+import com.epicnicity322.terrainer.core.Coordinate;
+import com.epicnicity322.terrainer.core.WorldCoordinate;
 import com.epicnicity322.terrainer.core.config.Configurations;
 import com.epicnicity322.terrainer.core.util.PlayerUtil;
 import org.bukkit.Bukkit;
+import org.bukkit.Location;
 import org.bukkit.NamespacedKey;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -117,25 +120,36 @@ public final class BukkitPlayerUtil extends PlayerUtil<Player, CommandSender> {
     }
 
     @Override
-    protected void killMarker(@NotNull Player player, int id) throws Throwable {
-        TerrainerPlugin.getNMSHandler().killEntity(player, id);
+    protected @NotNull WorldCoordinate location(@NotNull Player player) {
+        Location loc = player.getLocation();
+        return new WorldCoordinate(player.getWorld().getUID(), new Coordinate(loc.getBlockX(), loc.getBlockY(), loc.getBlockZ()));
+    }
+
+    @Override
+    public void showMarkers(@NotNull Player player, int y) {
+        super.showMarkers(player, y);
+        long showTime = Configurations.CONFIG.getConfiguration().getNumber("Markers.Show Time").orElse(1200).longValue();
+
+        if (showTime != 0) {
+            BukkitTask previous = markerKillTasks.put(player.getUniqueId(), Bukkit.getScheduler().runTaskLater(plugin, () -> removeMarkers(player), showTime));
+            if (previous != null) previous.cancel();
+        }
+    }
+
+    @Override
+    public void removeMarkers(@NotNull Player player) {
+        super.removeMarkers(player);
         BukkitTask task = markerKillTasks.remove(player.getUniqueId());
         if (task != null) task.cancel();
     }
 
     @Override
-    protected int spawnMarker(@NotNull Player player, int x, int y, int z) throws Throwable {
-        int id = TerrainerPlugin.getNMSHandler().spawnMarkerEntity(player, x, y, z);
-        long showTime = Configurations.CONFIG.getConfiguration().getNumber("Markers.Show Time").orElse(1200).longValue();
+    protected void killMarker(@NotNull Player player, int id) throws Throwable {
+        TerrainerPlugin.getNMSHandler().killEntity(player, id);
+    }
 
-        if (showTime != 0) {
-            BukkitTask previous = markerKillTasks.put(player.getUniqueId(), Bukkit.getScheduler().runTaskLater(plugin, () -> {
-                removeMarker(player, true);
-                removeMarker(player, false);
-            }, showTime));
-            if (previous != null) previous.cancel();
-        }
-
-        return id;
+    @Override
+    protected int spawnMarker(@NotNull Player player, double x, double y, double z) throws Throwable {
+        return TerrainerPlugin.getNMSHandler().spawnMarkerEntity(player, (int) x, (int) y, (int) z);
     }
 }

@@ -102,10 +102,7 @@ public final class ClaimCommand extends Command {
         // Clearing selections.
         selection[0] = null;
         selection[1] = null;
-        if (player != null) {
-            util.removeMarker(player, true);
-            util.removeMarker(player, false);
-        }
+        if (player != null) util.removeMarkers(player);
 
         var terrain = new Terrain(first, second, world.getUID());
         if (name != null) terrain.setName(name);

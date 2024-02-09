@@ -41,6 +41,7 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.event.player.PlayerItemHeldEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
@@ -117,10 +118,7 @@ public final class SelectionListener implements Listener {
         }
     }
 
-    // TODO: Player Item Held, if holding selection wand then show current selection or current terrain if has permission.
-    // TODO: Show 4 corners of selection with markers
-
-    @EventHandler(priority = EventPriority.LOW)
+    @EventHandler(priority = EventPriority.LOWEST)
     public void onInteract(PlayerInteractEvent event) {
         ItemStack hand = event.getItem();
         if (hand == null) return;
@@ -154,8 +152,7 @@ public final class SelectionListener implements Listener {
                 if (!leftAndRight && selections[0] != null && selections[1] != null) {
                     selections[0] = null;
                     selections[1] = null;
-                    util.removeMarker(player, true);
-                    util.removeMarker(player, false);
+                    util.removeMarkers(player);
                 }
 
                 boolean first = leftAndRight ? left : selections[0] == null;
@@ -163,14 +160,8 @@ public final class SelectionListener implements Listener {
 
                 selections[first ? 0 : 1] = new WorldCoordinate(world.getUID(), new Coordinate(x, y, z));
 
-                // Showing marker.
-                util.showMarker(player, first, x, block.getY(), z);
-                // Getting other selection and showing marker for it.
-                WorldCoordinate other = selections[first ? 1 : 0];
-                if (other != null) {
-                    int otherY = (int) other.coordinate().y();
-                    util.showMarker(player, !first, (int) other.coordinate().x(), otherY == (!first ? Integer.MIN_VALUE : Integer.MAX_VALUE) ? block.getY() : otherY, (int) other.coordinate().z());
-                }
+                // Showing markers.
+                util.showMarkers(player, block.getY());
 
                 lang.send(player, lang.get("Select.Success." + (first ? "First" : "Second")).replace("<world>", block.getWorld().getName()).replace("<coord>", "X: " + x + ", Z: " + z));
 
@@ -185,6 +176,17 @@ public final class SelectionListener implements Listener {
         if (isWand(hand, info, infoUnique, infoWandKey) && player.hasPermission("terrainer.info.wand")) {
             if (cancelInfoInteraction) event.setCancelled(true);
             sendInfo(player, block);
+        }
+    }
+
+    @EventHandler(priority = EventPriority.LOW, ignoreCancelled = true)
+    public void onItemHeld(PlayerItemHeldEvent event) {
+        Player player = event.getPlayer();
+        ItemStack hand = player.getInventory().getItem(event.getNewSlot());
+        if (hand == null) return;
+
+        if (isWand(hand, selector, selectorUnique, selectorWandKey)) {
+            TerrainerPlugin.getPlayerUtil().showMarkers(player);
         }
     }
 
