@@ -29,7 +29,7 @@ import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
 import org.jetbrains.annotations.NotNull;
 
-public class DescriptionCommand extends Command {
+public final class DescriptionCommand extends Command {
     @Override
     public @NotNull String getName() {
         return "description";

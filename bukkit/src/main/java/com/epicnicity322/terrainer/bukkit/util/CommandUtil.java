@@ -36,7 +36,7 @@ import org.jetbrains.annotations.Nullable;
 import java.util.*;
 import java.util.function.Supplier;
 
-public class CommandUtil {
+public final class CommandUtil {
     private static final @NotNull CommandRunnable noPermissionRunnable = (label, sender, args) -> TerrainerPlugin.getLanguage().send(sender, TerrainerPlugin.getLanguage().get("General.No Permission"));
     private static final boolean hasCachedOfflinePlayers = ReflectionUtil.getMethod(Bukkit.class, "getOfflinePlayerIfCached", String.class) != null;
 

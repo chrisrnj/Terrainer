@@ -34,7 +34,7 @@ import org.bukkit.event.Listener;
  * Players with permission {@link Flag#editPermission()} + ".others" are always allowed to edit the flags in terrains
  * they don't own.
  */
-public class FlagListener implements Listener {
+public final class FlagListener implements Listener {
     // TODO: Remove/Add effects from EFFECTS flag on unset/set.
 
     @EventHandler(priority = EventPriority.LOWEST)

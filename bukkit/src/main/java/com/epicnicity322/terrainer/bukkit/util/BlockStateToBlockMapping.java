@@ -28,7 +28,10 @@ import java.util.AbstractList;
 import java.util.List;
 import java.util.stream.Collectors;
 
-public class BlockStateToBlockMapping {
+public final class BlockStateToBlockMapping {
+    private BlockStateToBlockMapping() {
+    }
+
     public static @NotNull Block mapCoordinatesOnly(@NotNull BlockState state) {
         return (Block) Proxy.newProxyInstance(Block.class.getClassLoader(), new Class<?>[]{Block.class}, (proxy, method, args) -> switch (method.getName()) {
             case "getX" -> state.getX();

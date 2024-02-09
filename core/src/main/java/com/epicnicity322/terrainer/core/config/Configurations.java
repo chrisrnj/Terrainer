@@ -909,6 +909,9 @@ public final class Configurations {
         loader.registerConfiguration(LANG_EN_US, TerrainerVersion.VERSION, TerrainerVersion.VERSION);
     }
 
+    private Configurations() {
+    }
+
     public static @NotNull ConfigurationLoader loader() {
         return loader;
     }

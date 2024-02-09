@@ -37,7 +37,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 
-public class PriorityCommand extends Command {
+public final class PriorityCommand extends Command {
     @Override
     public @NotNull String getName() {
         return "priority";
