@@ -25,6 +25,7 @@ import com.epicnicity322.terrainer.bukkit.TerrainerPlugin;
 import com.epicnicity322.terrainer.bukkit.util.CommandUtil;
 import com.epicnicity322.terrainer.core.terrain.Terrain;
 import com.epicnicity322.terrainer.core.terrain.TerrainManager;
+import com.epicnicity322.terrainer.core.terrain.WorldTerrain;
 import org.bukkit.command.CommandSender;
 import org.jetbrains.annotations.NotNull;
 
@@ -52,17 +53,21 @@ public final class DeleteCommand extends Command {
         CommandUtil.CommandArguments commandArguments = CommandUtil.findTerrain("terrainer.delete.others", false, label, sender, args);
         if (commandArguments == null) return;
         Terrain terrain = commandArguments.terrain();
+        boolean worldTerrain = terrain instanceof WorldTerrain;
 
-        lang.send(sender, lang.get("Delete.Confirmation").replace("<label>", label).replace("<label2>", lang.get("Commands.Confirm.Confirm")).replace("<name>", terrain.name()));
+        lang.send(sender, lang.get("Delete." + (worldTerrain ? "World " : "") + "Confirmation").replace("<label>", label).replace("<label2>", lang.get("Commands.Confirm.Confirm")).replace("<name>", terrain.name()));
 
         int confirmationHash = Objects.hash("delete", terrain.id());
 
         ConfirmCommand.requestConfirmation(sender, () -> {
             if (TerrainManager.remove(terrain) != null) {
-                lang.send(sender, lang.get("Delete.Success").replace("<name>", terrain.name()));
+                lang.send(sender, lang.get("Delete." + (worldTerrain ? "World " : "") + "Success").replace("<name>", terrain.name()));
+                if (worldTerrain) TerrainManager.loadWorld(terrain.world(), terrain.name());
                 // Cancelling all confirmations related to this terrain.
                 ConfirmCommand.cancelConfirmations(confirmationHash);
                 ConfirmCommand.cancelConfirmations(Objects.hash("transfer", terrain.id()));
+            } else {
+                lang.send(sender, lang.get("Delete.Error"));
             }
         }, () -> lang.getColored("Delete.Confirmation Description").replace("<name>", terrain.name()), confirmationHash);
     }

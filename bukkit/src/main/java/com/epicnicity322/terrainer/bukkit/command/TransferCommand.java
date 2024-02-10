@@ -25,6 +25,7 @@ import com.epicnicity322.terrainer.bukkit.TerrainerPlugin;
 import com.epicnicity322.terrainer.bukkit.util.BukkitPlayerUtil;
 import com.epicnicity322.terrainer.bukkit.util.CommandUtil;
 import com.epicnicity322.terrainer.core.terrain.Terrain;
+import com.epicnicity322.terrainer.core.terrain.WorldTerrain;
 import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -56,6 +57,12 @@ public final class TransferCommand extends Command {
         CommandUtil.CommandArguments arguments = CommandUtil.findTerrain("terrainer.transfer.others", false, label, sender, args);
         if (arguments == null) return;
         Terrain terrain = arguments.terrain();
+
+        if (terrain instanceof WorldTerrain) {
+            lang.send(sender, lang.get("Transfer.Error.World Terrain"));
+            return;
+        }
+
         String label2 = args[0];
         args = arguments.preceding();
 
@@ -86,16 +93,17 @@ public final class TransferCommand extends Command {
                 return;
             }
             if (terrain.owner() == null) {
-                lang.send(sender, lang.get("Transfer.Error.Nothing Changed"));
+                lang.send(sender, lang.get("Transfer.Error.Nothing Changed").replace("<player>", lang.get("Target.Console")));
                 return;
             }
             newOwnerID = null;
             newOwner = null;
         } else {
             newOwnerID = target.id();
+            BukkitPlayerUtil util = TerrainerPlugin.getPlayerUtil();
 
             if (Objects.equals(terrain.owner(), newOwnerID)) {
-                lang.send(sender, lang.get("Transfer.Error.Nothing Changed"));
+                lang.send(sender, lang.get("Transfer.Error.Nothing Changed").replace("<player>", util.getOwnerName(newOwnerID)));
                 return;
             }
 
@@ -103,17 +111,16 @@ public final class TransferCommand extends Command {
                 newOwner = null;
             } else {
                 newOwner = Bukkit.getPlayer(newOwnerID);
-                BukkitPlayerUtil util = TerrainerPlugin.getPlayerUtil();
 
                 if (newOwner == null) {
                     lang.send(sender, lang.get("Transfer.Error.Not Online").replace("<player>", who));
                     return;
                 }
-                if (util.getMaxBlockLimit(newOwner) - util.getUsedBlockLimit(newOwnerID) < terrain.area()) {
+                if (!newOwner.hasPermission("terrain.bypass.limit.blocks") && util.getMaxBlockLimit(newOwner) - util.getUsedBlockLimit(newOwnerID) < terrain.area()) {
                     lang.send(sender, lang.get("Transfer.Error.Low Block Limit").replace("<player>", who));
                     return;
                 }
-                if (util.getMaxClaimLimit(newOwner) - util.getUsedClaimLimit(newOwnerID) < 1) {
+                if (!newOwner.hasPermission("terrain.bypass.limit.claims") && util.getMaxClaimLimit(newOwner) - util.getUsedClaimLimit(newOwnerID) < 1) {
                     lang.send(sender, lang.get("Transfer.Error.Low Claim Limit").replace("<player>", who));
                     return;
                 }

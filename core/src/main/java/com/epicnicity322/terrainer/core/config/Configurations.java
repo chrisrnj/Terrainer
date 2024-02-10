@@ -222,6 +222,9 @@ public final class Configurations {
                 Terrain Item:
                   Material: GRASS_BLOCK
                   Glowing: false
+                World Terrain Item:
+                  Material: BEDROCK
+                  Glowing: false
                         
             Flags:
               # GUI Items for the Flag Management GUI.
@@ -362,9 +365,12 @@ public final class Configurations {
               Define: '&2Terrain ''&a<name>&2'' defined successfully with all protection flags!'
                         
             Delete:
-              Confirmation: '&7Are you sure you want to delete &e<name>&7? Please confirm the deletion with &f&n/<label> <label2>'
+              Confirmation: '&7Are you sure you want to delete &e<name>&7? Please confirm the deletion with &f&n/<label> <label2>&7.'
+              World Confirmation: '&7Are you sure you want to reset all data for the global terrain of &e<name>&7? Please confirm the deletion with &f&n/<label> <label2>&7.'
               Confirmation Description: 'Delete <name>'
+              Error: '&cTerrain could not be deleted.'
               Success: '&e<name>&a was deleted successfully!'
+              World Success: '&aAll data of the global terrain of &e<name>&a was deleted and the terrain was restored!'
                         
             Enter Leave Messages Format: '&6<name>: &7<message>'
                         
@@ -407,6 +413,8 @@ public final class Configurations {
             Rename:
               Error:
                 Name Length: '&4Terrain names must have at least 1 character and &7<max>&4 characters max!'
+                Same: '&7Nothing changed. Terrain was already named &f<name>&7.'
+                World Terrain: '&4Global world terrains can not be renamed!'
               Reset: '&aTerrain &7<old>&a had its name reset to default: &7<new>'
               Renamed: '&aTerrain &7<old>&a was successfully renamed to &7<new>&a.'
                         
@@ -482,6 +490,7 @@ public final class Configurations {
                         
             Description:
               Default: 'A protected area'
+              World Terrain: 'Global terrain for <world>'
               Error:
                 Length: '&cThe value must be <max> characters long max!'
               Reset: '&aDescription of terrain &7<terrain>&a was reset to default.'
@@ -533,7 +542,8 @@ public final class Configurations {
                 Low Claim Limit: '&7<player>&7 does not have enough claim limit to accept this terrain.'
                 Not Allowed: '&4You''re not allowed to transfer this terrain.'
                 Not Online: '&4You can''t transfer the terrain to &7<player>&4 because they are not online!'
-                Nothing Changed: '&4Player already owns this terrain, nothing changed.'
+                Nothing Changed: '&7Nothing changed. <player>&7 already owns this terrain.'
+                World Terrain: '&4Global world terrains can not be owned!'
               Request: '&f<player>&7 wants to transfer the terrain &f<terrain>&7 to you. To accept, use &f&n/tr confirm&7.'
               Requested: '&7A request was sent to &f<who>&7 to accept the terrain.'
               Success: '&aTerrain &7<terrain>&a was transferred successfully to &7<who>&a.'
@@ -630,11 +640,18 @@ public final class Configurations {
                   Other: '&2<other>''s terrains:'
                 Terrain Item:
                   Display Name: '&2<var0>'
-                  Lore: >-
+                  Lore: |-
                     &8ID: &7<var1>
-                    <line>&8Description: &7<var2>
-                    <line>&8Area: &7<var3> blocks
-                    <line>&8Owner: &7<var4>
+                    &8Description: &7<var2>
+                    &8Area: &7<var3> blocks
+                    &8Owner: &7<var4>
+                World Terrain Item:
+                  Display Name: '&6<var0>'
+                  Lore: |-
+                    &8World ID: &7<var1>
+                    &8Description: &7<var2>
+                    
+                    &e&lA global terrain of a world
                         
             Matcher:
               No Permission: '&4You don''t have permission to do that in this terrain.'

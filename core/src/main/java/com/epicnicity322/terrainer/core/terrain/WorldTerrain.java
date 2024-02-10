@@ -19,6 +19,7 @@
 package com.epicnicity322.terrainer.core.terrain;
 
 import com.epicnicity322.terrainer.core.Coordinate;
+import com.epicnicity322.terrainer.core.Terrainer;
 import com.epicnicity322.terrainer.core.WorldCoordinate;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -74,6 +75,11 @@ public final class WorldTerrain extends Terrain {
     }
 
     @Override
+    public void setName(@NotNull String name) {
+        throw new UnsupportedOperationException("World terrains can not be renamed.");
+    }
+
+    @Override
     public void setOwner(@Nullable UUID owner) {
         throw new UnsupportedOperationException("World terrains can not be owned.");
     }
@@ -86,6 +92,12 @@ public final class WorldTerrain extends Terrain {
     @Override
     public void setMinDiagonal(@NotNull Coordinate first) {
         throw new UnsupportedOperationException("World terrains can not have their boundaries changed.");
+    }
+
+    @Override
+    public @NotNull String description() {
+        if (description == null) return Terrainer.lang().get("Description.World Terrain").replace("<world>", name);
+        return description;
     }
 
     @Override

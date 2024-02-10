@@ -22,6 +22,7 @@ import com.epicnicity322.epicpluginlib.bukkit.util.InventoryUtils;
 import com.epicnicity322.terrainer.bukkit.TerrainerPlugin;
 import com.epicnicity322.terrainer.core.config.Configurations;
 import com.epicnicity322.terrainer.core.terrain.Terrain;
+import com.epicnicity322.terrainer.core.terrain.WorldTerrain;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
@@ -36,7 +37,7 @@ public class TerrainListGUI extends ListGUI<Terrain> {
 
     @Override
     protected @NotNull ItemStack item(@NotNull Terrain obj) {
-        return InventoryUtils.getItemStack("Terrain List.GUI.Terrain Item", Configurations.CONFIG.getConfiguration(), TerrainerPlugin.getLanguage(), obj.name(), obj.id().toString(), obj.description(), Double.toString(obj.area()), TerrainerPlugin.getPlayerUtil().getOwnerName(obj.owner()));
+        return InventoryUtils.getItemStack("Terrain List.GUI." + (obj instanceof WorldTerrain ? "World " : "") + "Terrain Item", Configurations.CONFIG.getConfiguration(), TerrainerPlugin.getLanguage(), obj.name(), obj.id().toString(), obj.description(), Double.toString(obj.area()), TerrainerPlugin.getPlayerUtil().getOwnerName(obj.owner()));
     }
 
     @Override
