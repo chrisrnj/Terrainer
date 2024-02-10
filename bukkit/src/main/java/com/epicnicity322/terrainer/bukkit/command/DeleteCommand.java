@@ -63,8 +63,9 @@ public final class DeleteCommand extends Command {
 
         ConfirmCommand.requestConfirmation(sender, () -> {
             if (TerrainManager.remove(terrain) != null) {
-                lang.send(sender, lang.get("Delete." + (worldTerrain ? "World " : "") + "Success").replace("<name>", terrain.name()));
-                if (worldTerrain) TerrainManager.loadWorld(terrain.world(), terrain.name());
+                boolean isReallyWorldTerrain = terrain instanceof WorldTerrain && Bukkit.getWorlds().stream().anyMatch(world -> world.getUID().equals(terrain.world()));
+                lang.send(sender, lang.get("Delete." + (isReallyWorldTerrain ? "World " : "") + "Success").replace("<name>", terrain.name()));
+                if (isReallyWorldTerrain) TerrainManager.loadWorld(terrain.world(), terrain.name());
                 // Cancelling all confirmations related to this terrain.
                 ConfirmCommand.cancelConfirmations(confirmationHash);
                 ConfirmCommand.cancelConfirmations(Objects.hash("transfer", terrain.id()));
