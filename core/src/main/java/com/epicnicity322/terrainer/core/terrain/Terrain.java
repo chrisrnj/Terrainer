@@ -595,9 +595,9 @@ public class Terrain implements Serializable {
         // creating a HashSet that resizes only when there are 6 entries.
         private static final int INITIAL_CAPACITY = 8;
         @Serial
-        private static final long serialVersionUID = -1301395616781997320L;
+        private static final long serialVersionUID = -6990197981631016570L;
 
-        private @Nullable HashSet<E> set;
+        @Nullable HashSet<E> set;
         private @Nullable Set<E> unmodifiableSet;
 
         private PrivateSet(@Nullable Collection<E> collection) {
@@ -692,9 +692,9 @@ public class Terrain implements Serializable {
     public final class FlagMap implements Serializable {
         private static final int INITIAL_CAPACITY = 8;
         @Serial
-        private static final long serialVersionUID = 6316975324573296741L;
+        private static final long serialVersionUID = 85010310532174397L;
 
-        private @Nullable HashMap<String, Object> map;
+        @Nullable HashMap<String, Object> map;
         private @Nullable Map<String, Object> unmodifiableMap;
 
         private FlagMap(@Nullable HashMap<String, Object> map) {

@@ -34,7 +34,12 @@ public final class WorldTerrain extends Terrain {
 
     public WorldTerrain(@NotNull UUID world, @NotNull String name) {
         super(new Coordinate(Double.MIN_VALUE, Double.MIN_VALUE, Double.MIN_VALUE), new Coordinate(Double.MAX_VALUE, Double.MAX_VALUE, Double.MAX_VALUE),
-                world, world, name, null, ZonedDateTime.now(), null, 0, null, null, null);
+                world, world, name, null, ZonedDateTime.now(), null, Integer.MAX_VALUE, null, null, null);
+    }
+
+    WorldTerrain(@NotNull Terrain terrain, @NotNull String name) {
+        super(new Coordinate(Double.MIN_VALUE, Double.MIN_VALUE, Double.MIN_VALUE), new Coordinate(Double.MAX_VALUE, Double.MAX_VALUE, Double.MAX_VALUE),
+                terrain.world, terrain.world, name, terrain.description, terrain.creationDate, null, terrain.priority, terrain.moderators.set, terrain.members.set, terrain.flags.map);
     }
 
     /**
@@ -94,6 +99,11 @@ public final class WorldTerrain extends Terrain {
         if (o == null || getClass() != o.getClass()) return false;
         WorldTerrain terrain = (WorldTerrain) o;
         return id.equals(terrain.id) && world.equals(terrain.world) && minDiagonal.equals(terrain.minDiagonal) && maxDiagonal.equals(terrain.maxDiagonal) && Objects.equals(owner, terrain.owner) && creationDate.equals(terrain.creationDate) && name.equals(terrain.name) && Objects.equals(description, terrain.description) && priority == terrain.priority && moderators.equals(terrain.moderators) && members.equals(terrain.members) && flags.equals(terrain.flags);
+    }
+
+    @Override
+    public int hashCode() {
+        return super.hashCode();
     }
 
     @Override

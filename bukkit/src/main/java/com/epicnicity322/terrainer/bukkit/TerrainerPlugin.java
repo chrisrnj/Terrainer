@@ -44,6 +44,7 @@ import com.epicnicity322.yamlhandler.ConfigurationSection;
 import org.bukkit.Bukkit;
 import org.bukkit.NamespacedKey;
 import org.bukkit.Particle;
+import org.bukkit.World;
 import org.bukkit.command.PluginCommand;
 import org.bukkit.entity.Player;
 import org.bukkit.event.HandlerList;
@@ -250,6 +251,15 @@ public final class TerrainerPlugin extends JavaPlugin {
         getServer().getScheduler().runTask(this, () -> {
             try {
                 TerrainManager.load();
+
+                // Loading worlds and world load listener.
+                ArrayList<UUID> alreadyLoadedWorlds = new ArrayList<>(getServer().getWorlds().size() + 2);
+                for (World world : getServer().getWorlds()) {
+                    TerrainManager.loadWorld(world.getUID(), world.getName());
+                    alreadyLoadedWorlds.add(world.getUID());
+                }
+                pm.registerEvents(new WorldLoadListener(alreadyLoadedWorlds), this);
+
                 logger.log("Terrains loaded.");
             } catch (IOException e) {
                 logger.log("Unable to load terrains due to exception:", ConsoleLogger.Level.ERROR);

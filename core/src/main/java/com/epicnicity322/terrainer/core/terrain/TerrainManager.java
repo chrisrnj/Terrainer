@@ -259,10 +259,7 @@ public final class TerrainManager {
         // Terrains are sorted based on priority. They are iterated over and the ones that have the coordinate within are added.
         ArrayList<Terrain> terrainsAt = new ArrayList<>();
 
-        //TODO: binary search
-        for (Terrain terrain : worldTerrains) {
-            if (terrain.isWithin(x, y, z)) terrainsAt.add(terrain);
-        }
+        for (Terrain terrain : worldTerrains) if (terrain.isWithin(x, y, z)) terrainsAt.add(terrain);
 
         return terrainsAt;
     }
@@ -303,6 +300,39 @@ public final class TerrainManager {
     public static @Nullable WorldCoordinate @NotNull [] getSelection(@Nullable UUID player) {
         if (player == null) player = consoleUUID;
         return selections.computeIfAbsent(player, k -> new WorldCoordinate[2]);
+    }
+
+    /**
+     * Adds a new or converts a saved global terrain for this world. This should be called only once per world, when the world is loaded.
+     * <p>
+     * If a terrain with this world's ID already exists, it's removed from the terrain list and added again as new
+     * {@link WorldTerrain} instance, with the same data from flags, moderators, members, priority, etc.
+     *
+     * @param world The ID of the world to create the {@link WorldTerrain}
+     * @param name  The name of the world to set as the terrain's name.
+     */
+    public static void loadWorld(@NotNull UUID world, @NotNull String name) {
+        Terrain savedWorld = remove(world, false);
+
+        // Converting saved world to WorldTerrain. If none was found, this means this is a new world, so creating new.
+        if (savedWorld == null) {
+            savedWorld = new WorldTerrain(world, name);
+            if (!add(savedWorld)) return;
+        } else {
+            savedWorld = new WorldTerrain(savedWorld, name);
+            if (!addWithoutAutoSave(savedWorld)) return;
+        }
+
+        alertDangerousFlagAllowed(savedWorld, Flags.EXPLOSION_DAMAGE);
+        alertDangerousFlagAllowed(savedWorld, Flags.FIRE_SPREAD);
+        alertDangerousFlagAllowed(savedWorld, Flags.FIRE_DAMAGE);
+    }
+
+    private static void alertDangerousFlagAllowed(@NotNull Terrain terrain, @NotNull Flag<Boolean> flag) {
+        Boolean state = terrain.flags().getData(flag);
+        if (state == null || state) {
+            Terrainer.logger().log("World " + terrain.name() + " has flag &c" + flag.id() + "&r ALLOWED");
+        }
     }
 
     /**
