@@ -187,7 +187,7 @@ public final class CommandUtil {
 
         if (args.length > targetIndex) {
             if (permissionOthers != null && !sender.hasPermission(permissionOthers) &&
-                    !args[targetIndex].equalsIgnoreCase(sender.getName()) && !args[targetIndex].equalsIgnoreCase("me")) {
+                !args[targetIndex].equalsIgnoreCase(sender.getName()) && !args[targetIndex].equalsIgnoreCase("me")) {
                 lang.send(sender, lang.get("General.No Permission Others"));
                 return null;
             }
