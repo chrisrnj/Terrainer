@@ -253,12 +253,8 @@ public final class TerrainerPlugin extends JavaPlugin {
                 TerrainManager.load();
 
                 // Loading worlds and world load listener.
-                ArrayList<UUID> alreadyLoadedWorlds = new ArrayList<>(getServer().getWorlds().size() + 2);
-                for (World world : getServer().getWorlds()) {
-                    TerrainManager.loadWorld(world.getUID(), world.getName());
-                    alreadyLoadedWorlds.add(world.getUID());
-                }
-                pm.registerEvents(new WorldLoadListener(alreadyLoadedWorlds), this);
+                for (World world : getServer().getWorlds()) TerrainManager.loadWorld(world.getUID(), world.getName());
+                pm.registerEvents(new WorldLoadListener(), this);
 
                 logger.log("Terrains loaded.");
             } catch (IOException e) {

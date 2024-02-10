@@ -19,25 +19,18 @@
 package com.epicnicity322.terrainer.bukkit.listener;
 
 import com.epicnicity322.terrainer.core.terrain.TerrainManager;
+import com.epicnicity322.terrainer.core.terrain.WorldTerrain;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.world.WorldLoadEvent;
-import org.jetbrains.annotations.NotNull;
 
-import java.util.ArrayList;
 import java.util.UUID;
 
 public final class WorldLoadListener implements Listener {
-    private final @NotNull ArrayList<UUID> alreadyLoadedWorlds;
-
-    public WorldLoadListener(@NotNull ArrayList<UUID> alreadyLoadedWorlds) {
-        this.alreadyLoadedWorlds = alreadyLoadedWorlds;
-    }
-
     @EventHandler
     public void onWorldLoad(WorldLoadEvent event) {
         UUID world = event.getWorld().getUID();
-        if (alreadyLoadedWorlds.contains(world)) return;
+        if (TerrainManager.getTerrainByID(world) instanceof WorldTerrain) return;
         TerrainManager.loadWorld(world, event.getWorld().getName());
     }
 }

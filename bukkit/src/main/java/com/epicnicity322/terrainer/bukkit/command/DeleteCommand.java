@@ -26,6 +26,7 @@ import com.epicnicity322.terrainer.bukkit.util.CommandUtil;
 import com.epicnicity322.terrainer.core.terrain.Terrain;
 import com.epicnicity322.terrainer.core.terrain.TerrainManager;
 import com.epicnicity322.terrainer.core.terrain.WorldTerrain;
+import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
 import org.jetbrains.annotations.NotNull;
 
@@ -53,7 +54,8 @@ public final class DeleteCommand extends Command {
         CommandUtil.CommandArguments commandArguments = CommandUtil.findTerrain("terrainer.delete.others", false, label, sender, args);
         if (commandArguments == null) return;
         Terrain terrain = commandArguments.terrain();
-        boolean worldTerrain = terrain instanceof WorldTerrain;
+        // If world terrain is not found in list of loaded worlds, remove like a regular terrain.
+        boolean worldTerrain = terrain instanceof WorldTerrain && Bukkit.getWorlds().stream().anyMatch(world -> world.getUID().equals(terrain.world()));
 
         lang.send(sender, lang.get("Delete." + (worldTerrain ? "World " : "") + "Confirmation").replace("<label>", label).replace("<label2>", lang.get("Commands.Confirm.Confirm")).replace("<name>", terrain.name()));
 
