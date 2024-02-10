@@ -29,11 +29,9 @@ import com.epicnicity322.terrainer.core.util.PlayerUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 import java.util.function.Function;
+import java.util.regex.Pattern;
 
 public abstract class Protections<P extends R, R, M, B, E> {
     private final @NotNull PlayerUtil<P, R> playerUtil;
@@ -96,11 +94,10 @@ public abstract class Protections<P extends R, R, M, B, E> {
     /**
      * Finds the appropriate flag for an entity being hit. This method will never be called when the victim is a player.
      *
-     * @param entity  The victim being hit.
-     * @param damager The damager entity. Null if the entity was hit by an explosive block.
+     * @param entity The victim being hit.
      * @return The flag for entity being damaged.
      */
-    protected abstract @NotNull Flag<Boolean> flagEntityHit(@NotNull E entity, @Nullable E damager);
+    protected abstract @NotNull Flag<Boolean> flagEntityHit(@NotNull E entity);
 
     /**
      * Converts an Entity type to a Player type. If entity is a projectile then return shooter of the projectile.
@@ -468,16 +465,31 @@ public abstract class Protections<P extends R, R, M, B, E> {
     }
 
     protected boolean entityDamageByExplodingBlock(@NotNull UUID world, double x, double y, double z, double fromX, double fromY, double fromZ, @NotNull E victim) {
-        return handleBlockFromTo(world, x, y, z, fromX, fromY, fromZ, Flags.EXPLOSION_DAMAGE, flagEntityHit(victim, null));
+        return handleBlockFromTo(world, x, y, z, fromX, fromY, fromZ, Flags.EXPLOSION_DAMAGE, flagEntityHit(victim));
     }
 
     protected boolean entityDamageByEntity(@NotNull UUID world, double x, double y, double z, @NotNull E victim, @NotNull E damager, boolean explosion) {
         if (isPlayer(victim)) {
-            return handleProtection(world, x, y, z, entityOrShooterToPlayer(damager) != null ? Flags.PVP : Flags.VULNERABILITY);
+            P damagerPlayer = entityOrShooterToPlayer(damager);
+
+            if (damagerPlayer != null) {
+                List<Terrain> terrains = TerrainManager.terrains(world);
+
+                for (Terrain terrain : terrains) {
+                    if (!terrain.isWithin(x, y, z)) continue;
+                    Boolean state = terrain.flags().getData(Flags.PVP);
+                    if (state != null) {
+                        if (!state) lang.send(damagerPlayer, lang.get("Protections." + Flags.PVP.id()));
+                        return state;
+                    }
+                }
+            } else {
+                return handleProtection(world, x, y, z, Flags.VULNERABILITY);
+            }
         }
 
         P player;
-        Flag<Boolean> entityHitFlag = flagEntityHit(victim, damager);
+        Flag<Boolean> entityHitFlag = flagEntityHit(victim);
 
         if (explosion) {
             Coordinate origin = entityOrigin(damager);
@@ -594,5 +606,48 @@ public abstract class Protections<P extends R, R, M, B, E> {
             return false;
         }
         return true;
+    }
+
+    protected boolean command(@NotNull UUID world, double x, double y, double z, @NotNull P player, @NotNull String command) {
+        if (playerUtil.hasPermission(player, Flags.COMMAND_BLACKLIST.bypassPermission())) return true;
+        List<Terrain> terrains = TerrainManager.terrains(world);
+
+        Integer priorityFound = null;
+        Set<String> blockedCommands = null;
+
+        // Getting list of blacklisted commands in location in terrains with same priority.
+        for (Terrain terrain : terrains) {
+            if (priorityFound != null && priorityFound != terrain.priority()) break;
+            if (!terrain.isWithin(x, y, z)) continue;
+            if (playerUtil.hasAnyRelations(player, terrain)) return true;
+
+            Set<String> commands = terrain.flags().getData(Flags.COMMAND_BLACKLIST);
+
+            if (commands == null) continue;
+            if (priorityFound == null) priorityFound = terrain.priority();
+            if (commands.isEmpty()) continue;
+            if (blockedCommands == null) blockedCommands = new HashSet<>(commands);
+            else blockedCommands.addAll(commands);
+        }
+
+        if (blockedCommands == null) return true;
+        command = command.toLowerCase(Locale.ROOT);
+        boolean whitelist = blockedCommands.remove("*");
+
+        if (whitelist) {
+            for (String cmd : blockedCommands) {
+                if (command.matches(Pattern.quote(cmd.toLowerCase(Locale.ROOT)) + "\\b.*")) return true;
+            }
+            lang.send(player, lang.get("Protections." + Flags.COMMAND_BLACKLIST.id()));
+            return false;
+        } else {
+            for (String cmd : blockedCommands) {
+                if (command.matches(Pattern.quote(cmd.toLowerCase(Locale.ROOT)) + "\\b.*")) {
+                    lang.send(player, lang.get("Protections." + Flags.COMMAND_BLACKLIST.id()));
+                    return false;
+                }
+            }
+            return true;
+        }
     }
 }

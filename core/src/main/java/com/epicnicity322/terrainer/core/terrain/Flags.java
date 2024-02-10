@@ -64,8 +64,7 @@ public final class Flags {
     /**
      * A list of commands, separated by comma, that are not allowed to be executed in the terrain. Add * to the list to make it a whitelist.
      */
-    //TODO:
-    public static final @NotNull Flag<List<String>> COMMAND_BLACKLIST = Flag.newListFlag("Command Blacklist", null);
+    public static final @NotNull Flag<Set<String>> COMMAND_BLACKLIST = Flag.newSetFlag("Command Blacklist", null);
     /**
      * Allows everyone to open barrels, chests, hoppers, and other containers.
      */

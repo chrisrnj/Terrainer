@@ -259,7 +259,7 @@ public final class ProtectionsListener extends Protections<Player, CommandSender
     }
 
     @Override
-    protected @NotNull Flag<Boolean> flagEntityHit(@NotNull Entity entity, @Nullable Entity damager) {
+    protected @NotNull Flag<Boolean> flagEntityHit(@NotNull Entity entity) {
         return switch (entity.getType()) {
             case ARMOR_STAND -> Flags.ARMOR_STANDS;
             case ITEM_FRAME, GLOW_ITEM_FRAME, PAINTING -> Flags.BUILD;
@@ -734,6 +734,15 @@ public final class ProtectionsListener extends Protections<Player, CommandSender
             event.setCancelled(true);
     }
 
+    // Priority LOW to allow other plugins to change the command in LOWEST.
+    @EventHandler(priority = EventPriority.LOW, ignoreCancelled = true)
+    public void onCommandPreprocess(PlayerCommandPreprocessEvent event) {
+        Player player = event.getPlayer();
+        Location loc = player.getLocation();
+        if (!command(player.getWorld().getUID(), loc.getBlockX(), loc.getBlockY(), loc.getBlockZ(), player, event.getMessage()))
+            event.setCancelled(true);
+    }
+
     private boolean deny(Terrain terrain, Flag<Boolean> flag) {
         Boolean state = terrain.flags().getData(flag);
         return state != null && !state;
@@ -741,6 +750,8 @@ public final class ProtectionsListener extends Protections<Player, CommandSender
 
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
     public void canEnter(TerrainCanEnterEvent event) {
+        // Checking if canEnter was already set by a listener called before this one.
+        if (event.canEnter() != TerrainEvent.CanEnterLeave.DEFAULT) return;
         Terrain terrain = event.terrain();
         Player player = event.player();
         Boolean enter = terrain.flags().getData(Flags.ENTER);
@@ -756,6 +767,8 @@ public final class ProtectionsListener extends Protections<Player, CommandSender
 
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
     public void canLeave(TerrainCanLeaveEvent event) {
+        // Checking if canLeave was already set by a listener called before this one.
+        if (event.canLeave() != TerrainEvent.CanEnterLeave.DEFAULT) return;
         Terrain terrain = event.terrain();
         Player player = event.player();
         Boolean leave = terrain.flags().getData(Flags.LEAVE);
