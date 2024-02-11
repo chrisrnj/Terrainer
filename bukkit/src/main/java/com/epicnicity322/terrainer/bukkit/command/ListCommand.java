@@ -25,18 +25,23 @@ import com.epicnicity322.epicpluginlib.core.util.ObjectUtils;
 import com.epicnicity322.terrainer.bukkit.TerrainerPlugin;
 import com.epicnicity322.terrainer.bukkit.gui.TerrainListGUI;
 import com.epicnicity322.terrainer.bukkit.util.CommandUtil;
+import com.epicnicity322.terrainer.core.Coordinate;
 import com.epicnicity322.terrainer.core.config.Configurations;
 import com.epicnicity322.terrainer.core.terrain.Terrain;
 import com.epicnicity322.terrainer.core.terrain.TerrainManager;
+import com.epicnicity322.terrainer.core.util.TerrainerUtil;
 import com.epicnicity322.yamlhandler.Configuration;
 import net.md_5.bungee.api.chat.ClickEvent;
 import net.md_5.bungee.api.chat.HoverEvent;
 import net.md_5.bungee.api.chat.TextComponent;
 import net.md_5.bungee.api.chat.hover.content.Text;
+import org.bukkit.Bukkit;
+import org.bukkit.World;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.HumanEntity;
 import org.jetbrains.annotations.NotNull;
 
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 
 public final class ListCommand extends Command {
@@ -142,7 +147,16 @@ public final class ListCommand extends Command {
             }
         } else {
             String title = who.equals(lang.get("Target.You")) ? lang.getColored("Terrain List.GUI.Title.Default") : lang.getColored("Terrain List.GUI.Title.Other").replace("<other>", who);
-            new TerrainListGUI(terrains, title).open(player);
+            new TerrainListGUI(terrains, title, (event, t) -> {
+                // TODO: Open terrain editing GUI if the player has permission to edit it.
+                HumanEntity p = event.getWhoClicked();
+                p.closeInventory();
+                Coordinate min = t.minDiagonal();
+                Coordinate max = t.maxDiagonal();
+                World w = Bukkit.getWorld(t.world());
+                String worldName = w == null ? t.world().toString() : w.getName();
+                lang.send(p, lang.get("Info.Text").replace("<name>", t.name()).replace("<id>", t.id().toString()).replace("<owner>", TerrainerPlugin.getPlayerUtil().getOwnerName(t.owner())).replace("<desc>", t.description()).replace("<date>", t.creationDate().format(DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm:ss"))).replace("<area>", Double.toString(t.area())).replace("<world>", worldName).replace("<x1>", Double.toString(min.x())).replace("<y1>", Double.toString(min.y())).replace("<z1>", Double.toString(min.z())).replace("<x2>", Double.toString(max.x())).replace("<y2>", Double.toString(max.y())).replace("<z2>", Double.toString(max.z())).replace("<mods>", TerrainerUtil.listToString(t.moderators().view(), TerrainerPlugin.getPlayerUtil()::getOwnerName)).replace("<members>", TerrainerUtil.listToString(t.members().view(), TerrainerPlugin.getPlayerUtil()::getOwnerName)).replace("<flags>", TerrainerUtil.listToString(t.flags().view().keySet(), id -> id)).replace("<priority>", Integer.toString(t.priority())));
+            }).open(player);
         }
     }
 }
