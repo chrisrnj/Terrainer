@@ -375,36 +375,43 @@ public final class Configurations {
             Enter Leave Messages Format: '&6<name>: &7<message>'
                         
             Protections:
+              Anvils: '<cooldown=2000> &4You''re not allowed to use anvils here.'
               Armor Stands: '<cooldown=2000> &4You''re not allowed to use armor stands here.'
               Build: '<cooldown=2000> &4You''re not allowed to build here.'
-              Build Vehicles: '<cooldown=2000> &4You''re not allowed to break or place vehicles here.'
+              Build Boats: '<cooldown=2000> &4You''re not allowed to break or place boats here.'
+              Build Minecarts: '<cooldown=2000> &4You''re not allowed to break or place minecarts here.'
               Buttons: '<cooldown=2000> &4You''re not allowed to use buttons and levers here.'
+              Command Blacklist: '<cooldown=2000> &4You''re not allowed to use this command here.'
               Containers: '<cooldown=2000> &4You''re not allowed to open containers here.'
               Doors: '<cooldown=2000> &4You''re not allowed to open doors or gates here.'
-              Drop: '<cooldown=2000> &4You''re not allowed to drop items here.'
+              Eat: '<cooldown=2000> &4You''re not allowed to consume items here.'
               Enemy Harm: '<cooldown=2000> &4You''re not allowed to harm enemy entities here.'
               Enter: '<cooldown=2000> &4You''re not allowed to enter.'
               Enter Vehicles: '<cooldown=2000> &4You''re not allowed to enter vehicles here.'
+              Entity Harm: '<cooldown=2000> &4You''re not allowed to harm entities here.'
               Entity Interactions: '<cooldown=2000> &4You''re not allowed to interact with entities here.'
-              Farmland Trampling: '<cooldown=2000> &4You''re not allowed to trample farmland here.'
               Fly: '<cooldown=2000> &4You''re not allowed to fly here.'
               Glide: '<cooldown=2000> &4You''re not allowed to glide here.'
-              Harm: '<cooldown=2000> &4You''re not allowed to harm entities here.'
               Interactions: '<cooldown=2000> &4You''re not allowed to use this here.'
+              Item Drop: '<cooldown=2000> &4You''re not allowed to drop items here.'
               Item Frames: '<cooldown=2000> &4You''re not allowed to use item frames here.'
+              Item Pickup: '<cooldown=4000> &4You''re not allowed to pick up items here.'
               Join Loading Server Message: |-
                 &cServer is loading, please try joining in a few seconds.
               # Use <default> for the default spigot shutdown message.
               Kick Message: |-
                 &4<default>
-                &cYou were kicked early to prevent damages to terrains.
               Leave: '<cooldown=2000> &4You''re not allowed to leave.'
-              Pickup: '<cooldown=2000> &4You''re not allowed to pick up items here.'
-              Pressure Plates: '<cooldown=2000> &4You''re not allowed to use pressure plates here.'
+              Lighters: '<cooldown=2000> &4You''re not allowed to use lighters here.'
+              Outside Projectiles: '<cooldown=2000> &4You''re not allowed to shoot projectiles here.'
+              Potions: '<cooldown=2000> &4You''re not allowed to drink potions here.'
+              Prepare: '<cooldown=2000> &4You''re not allowed to use crafting blocks here.'
+              Pressure Plates: '<cooldown=4000> &4You''re not allowed to use pressure plates here.'
               Projectiles: '<cooldown=2000> &4You''re not allowed to shoot projectiles here.'
               PvP: '<cooldown=2000> &4You''re not allowed to engage in combat here.'
               Sign Click: '<cooldown=2000> &4You''re not allowed to interact with signs here.'
               Sign Edit: '<cooldown=2000> &4You''re not allowed to edit signs here.'
+              Trample: '<cooldown=2000> &4You''re not allowed to trample farmland here.'
                         
             Reload:
               Error: '&cSomething went wrong while reloading Terrainer, check console to see more info.'
