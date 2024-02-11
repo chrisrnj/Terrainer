@@ -336,11 +336,15 @@ public final class TerrainManager {
      *     <li>Returns true if the flag is explicitly allowed for the terrain with the highest priority at the location.</li>
      *     <li>Returns false if the flag is explicitly denied and the player lacks any relations to terrains with the same or higher priority as the terrain where the flag was denied.</li>
      * </ul>
+     * <p>
+     * A permission check for {@link Flag#bypassPermission()} should be made before calling this method to ensure the
+     * player should have the flag tested.
      *
      * @param flag            The flag to be tested at the location.
      * @param player          The UUID of the player.
      * @param worldCoordinate The location where to test the flag.
      * @return {@code true} if the flag is allowed at the specified location; {@code false} otherwise.
+     * @throws UnsupportedOperationException If terrainer is not loaded yet or {@link Terrainer#playerUtil()} is not set.
      */
     public static boolean isFlagAllowedAt(@NotNull Flag<Boolean> flag, @NotNull UUID player, @NotNull WorldCoordinate worldCoordinate) {
         return isFlagAllowedAt(flag, player, worldCoordinate.world(), worldCoordinate.coordinate().x(), worldCoordinate.coordinate().y(), worldCoordinate.coordinate().z());
