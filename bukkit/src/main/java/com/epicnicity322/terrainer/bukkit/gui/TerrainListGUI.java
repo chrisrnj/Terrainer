@@ -28,11 +28,15 @@ import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Collection;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 public class TerrainListGUI extends ListGUI<Terrain> {
-    public TerrainListGUI(@NotNull Collection<Terrain> terrains, @NotNull String title) {
+    private final @NotNull BiConsumer<InventoryClickEvent, Terrain> onClick;
+
+    public TerrainListGUI(@NotNull Collection<Terrain> terrains, @NotNull String title, @NotNull BiConsumer<InventoryClickEvent, Terrain> onClick) {
         super(terrains, title);
+        this.onClick = onClick;
     }
 
     @Override
@@ -42,7 +46,10 @@ public class TerrainListGUI extends ListGUI<Terrain> {
 
     @Override
     protected @NotNull Consumer<InventoryClickEvent> event(@NotNull Terrain obj) {
-        return event -> {
-        };
+        return event -> getOnClick().accept(event, obj);
+    }
+
+    private @NotNull BiConsumer<InventoryClickEvent, Terrain> getOnClick() {
+        return onClick;
     }
 }
