@@ -290,6 +290,114 @@ public final class TerrainManager {
     }
 
     /**
+     * Gets the highest priority terrain at the specified location that has the specified flag set with a value that's
+     * not null.
+     * <p>
+     * There can be two terrains with same priority at the location with diverging flag data, this method returns the
+     * first one found.
+     *
+     * @param flag            The flag to look for in the location.
+     * @param worldCoordinate The coordinate to get the terrain at.
+     * @return The terrain in the location that has this flag, null if not found.
+     */
+    public static @Nullable Terrain getHighestPriorityTerrainWithFlagAt(@NotNull Flag<?> flag, @NotNull WorldCoordinate worldCoordinate) {
+        return getHighestPriorityTerrainWithFlagAt(flag, worldCoordinate.world(), worldCoordinate.coordinate().x(), worldCoordinate.coordinate().y(), worldCoordinate.coordinate().z());
+    }
+
+    /**
+     * Gets the highest priority terrain at the specified location that has the specified flag set with a value that's
+     * not null.
+     * <p>
+     * There can be two terrains with same priority at the location with diverging flag data, this method returns the
+     * first one found.
+     *
+     * @param flag  The flag to look for in the location.
+     * @param world The UUID of the world where the location resides.
+     * @param x     The X coordinate of the location.
+     * @param y     The Y coordinate of the location.
+     * @param z     The Z coordinate of the location.
+     * @return The terrain in the location that has this flag, null if not found.
+     */
+    public static @Nullable Terrain getHighestPriorityTerrainWithFlagAt(@NotNull Flag<?> flag, @NotNull UUID world, double x, double y, double z) {
+        // Terrain list is sorted by priority.
+        for (Terrain terrain : terrains(world)) {
+            if (!terrain.isWithin(x, y, z)) continue;
+            if (terrain.flags().getData(flag) != null) return terrain;
+        }
+        return null;
+    }
+
+    /**
+     * Determines whether a specific flag is allowed at a given location based on various conditions.
+     * <p>
+     * Conditions for flag allowance:
+     * <ul>
+     *     <li>Returns true if the location has no terrains with the specified flag.</li>
+     *     <li>Returns true if the flag is explicitly allowed for the terrain with the highest priority at the location.</li>
+     *     <li>Returns false if the flag is explicitly denied and the player lacks any relations to terrains with the same or higher priority as the terrain where the flag was denied.</li>
+     * </ul>
+     *
+     * @param flag            The flag to be tested at the location.
+     * @param player          The UUID of the player.
+     * @param worldCoordinate The location where to test the flag.
+     * @return {@code true} if the flag is allowed at the specified location; {@code false} otherwise.
+     */
+    public static boolean isFlagAllowedAt(@NotNull Flag<Boolean> flag, @NotNull UUID player, @NotNull WorldCoordinate worldCoordinate) {
+        return isFlagAllowedAt(flag, player, worldCoordinate.world(), worldCoordinate.coordinate().x(), worldCoordinate.coordinate().y(), worldCoordinate.coordinate().z());
+    }
+
+    /**
+     * Determines whether a specific flag is allowed at a given location based on various conditions.
+     * <p>
+     * Conditions for flag allowance:
+     * <ul>
+     *     <li>Returns true if the location has no terrains with the specified flag.</li>
+     *     <li>Returns true if the flag is explicitly allowed for the terrain with the highest priority at the location.</li>
+     *     <li>Returns false if the flag is explicitly denied and the player lacks any relations to terrains with the same or higher priority as the terrain where the flag was denied.</li>
+     * </ul>
+     * <p>
+     * A permission check for {@link Flag#bypassPermission()} should be made before calling this method to ensure the
+     * player should have the flag tested.
+     *
+     * @param flag   The flag to be tested at the location.
+     * @param player The UUID of the player.
+     * @param world  The UUID of the world where the location resides.
+     * @param x      The X coordinate of the location.
+     * @param y      The Y coordinate of the location.
+     * @param z      The Z coordinate of the location.
+     * @return {@code true} if the flag is allowed at the specified location; {@code false} otherwise.
+     * @throws UnsupportedOperationException If terrainer is not loaded yet or {@link Terrainer#playerUtil()} is not set.
+     */
+    public static boolean isFlagAllowedAt(@NotNull Flag<Boolean> flag, @NotNull UUID player, @NotNull UUID world, double x, double y, double z) {
+        if (Terrainer.playerUtil() == null) {
+            throw new UnsupportedOperationException("Terrainer is not loaded yet, player util could not be found.");
+        }
+        Integer foundPriority = null;
+
+        // Terrain list is sorted by priority.
+        for (Terrain terrain : terrains(world)) {
+            // If the flag was already found, check if the player has relations to terrains in the location which have the same priority.
+            if (foundPriority != null && terrain.priority != foundPriority) return false;
+            if (!terrain.isWithin(x, y, z)) continue;
+            // If the player has any relations to terrains found at the location, return true.
+            if (Terrainer.playerUtil().hasAnyRelations(player, terrain)) return true;
+            if (foundPriority != null) continue;
+
+            Boolean state = terrain.flags().getData(flag);
+
+            if (state != null) {
+                // State found as false. Continue loop to check for relations with terrains with same priority.
+                if (!state) {
+                    foundPriority = terrain.priority;
+                    continue;
+                }
+                return true;
+            }
+        }
+        return true;
+    }
+
+    /**
      * Gets a mutable array with length 2, with the marked coordinate diagonals this player made.
      * <p>
      * Players can select either through command or the selection wand.

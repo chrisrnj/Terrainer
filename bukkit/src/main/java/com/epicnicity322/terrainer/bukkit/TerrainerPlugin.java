@@ -91,6 +91,7 @@ public final class TerrainerPlugin extends JavaPlugin {
 
     public TerrainerPlugin() {
         instance = this;
+        Terrainer.setPlayerUtil(playerUtil);
         logger.setLogger(getLogger());
     }
 
