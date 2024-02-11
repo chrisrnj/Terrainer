@@ -370,6 +370,7 @@ public final class Configurations {
               Confirmation Description: 'Delete <name>'
               Error: '&cTerrain could not be deleted.'
               Success: '&e<name>&a was deleted successfully!'
+              Select: '&cSelect the terrain to delete:'
               World Success: '&aAll data of the global terrain of &e<name>&a was deleted and the terrain was restored!'
                         
             Enter Leave Messages Format: '&6<name>: &7<message>'
@@ -424,6 +425,7 @@ public final class Configurations {
                 World Terrain: '&4Global world terrains can not be renamed!'
               Reset: '&aTerrain &7<old>&a had its name reset to default: &7<new>'
               Renamed: '&aTerrain &7<old>&a was successfully renamed to &7<new>&a.'
+              Select: '&cSelect the terrain to rename:'
                         
             Select:
               Error:
@@ -501,6 +503,7 @@ public final class Configurations {
               Error:
                 Length: '&cThe value must be <max> characters long max!'
               Reset: '&aDescription of terrain &7<terrain>&a was reset to default.'
+              Select: '&cSelect the terrain to edit description:'
               Set: '&aDescription of terrain &7<terrain>&a set to: &e<description>&a.'
                         
             Invalid Arguments:
@@ -541,6 +544,7 @@ public final class Configurations {
                 Granted: '&aGranted member role for &f<who>&a in terrain &f<terrain>&a.'
                 Revoked: '&7Revoked member role of &f<who>&7 in terrain &f<terrain>&7.'
                 Notify: '&aYou were granted a member role in the terrain &f<terrain>&a!'
+              Select: '&cSelect the terrain to edit roles:'
                         
             Transfer:
               Confirmation Description: 'Accept ownership of <terrain>'
@@ -553,6 +557,7 @@ public final class Configurations {
                 World Terrain: '&4Global world terrains can not be owned!'
               Request: '&f<player>&7 wants to transfer the terrain &f<terrain>&7 to you. To accept, use &f&n/tr confirm&7.'
               Requested: '&7A request was sent to &f<who>&7 to accept the terrain.'
+              Select: '&cSelect the terrain to transfer:'
               Success: '&aTerrain &7<terrain>&a was transferred successfully to &7<who>&a.'
                         
             Priority:
@@ -561,6 +566,7 @@ public final class Configurations {
               Same:
                 Here: '&7All terrains in this location have priority &f<priority>&7: &f<terrains>'
               Removed: '&7Some terrains are not in the list because you don''t own them.'
+              Select: '&cSelect the terrain to edit priority:'
               Single: '&7Terrain &f<terrain>&7 has &f<priority>&7 priority.'
                         
             Wand:
@@ -661,6 +667,7 @@ public final class Configurations {
                     &e&lA global terrain of a world
                         
             Matcher:
+              Changed: '&4The terrain you selected could not be found because it was changed while you were selecting it.'
               No Permission: '&4You don''t have permission to do that in this terrain.'
               Name:
                 Multiple: '&4More than one terrain was found with that name. Please specify the terrain''s ID instead of name.'
@@ -682,6 +689,7 @@ public final class Configurations {
                 Not Owner: '&4Only the owner is allowed to edit this flag.'
                 Unknown: '&4Something went wrong while setting this flag. Please contact an administrator.'
               Management GUI Title: '&2Flags of <terrain>&2:'
+              Select: '&cSelect the terrain to edit flags:'
               Values:
                 Armor Stands:
                   Display Name: '&x&B&3&A&2&9&3&lArmor Stands'

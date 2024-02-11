@@ -74,56 +74,54 @@ public abstract class PermissionCommand extends Command implements Permission {
     }
 
     @Override
-    public void run(@NotNull String label, @NotNull CommandSender sender, @NotNull String[] args) {
+    public void run(@NotNull String label, @NotNull CommandSender sender, @NotNull String[] args0) {
         MessageSender lang = TerrainerPlugin.getLanguage();
-        CommandArguments commandArguments = findTerrain(isGrant() ? "terrainer.grant.others" : "terrainer.revoke.others", true, label, sender, args);
+        findTerrain(isGrant() ? "terrainer.grant.others" : "terrainer.revoke.others", true, label, sender, args0, lang.getColored("Permission.Select"), commandArguments -> {
+            String[] args = commandArguments.preceding();
 
-        if (commandArguments == null) return;
-        String label2 = args[0];
-        args = commandArguments.preceding();
+            Terrain terrain = commandArguments.terrain();
 
-        Terrain terrain = commandArguments.terrain();
-
-        if (args.length == 0) {
-            //TODO: open permission management inventory.
-            lang.send(sender, "Permission Management GUI is not done yet, please use the full command for managing terrain permissions.");
-            return;
-        }
-
-        TargetResponse response = target(0, null, sender, args);
-        if (response == null) return;
-
-        UUID toAdd = response.id();
-
-        if (response == TargetResponse.ALL) {
-            lang.send(sender, lang.get("Permission.Error.Multiple"));
-            return;
-        }
-        if (response == TargetResponse.CONSOLE) {
-            lang.send(sender, lang.get("Permission.Error.Console"));
-            return;
-        }
-        if (Objects.equals(toAdd, terrain.owner())) {
-            lang.send(sender, lang.get("Permission.Error.Owner"));
-            return;
-        }
-
-        boolean mod = false;
-
-        if (args.length > 1) {
-            if (args[1].equalsIgnoreCase("moderator") || contains(moderatorAliases, args[1])) {
-                if (!canManageModerators(sender, terrain)) {
-                    lang.send(sender, lang.get("Permission.Error.Mods Can Manage Mods Denied"));
-                    return;
-                }
-                mod = true;
-            } else if (!args[1].equalsIgnoreCase("member") && !contains(memberAliases, args[1])) {
-                lang.send(sender, lang.get("Invalid Arguments.Error").replace("<label>", label).replace("<label2>", label2).replace("<args>", lang.get("Target.Player") + " [moderator|member] [--t " + lang.get("Target.Terrain") + "]"));
+            if (args.length == 0) {
+                //TODO: open permission management inventory.
+                lang.send(sender, "Permission Management GUI is not done yet, please use the full command for managing terrain permissions.");
                 return;
             }
-        }
 
-        managePermission(sender, mod, toAdd, terrain, response.who().get());
+            TargetResponse response = target(0, null, sender, args);
+            if (response == null) return;
+
+            UUID toAdd = response.id();
+
+            if (response == TargetResponse.ALL) {
+                lang.send(sender, lang.get("Permission.Error.Multiple"));
+                return;
+            }
+            if (response == TargetResponse.CONSOLE) {
+                lang.send(sender, lang.get("Permission.Error.Console"));
+                return;
+            }
+            if (Objects.equals(toAdd, terrain.owner())) {
+                lang.send(sender, lang.get("Permission.Error.Owner"));
+                return;
+            }
+
+            boolean mod = false;
+
+            if (args.length > 1) {
+                if (args[1].equalsIgnoreCase("moderator") || contains(moderatorAliases, args[1])) {
+                    if (!canManageModerators(sender, terrain)) {
+                        lang.send(sender, lang.get("Permission.Error.Mods Can Manage Mods Denied"));
+                        return;
+                    }
+                    mod = true;
+                } else if (!args[1].equalsIgnoreCase("member") && !contains(memberAliases, args[1])) {
+                    lang.send(sender, lang.get("Invalid Arguments.Error").replace("<label>", label).replace("<label2>", args0[0]).replace("<args>", lang.get("Target.Player") + " [moderator|member] [--t " + lang.get("Target.Terrain") + "]"));
+                    return;
+                }
+            }
+
+            managePermission(sender, mod, toAdd, terrain, response.who().get());
+        });
     }
 
     public static final class GrantCommand extends PermissionCommand {

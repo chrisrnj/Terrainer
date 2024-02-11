@@ -22,6 +22,7 @@ import com.epicnicity322.epicpluginlib.bukkit.command.CommandRunnable;
 import com.epicnicity322.epicpluginlib.bukkit.lang.MessageSender;
 import com.epicnicity322.epicpluginlib.bukkit.reflection.ReflectionUtil;
 import com.epicnicity322.terrainer.bukkit.TerrainerPlugin;
+import com.epicnicity322.terrainer.bukkit.gui.TerrainListGUI;
 import com.epicnicity322.terrainer.core.terrain.Terrain;
 import com.epicnicity322.terrainer.core.terrain.TerrainManager;
 import com.epicnicity322.terrainer.core.terrain.WorldTerrain;
@@ -29,11 +30,13 @@ import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.command.CommandSender;
+import org.bukkit.entity.HumanEntity;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 public final class CommandUtil {
@@ -48,21 +51,28 @@ public final class CommandUtil {
     }
 
     /**
-     * This method helps find a {@link Terrain} based on the command arguments passed to it. If the command includes "--t"
-     * followed by the name of a terrain, that terrain with matching name will be returned, and any other preceding
-     * arguments will also be returned. If the "--t" argument is not specified, the terrain at the sender's location is
-     * inferred. If a terrain with the given name or {@link UUID} is not found, the method will suggest using a more
-     * precise command to specify the terrain.
+     * This method helps find a {@link Terrain} based on the command arguments passed to it.
+     * <p>
+     * If the command includes "--t" followed by the name of a terrain, that terrain with matching name will be
+     * returned, and any other preceding arguments will also be returned.
+     * <p>
+     * If the "--t" argument is not specified, the terrain at the sender's location is inferred.
+     * <p>
+     * If a terrain with the given name or {@link UUID} is not found, the method will suggest using a more precise
+     * command to specify the terrain.
+     * <p>
+     * If more than one terrain was found, a list is provided for the player to choose which terrain they desire to
+     * edit.
      *
      * @param permissionOthers The permission that allows the sender to find other people's terrains.
      * @param allowModerators  Allows moderators to find the terrain.
      * @param label            The command label.
      * @param sender           The sender of the command.
      * @param args             The arguments for the command
-     * @return A {@link CommandArguments} object which includes both the arguments and the terrain found, or null if an
-     * error occurs and a response has already been sent to the {@link CommandSender}.
+     * @param selectMessage    The message to set as title for the terrain choosing GUI in case more than one terrain was found.
+     * @param onFind           The consumer that will receive the terrain and the command arguments once the terrain is found.
      */
-    public static @Nullable CommandArguments findTerrain(@NotNull String permissionOthers, boolean allowModerators, @NotNull String label, @NotNull CommandSender sender, @NotNull String @NotNull [] args) {
+    public static void findTerrain(@NotNull String permissionOthers, boolean allowModerators, @NotNull String label, @NotNull CommandSender sender, @NotNull String @NotNull [] args, @NotNull String selectMessage, @NotNull Consumer<CommandArguments> onFind) {
         MessageSender lang = TerrainerPlugin.getLanguage();
         StringBuilder terrainNameBuilder = new StringBuilder();
         boolean join = false;
@@ -86,47 +96,24 @@ public final class CommandUtil {
         }
 
         String terrainName = terrainNameBuilder.toString();
-        Terrain terrain = null;
+        List<Terrain> foundTerrains = null;
+        boolean location = false;
 
         // If no terrain was specified in the command, look for terrain in player's location.
         if (terrainName.isEmpty()) {
             exampleSyntax.append("--t ").append(lang.get("Invalid Arguments.Terrain"));
             if (!(sender instanceof Player player)) {
                 lang.send(sender, lang.get("Invalid Arguments.Error").replace("<label>", label).replace("<label2>", args[0]).replace("<args>", exampleSyntax));
-                return null;
+                return;
             }
 
             Location loc = player.getLocation();
-            int x = loc.getBlockX();
-            int y = loc.getBlockY();
-            int z = loc.getBlockZ();
-
-            boolean notAllowed = false;
-
-            // Looping through all terrains in the location. The ones the player is not allowed to find are ignored.
-            for (Terrain t : TerrainManager.terrains(player.getWorld().getUID())) {
-                if (t instanceof WorldTerrain || !t.isWithin(x, y, z)) continue;
-                if (isNotAllowedToFind(t, player, allowModerators, permissionOthers)) {
-                    notAllowed = true;
-                    continue;
-                }
-                if (terrain != null) {
-                    lang.send(sender, lang.get("Matcher.Location.Multiple").replace("<label>", label).replace("<args>", args[0] + " " + exampleSyntax));
-                    return null;
-                } else {
-                    terrain = t;
-                }
-            }
-
-            // No terrains found.
-            if (terrain == null) {
-                if (notAllowed) {
-                    lang.send(sender, lang.get("Matcher.No Permission"));
-                } else {
-                    lang.send(sender, lang.get("Matcher.Location.Not Found").replace("<label>", label).replace("<args>", args[0] + " " + exampleSyntax));
-                }
-                return null;
-            }
+            int x = loc.getBlockX(), y = loc.getBlockY(), z = loc.getBlockZ();
+            UUID world = player.getWorld().getUID();
+            foundTerrains = TerrainManager.getTerrainsAt(world, x, y, z);
+            // World terrain is only editable if its name/id is specified in the command.
+            foundTerrains.removeIf(t -> t instanceof WorldTerrain);
+            location = true;
         } else {
             // Checking for ID first.
             UUID id = null;
@@ -135,45 +122,48 @@ public final class CommandUtil {
             } catch (IllegalArgumentException ignored) {
             }
 
-            boolean notAllowed = false;
-
             if (id != null) {
-                terrain = TerrainManager.getTerrainByID(id);
-
-                // Checking permission to find.
-                if (terrain != null && isNotAllowedToFind(terrain, sender, allowModerators, permissionOthers)) {
-                    lang.send(sender, lang.get("Matcher.No Permission"));
-                    return null;
-                }
+                foundTerrains = new ArrayList<>(2);
+                foundTerrains.add(TerrainManager.getTerrainByID(id));
             } else {
                 // Finding terrain by name. The ones the player is not allowed to find are ignored.
                 for (Terrain t : TerrainManager.allTerrains()) {
                     if (!t.name().equals(terrainName)) continue;
-                    if (isNotAllowedToFind(t, sender, allowModerators, permissionOthers)) {
-                        notAllowed = true;
-                        continue;
-                    }
-                    if (terrain != null) {
-                        lang.send(sender, lang.get("Matcher.Name.Multiple"));
-                        return null;
-                    } else {
-                        terrain = t;
-                    }
+                    if (foundTerrains == null) foundTerrains = new ArrayList<>();
+                    foundTerrains.add(t);
                 }
-            }
-
-            // No terrains found.
-            if (terrain == null) {
-                if (notAllowed) {
-                    lang.send(sender, lang.get("Matcher.No Permission"));
-                } else {
-                    lang.send(sender, lang.get("Matcher.Name.Not Found"));
-                }
-                return null;
             }
         }
 
-        return new CommandArguments(preceding.toArray(new String[0]), terrain);
+        // Checking permissions and sending terrain not found message if no terrain was found.
+        boolean noPermission = false;
+        if (foundTerrains != null) {
+            noPermission = foundTerrains.removeIf(t -> isNotAllowedToFind(t, sender, allowModerators, permissionOthers));
+        }
+        if (foundTerrains == null || foundTerrains.isEmpty()) {
+            lang.send(sender, lang.get(noPermission ? "Matcher.No Permission" : location ? "Matcher.Location.Not Found" : "Matcher.Name.Not Found").replace("<label>", label).replace("<args>", args[0] + " " + exampleSyntax));
+            return;
+        }
+
+        if (foundTerrains.size() == 1) {
+            onFind.accept(new CommandArguments(preceding.toArray(new String[0]), foundTerrains.get(0)));
+        }
+
+        // If multiple terrains are found, send GUI to select which terrain they want to edit.
+        if (sender instanceof Player player) {
+            new TerrainListGUI(foundTerrains, selectMessage, (event, terrain) -> {
+                HumanEntity p = event.getWhoClicked();
+                p.closeInventory();
+                // If the player took too long to select and the terrain is no longer available, return.
+                if (!TerrainManager.terrains(terrain.world()).contains(terrain) || isNotAllowedToFind(terrain, p, allowModerators, permissionOthers)) {
+                    lang.send(p, lang.get("Matcher.Changed"));
+                    return;
+                }
+                onFind.accept(new CommandArguments(preceding.toArray(new String[0]), terrain));
+            }).open(player);
+        } else {
+            lang.send(sender, lang.get("Matcher.Name.Multiple"));
+        }
     }
 
     private static boolean isNotAllowedToFind(@NotNull Terrain terrain, @NotNull CommandSender sender, boolean allowModerators, @NotNull String permission) {
@@ -186,8 +176,7 @@ public final class CommandUtil {
         MessageSender lang = TerrainerPlugin.getLanguage();
 
         if (args.length > targetIndex) {
-            if (permissionOthers != null && !sender.hasPermission(permissionOthers) &&
-                !args[targetIndex].equalsIgnoreCase(sender.getName()) && !args[targetIndex].equalsIgnoreCase("me")) {
+            if (permissionOthers != null && !sender.hasPermission(permissionOthers) && !args[targetIndex].equalsIgnoreCase(sender.getName()) && !args[targetIndex].equalsIgnoreCase("me")) {
                 lang.send(sender, lang.get("General.No Permission Others"));
                 return null;
             }

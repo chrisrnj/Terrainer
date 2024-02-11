@@ -50,38 +50,38 @@ public final class RenameCommand extends Command {
     @Override
     public void run(@NotNull String label, @NotNull CommandSender sender, @NotNull String[] args) {
         MessageSender lang = TerrainerPlugin.getLanguage();
-        CommandUtil.CommandArguments arguments = CommandUtil.findTerrain("terrainer.rename.others", false, label, sender, args);
-        if (arguments == null) return;
-        Terrain terrain = arguments.terrain();
+        CommandUtil.findTerrain("terrainer.rename.others", false, label, sender, args, lang.getColored("Rename.Select"), arguments -> {
+            Terrain terrain = arguments.terrain();
 
-        if (terrain instanceof WorldTerrain) {
-            lang.send(sender, lang.get("Rename.Error.World Terrain"));
-            return;
-        }
-
-        String newName = ChatColor.translateAlternateColorCodes('&', CommandUtil.join(arguments.preceding(), 0)).trim();
-
-        if (newName.isBlank()) {
-            newName = terrain.id().toString().substring(0, terrain.id().toString().indexOf('-'));
-            if (terrain.name().equals(newName)) {
-                lang.send(sender, lang.get("Rename.Error.Same").replace("<name>", terrain.name()));
+            if (terrain instanceof WorldTerrain) {
+                lang.send(sender, lang.get("Rename.Error.World Terrain"));
                 return;
             }
-            lang.send(sender, lang.get("Rename.Reset").replace("<new>", newName).replace("<old>", terrain.name()));
-        } else {
-            String stripped = ChatColor.stripColor(newName);
-            int maxNameLength = Configurations.CONFIG.getConfiguration().getNumber("Max Name Length").orElse(26).intValue();
-            if (stripped.isBlank() || stripped.length() > maxNameLength) {
-                lang.send(sender, lang.get("Rename.Error.Name Length").replace("<max>", Integer.toString(maxNameLength)));
-                return;
-            }
-            if (terrain.name().equals(newName)) {
-                lang.send(sender, lang.get("Rename.Error.Same").replace("<name>", terrain.name()));
-                return;
-            }
-            lang.send(sender, lang.get("Rename.Renamed").replace("<new>", newName).replace("<old>", terrain.name()));
-        }
 
-        terrain.setName(newName);
+            String newName = ChatColor.translateAlternateColorCodes('&', CommandUtil.join(arguments.preceding(), 0)).trim();
+
+            if (newName.isBlank()) {
+                newName = terrain.id().toString().substring(0, terrain.id().toString().indexOf('-'));
+                if (terrain.name().equals(newName)) {
+                    lang.send(sender, lang.get("Rename.Error.Same").replace("<name>", terrain.name()));
+                    return;
+                }
+                lang.send(sender, lang.get("Rename.Reset").replace("<new>", newName).replace("<old>", terrain.name()));
+            } else {
+                String stripped = ChatColor.stripColor(newName);
+                int maxNameLength = Configurations.CONFIG.getConfiguration().getNumber("Max Name Length").orElse(26).intValue();
+                if (stripped.isBlank() || stripped.length() > maxNameLength) {
+                    lang.send(sender, lang.get("Rename.Error.Name Length").replace("<max>", Integer.toString(maxNameLength)));
+                    return;
+                }
+                if (terrain.name().equals(newName)) {
+                    lang.send(sender, lang.get("Rename.Error.Same").replace("<name>", terrain.name()));
+                    return;
+                }
+                lang.send(sender, lang.get("Rename.Renamed").replace("<new>", newName).replace("<old>", terrain.name()));
+            }
+
+            terrain.setName(newName);
+        });
     }
 }

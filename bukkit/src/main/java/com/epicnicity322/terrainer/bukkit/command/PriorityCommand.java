@@ -54,11 +54,10 @@ public final class PriorityCommand extends Command {
     }
 
     @Override
-    public void run(@NotNull String label, @NotNull CommandSender sender, @NotNull String[] args) {
+    public void run(@NotNull String label, @NotNull CommandSender sender, @NotNull String[] args0) {
         MessageSender lang = TerrainerPlugin.getLanguage();
-        String label2 = args[0];
 
-        if (sender instanceof Player player && args.length == 2 && (args[1].equalsIgnoreCase("-h") || args[1].equalsIgnoreCase(lang.get("Commands.Priority.Here")))) {
+        if (sender instanceof Player player && args0.length == 2 && (args0[1].equalsIgnoreCase("-h") || args0[1].equalsIgnoreCase(lang.get("Commands.Priority.Here")))) {
             Location loc = player.getLocation();
             UUID world = player.getWorld().getUID();
             List<Terrain> terrains = TerrainManager.getTerrainsAt(world, loc.getBlockX(), loc.getBlockY(), loc.getBlockZ());
@@ -95,59 +94,60 @@ public final class PriorityCommand extends Command {
             return;
         }
 
-        CommandUtil.CommandArguments arguments = CommandUtil.findTerrain("terrainer.priority.others", false, label, sender, args);
-        if (arguments == null) return;
-        Terrain terrain = arguments.terrain();
-        args = arguments.preceding();
-        UUID senderID = sender instanceof Player player ? player.getUniqueId() : null;
-        List<Terrain> overlappingTerrains = getOverlappingTerrains(terrain);
+        CommandUtil.findTerrain("terrainer.priority.others", false, label, sender, args0, lang.getColored("Priority.Select"), arguments -> {
+            if (arguments == null) return;
+            Terrain terrain = arguments.terrain();
+            String[] args = arguments.preceding();
+            UUID senderID = sender instanceof Player player ? player.getUniqueId() : null;
+            List<Terrain> overlappingTerrains = getOverlappingTerrains(terrain);
 
-        if (args.length == 0) {
-            if (overlappingTerrains.size() <= 1 || !sender.hasPermission("terrainer.priority.overlappinginfo")) {
-                lang.send(sender, lang.get("Priority.Single").replace("<priority>", Integer.toString(terrain.priority())).replace("<terrain>", terrain.name()));
-                return;
-            }
-
-            boolean showOtherPriorities = sender.hasPermission("terrainer.priority.others");
-
-            if (showOtherPriorities && checkIfTerrainsHaveSamePriority(overlappingTerrains)) {
-                return;
-            }
-
-            lang.send(sender, lang.get("Priority.Overlapping").replace("<priority>", Integer.toString(terrain.priority())).replace("<terrain>", terrain.name()));
-
-            for (Terrain t : overlappingTerrains) {
-                lang.send(sender, lang.get("Priority.Priority").replace("<priority>", (showOtherPriorities || Objects.equals(senderID, t.owner())) ? Integer.toString(t.priority()) : lang.get("Priority.Unknown")).replace("<terrain>", terrain.name()));
-            }
-
-            return;
-        }
-
-        if (args.length > 1) {
-            lang.send(sender, lang.get("Invalid Arguments.Error").replace("<label>", label).replace("<label2>", label2).replace("<args>", lang.get("Invalid Arguments.Priority")));
-            return;
-        }
-
-        int newPriority;
-
-        try {
-            newPriority = Integer.parseInt(args[0]);
-        } catch (NumberFormatException e) {
-            lang.send(sender, lang.get("Invalid Arguments.Error").replace("<label>", label).replace("<label2>", label2).replace("<args>", lang.get("Invalid Arguments.Priority")));
-            return;
-        }
-
-        if (!sender.hasPermission("terrainer.bypass.overlap")) {
-            for (Terrain t : overlappingTerrains) {
-                if (!Objects.equals(senderID, t.owner())) {
-                    lang.send(sender, lang.get("Priority.Error.Overlap"));
+            if (args.length == 0) {
+                if (overlappingTerrains.size() <= 1 || !sender.hasPermission("terrainer.priority.overlappinginfo")) {
+                    lang.send(sender, lang.get("Priority.Single").replace("<priority>", Integer.toString(terrain.priority())).replace("<terrain>", terrain.name()));
                     return;
                 }
-            }
-        }
 
-        terrain.setPriority(newPriority);
-        lang.send(sender, lang.get("Priority.Set").replace("<new>", Integer.toString(newPriority)).replace("<terrain>", terrain.name()));
+                boolean showOtherPriorities = sender.hasPermission("terrainer.priority.others");
+
+                if (showOtherPriorities && checkIfTerrainsHaveSamePriority(overlappingTerrains)) {
+                    return;
+                }
+
+                lang.send(sender, lang.get("Priority.Overlapping").replace("<priority>", Integer.toString(terrain.priority())).replace("<terrain>", terrain.name()));
+
+                for (Terrain t : overlappingTerrains) {
+                    lang.send(sender, lang.get("Priority.Priority").replace("<priority>", (showOtherPriorities || Objects.equals(senderID, t.owner())) ? Integer.toString(t.priority()) : lang.get("Priority.Unknown")).replace("<terrain>", terrain.name()));
+                }
+
+                return;
+            }
+
+            if (args.length > 1) {
+                lang.send(sender, lang.get("Invalid Arguments.Error").replace("<label>", label).replace("<label2>", args0[0]).replace("<args>", lang.get("Invalid Arguments.Priority")));
+                return;
+            }
+
+            int newPriority;
+
+            try {
+                newPriority = Integer.parseInt(args[0]);
+            } catch (NumberFormatException e) {
+                lang.send(sender, lang.get("Invalid Arguments.Error").replace("<label>", label).replace("<label2>", args0[0]).replace("<args>", lang.get("Invalid Arguments.Priority")));
+                return;
+            }
+
+            if (!sender.hasPermission("terrainer.bypass.overlap")) {
+                for (Terrain t : overlappingTerrains) {
+                    if (!Objects.equals(senderID, t.owner())) {
+                        lang.send(sender, lang.get("Priority.Error.Overlap"));
+                        return;
+                    }
+                }
+            }
+
+            terrain.setPriority(newPriority);
+            lang.send(sender, lang.get("Priority.Set").replace("<new>", Integer.toString(newPriority)).replace("<terrain>", terrain.name()));
+        });
     }
 
     private List<Terrain> getOverlappingTerrains(Terrain terrain) {

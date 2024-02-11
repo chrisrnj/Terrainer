@@ -58,37 +58,36 @@ public final class FlagCommand extends Command {
     }
 
     @Override
-    public void run(@NotNull String label, @NotNull CommandSender sender, @NotNull String[] args) {
-        CommandUtil.CommandArguments arguments = CommandUtil.findTerrain("terrainer.flag.others", true, label, sender, args);
-        if (arguments == null) return;
-        String label2 = args[0];
-        args = arguments.preceding();
-        Terrain terrain = arguments.terrain();
+    public void run(@NotNull String label, @NotNull CommandSender sender, @NotNull String[] args0) {
         MessageSender lang = TerrainerPlugin.getLanguage();
+        CommandUtil.findTerrain("terrainer.flag.others", true, label, sender, args0, lang.getColored("Flags.Select"), arguments -> {
+            String[] args = arguments.preceding();
+            Terrain terrain = arguments.terrain();
 
-        // no args, open gui.
-        if (args.length == 0) {
-            if (sender instanceof HumanEntity player) {
-                new FlagListGUI(player, terrain).open(player);
-            } else {
-                lang.send(sender, lang.get("Invalid Arguments.Error").replace("<label>", label).replace("<label2>", label2).replace("<args>", lang.get("Invalid Arguments.Flag Optional") + " --t " + lang.get("Invalid Arguments.Terrain")));
+            // no args, open gui.
+            if (args.length == 0) {
+                if (sender instanceof HumanEntity player) {
+                    new FlagListGUI(player, terrain).open(player);
+                } else {
+                    lang.send(sender, lang.get("Invalid Arguments.Error").replace("<label>", label).replace("<label2>", args0[0]).replace("<args>", lang.get("Invalid Arguments.Flag Optional") + " --t " + lang.get("Invalid Arguments.Terrain")));
+                    return;
+                }
                 return;
             }
-            return;
-        }
 
-        Flag<?> flag = Flags.matchFlag(args[0]);
+            Flag<?> flag = Flags.matchFlag(args[0]);
 
-        if (flag == null) {
-            lang.send(sender, lang.get("Flags.Error.Not Found").replace("<value>", args[0]));
-            return;
-        }
-        if (!sender.hasPermission(flag.editPermission())) {
-            lang.send(sender, lang.get("General.No Permission"));
-            return;
-        }
+            if (flag == null) {
+                lang.send(sender, lang.get("Flags.Error.Not Found").replace("<value>", args[0]));
+                return;
+            }
+            if (!sender.hasPermission(flag.editPermission())) {
+                lang.send(sender, lang.get("General.No Permission"));
+                return;
+            }
 
-        flagCommand(flag, terrain, label, label2, sender, args);
+            flagCommand(flag, terrain, label, args0[0], sender, args);
+        });
     }
 
     private <T> void flagCommand(@NotNull Flag<T> flag, @NotNull Terrain terrain, @NotNull String label, @NotNull String label2, @NotNull CommandSender sender, @NotNull String[] args) {

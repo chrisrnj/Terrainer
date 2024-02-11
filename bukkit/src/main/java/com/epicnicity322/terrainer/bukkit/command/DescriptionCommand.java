@@ -46,34 +46,34 @@ public final class DescriptionCommand extends Command {
     }
 
     @Override
-    public void run(@NotNull String label, @NotNull CommandSender sender, @NotNull String[] args) {
-        CommandUtil.CommandArguments arguments = CommandUtil.findTerrain("terrainer.description.others", true, label, sender, args);
-        if (arguments == null) return;
-        Terrain terrain = arguments.terrain();
-        args = arguments.preceding();
+    public void run(@NotNull String label, @NotNull CommandSender sender, @NotNull String[] args0) {
         MessageSender lang = TerrainerPlugin.getLanguage();
+        CommandUtil.findTerrain("terrainer.description.others", true, label, sender, args0, lang.getColored("Description.Select"), arguments -> {
+            Terrain terrain = arguments.terrain();
+            String[] args = arguments.preceding();
 
-        if (args.length == 0) {
-            terrain.setDescription(null);
-            lang.send(sender, lang.get("Description.Reset").replace("<terrain>", terrain.name()));
-            return;
-        }
+            if (args.length == 0) {
+                terrain.setDescription(null);
+                lang.send(sender, lang.get("Description.Reset").replace("<terrain>", terrain.name()));
+                return;
+            }
 
-        String description = ChatColor.translateAlternateColorCodes('&', CommandUtil.join(args, 0)).trim();
-        String stripped = ChatColor.stripColor(description);
+            String description = ChatColor.translateAlternateColorCodes('&', CommandUtil.join(args, 0)).trim();
+            String stripped = ChatColor.stripColor(description);
 
-        if (stripped.isBlank()) {
-            terrain.setDescription(null);
-            lang.send(sender, lang.get("Description.Reset").replace("<terrain>", terrain.name()));
-            return;
-        }
-        int maxDescriptionLength = Configurations.CONFIG.getConfiguration().getNumber("Max Description Length").orElse(100).intValue();
-        if (stripped.length() > maxDescriptionLength) {
-            lang.send(sender, lang.get("Description.Error.Length").replace("<max>", Integer.toString(maxDescriptionLength)));
-            return;
-        }
+            if (stripped.isBlank()) {
+                terrain.setDescription(null);
+                lang.send(sender, lang.get("Description.Reset").replace("<terrain>", terrain.name()));
+                return;
+            }
+            int maxDescriptionLength = Configurations.CONFIG.getConfiguration().getNumber("Max Description Length").orElse(100).intValue();
+            if (stripped.length() > maxDescriptionLength) {
+                lang.send(sender, lang.get("Description.Error.Length").replace("<max>", Integer.toString(maxDescriptionLength)));
+                return;
+            }
 
-        terrain.setDescription(description);
-        lang.send(sender, lang.get("Description.Set").replace("<description>", description).replace("<terrain>", terrain.name()));
+            terrain.setDescription(description);
+            lang.send(sender, lang.get("Description.Set").replace("<description>", description).replace("<terrain>", terrain.name()));
+        });
     }
 }

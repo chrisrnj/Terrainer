@@ -51,27 +51,27 @@ public final class DeleteCommand extends Command {
     @Override
     public void run(@NotNull String label, @NotNull CommandSender sender, @NotNull String[] args) {
         MessageSender lang = TerrainerPlugin.getLanguage();
-        CommandUtil.CommandArguments commandArguments = CommandUtil.findTerrain("terrainer.delete.others", false, label, sender, args);
-        if (commandArguments == null) return;
-        Terrain terrain = commandArguments.terrain();
-        // If world terrain is not found in list of loaded worlds, remove like a regular terrain.
-        boolean worldTerrain = terrain instanceof WorldTerrain && Bukkit.getWorlds().stream().anyMatch(world -> world.getUID().equals(terrain.world()));
+        CommandUtil.findTerrain("terrainer.delete.others", false, label, sender, args, lang.getColored("Delete.Select"), commandArguments -> {
+            Terrain terrain = commandArguments.terrain();
+            // If world terrain is not found in list of loaded worlds, remove like a regular terrain.
+            boolean worldTerrain = terrain instanceof WorldTerrain && Bukkit.getWorlds().stream().anyMatch(world -> world.getUID().equals(terrain.world()));
 
-        lang.send(sender, lang.get("Delete." + (worldTerrain ? "World " : "") + "Confirmation").replace("<label>", label).replace("<label2>", lang.get("Commands.Confirm.Confirm")).replace("<name>", terrain.name()));
+            lang.send(sender, lang.get("Delete." + (worldTerrain ? "World " : "") + "Confirmation").replace("<label>", label).replace("<label2>", lang.get("Commands.Confirm.Confirm")).replace("<name>", terrain.name()));
 
-        int confirmationHash = Objects.hash("delete", terrain.id());
+            int confirmationHash = Objects.hash("delete", terrain.id());
 
-        ConfirmCommand.requestConfirmation(sender, () -> {
-            if (TerrainManager.remove(terrain) != null) {
-                boolean isReallyWorldTerrain = terrain instanceof WorldTerrain && Bukkit.getWorlds().stream().anyMatch(world -> world.getUID().equals(terrain.world()));
-                lang.send(sender, lang.get("Delete." + (isReallyWorldTerrain ? "World " : "") + "Success").replace("<name>", terrain.name()));
-                if (isReallyWorldTerrain) TerrainManager.loadWorld(terrain.world(), terrain.name());
-                // Cancelling all confirmations related to this terrain.
-                ConfirmCommand.cancelConfirmations(confirmationHash);
-                ConfirmCommand.cancelConfirmations(Objects.hash("transfer", terrain.id()));
-            } else {
-                lang.send(sender, lang.get("Delete.Error"));
-            }
-        }, () -> lang.getColored("Delete.Confirmation Description").replace("<name>", terrain.name()), confirmationHash);
+            ConfirmCommand.requestConfirmation(sender, () -> {
+                if (TerrainManager.remove(terrain) != null) {
+                    boolean isReallyWorldTerrain = terrain instanceof WorldTerrain && Bukkit.getWorlds().stream().anyMatch(world -> world.getUID().equals(terrain.world()));
+                    lang.send(sender, lang.get("Delete." + (isReallyWorldTerrain ? "World " : "") + "Success").replace("<name>", terrain.name()));
+                    if (isReallyWorldTerrain) TerrainManager.loadWorld(terrain.world(), terrain.name());
+                    // Cancelling all confirmations related to this terrain.
+                    ConfirmCommand.cancelConfirmations(confirmationHash);
+                    ConfirmCommand.cancelConfirmations(Objects.hash("transfer", terrain.id()));
+                } else {
+                    lang.send(sender, lang.get("Delete.Error"));
+                }
+            }, () -> lang.getColored("Delete.Confirmation Description").replace("<name>", terrain.name()), confirmationHash);
+        });
     }
 }
