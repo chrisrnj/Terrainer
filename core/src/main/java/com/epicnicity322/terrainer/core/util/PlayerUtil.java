@@ -388,7 +388,7 @@ public abstract class PlayerUtil<P extends R, R> {
                 max = new Coordinate(Math.max(tempMin.x(), tempMax.x()), Math.max(tempMin.y(), tempMax.y()), Math.max(tempMin.z(), tempMax.z()));
                 ArrayList<Integer> ids = markers.computeIfAbsent(uuid, k -> new ArrayList<>());
 
-                if (min.y() == Integer.MIN_VALUE || max.y() == Integer.MAX_VALUE) {
+                if (min.y() <= Integer.MIN_VALUE || max.y() >= Integer.MAX_VALUE) {
                     // 2D terrain.
                     spawnAtY(min, max, player, y, ids);
                     return;
@@ -428,6 +428,7 @@ public abstract class PlayerUtil<P extends R, R> {
         removeMarkers(player);
         WorldCoordinate location = location(player);
         var terrains = TerrainManager.getTerrainsAt(location);
+        terrains.removeIf(t -> t instanceof WorldTerrain);
         addOverlapping(terrains, player);
 
         for (Terrain terrain : terrains) {
