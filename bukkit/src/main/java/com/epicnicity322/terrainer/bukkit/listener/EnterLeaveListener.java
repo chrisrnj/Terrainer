@@ -52,6 +52,17 @@ public final class EnterLeaveListener implements Listener {
         EnterLeaveListener.commandsOnEntryCancelled = commandsOnEntryCancelled;
     }
 
+    private static @Nullable Set<Player> getPassengers(@NotNull Entity entity, @Nullable Set<Player> players) {
+        for (Entity passenger : entity.getPassengers()) {
+            if (passenger instanceof Player player) {
+                if (players == null) players = new HashSet<>();
+                players.add(player);
+            }
+            players = getPassengers(passenger, players);
+        }
+        return players;
+    }
+
     static void handlePassengerCarrier(@NotNull Entity vehicle, @NotNull Location from, @NotNull Location to, @Nullable Cancellable eventToCancel) {
         int fromX = from.getBlockX(), fromY = from.getBlockY(), fromZ = from.getBlockZ();
         int toX = to.getBlockX(), toY = to.getBlockY(), toZ = to.getBlockZ();
@@ -59,16 +70,7 @@ public final class EnterLeaveListener implements Listener {
         // Only full block moves are processed to save performance.
         if (fromX == toX && fromY == toY && fromZ == toZ) return;
 
-        List<Entity> passengers = vehicle.getPassengers();
-        List<Player> players = null;
-
-        for (Entity passenger : passengers) {
-            if (passenger instanceof Player player) {
-                if (players == null) players = new ArrayList<>(passengers.size());
-                players.add(player);
-            }
-        }
-
+        Set<Player> players = getPassengers(vehicle, null);
         if (players == null) return;
 
         UUID world = vehicle.getWorld().getUID();
