@@ -28,7 +28,6 @@ import org.bukkit.World;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Vehicle;
-import org.bukkit.event.Cancellable;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
@@ -63,7 +62,7 @@ public final class EnterLeaveListener implements Listener {
         return players;
     }
 
-    static void handlePassengerCarrier(@NotNull Entity vehicle, @NotNull Location from, @NotNull Location to, @Nullable Cancellable eventToCancel) {
+    static void handlePassengerCarrier(@NotNull Entity vehicle, @NotNull Location from, @NotNull Location to) {
         int fromX = from.getBlockX(), fromY = from.getBlockY(), fromZ = from.getBlockZ();
         int toX = to.getBlockX(), toY = to.getBlockY(), toZ = to.getBlockZ();
 
@@ -135,8 +134,6 @@ public final class EnterLeaveListener implements Listener {
                     Bukkit.getPluginManager().callEvent(enter);
                 }
             }
-        } else if (eventToCancel != null) {
-            eventToCancel.setCancelled(true);
         } else {
             vehicle.setVelocity(zero);
             to.setX(from.getBlockX() + 0.5);
@@ -256,7 +253,7 @@ public final class EnterLeaveListener implements Listener {
     public void onVehicleMove(VehicleMoveEvent event) {
         Location from = event.getFrom(), to = event.getTo();
         Vehicle vehicle = event.getVehicle();
-        handlePassengerCarrier(vehicle, from, to, null);
+        handlePassengerCarrier(vehicle, from, to);
     }
 
     @EventHandler(priority = EventPriority.LOW, ignoreCancelled = true)

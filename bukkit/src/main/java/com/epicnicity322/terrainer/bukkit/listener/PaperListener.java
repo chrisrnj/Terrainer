@@ -32,6 +32,6 @@ public final class PaperListener implements Listener {
     @EventHandler(priority = EventPriority.LOW, ignoreCancelled = true)
     public void onEntityMove(EntityMoveEvent event) {
         Location from = event.getFrom(), to = event.getTo();
-        EnterLeaveListener.handlePassengerCarrier(event.getEntity(), from, to, event);
+        EnterLeaveListener.handlePassengerCarrier(event.getEntity(), from, to);
     }
 }
