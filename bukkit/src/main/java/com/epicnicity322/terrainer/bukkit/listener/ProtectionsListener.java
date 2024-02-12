@@ -637,16 +637,6 @@ public final class ProtectionsListener extends Protections<Player, CommandSender
     }
 
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
-    public void onMount(EntityMountEvent event) {
-        if (event.getEntityType() != EntityType.PLAYER) return;
-        Entity mount = event.getMount();
-        Location loc = mount.getLocation();
-        if (!mount(mount.getWorld().getUID(), loc.getBlockX(), loc.getBlockY(), loc.getBlockZ(), (Player) event.getEntity()))
-            event.setCancelled(true);
-    }
-
-
-    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
     public void onVehicleDestroy(VehicleDestroyEvent event) {
         Entity attacker = event.getAttacker();
         if (attacker == null || attacker.getType() != EntityType.PLAYER) return;

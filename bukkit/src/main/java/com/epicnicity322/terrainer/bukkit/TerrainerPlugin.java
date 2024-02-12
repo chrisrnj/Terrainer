@@ -22,6 +22,7 @@ import com.epicnicity322.epicpluginlib.bukkit.command.Command;
 import com.epicnicity322.epicpluginlib.bukkit.command.CommandManager;
 import com.epicnicity322.epicpluginlib.bukkit.lang.MessageSender;
 import com.epicnicity322.epicpluginlib.bukkit.logger.Logger;
+import com.epicnicity322.epicpluginlib.bukkit.reflection.ReflectionUtil;
 import com.epicnicity322.epicpluginlib.core.EpicPluginLib;
 import com.epicnicity322.epicpluginlib.core.config.ConfigurationHolder;
 import com.epicnicity322.epicpluginlib.core.logger.ConsoleLogger;
@@ -225,10 +226,18 @@ public final class TerrainerPlugin extends JavaPlugin {
             t.printStackTrace();
         }
 
+        var protectionsListener = new ProtectionsListener(this, bordersCommand);
+        pm.registerEvents(protectionsListener, this);
+        if (ReflectionUtil.getClass("org.bukkit.event.entity.EntityMountEvent") != null) {
+            pm.registerEvents(new MountListener(protectionsListener), this);
+        } else if (ReflectionUtil.getClass("org.spigotmc.event.entity.EntityMountEvent") != null) {
+            pm.registerEvents(new LegacyMountListener(protectionsListener), this);
+        } else {
+            logger.log("Could not find entity mount/dismount events, protections related to these events will not be enforced.", ConsoleLogger.Level.ERROR);
+        }
         pm.registerEvents(new EnterLeaveListener(), this);
         pm.registerEvents(new PaperListener(), this);
         pm.registerEvents(new FlagListener(), this);
-        pm.registerEvents(new ProtectionsListener(this, bordersCommand), this);
         pm.registerEvents(new SelectionListener(selectorWandKey, infoWandKey, bordersCommand), this);
 
         TerrainManager.setOnTerrainAddListener(event -> {

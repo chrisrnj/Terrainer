@@ -31,8 +31,6 @@ import org.bukkit.entity.Vehicle;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
-import org.bukkit.event.entity.EntityDismountEvent;
-import org.bukkit.event.entity.EntityMountEvent;
 import org.bukkit.event.player.*;
 import org.bukkit.event.vehicle.VehicleMoveEvent;
 import org.bukkit.util.Vector;
@@ -42,8 +40,8 @@ import org.jetbrains.annotations.Nullable;
 import java.util.*;
 
 public final class EnterLeaveListener implements Listener {
-    private static final @NotNull HashSet<UUID> ignoredPlayersTeleportEvent = new HashSet<>(4);
-    private static final @NotNull HashSet<UUID> ignoredPlayersDismountEvent = new HashSet<>(4);
+    static final @NotNull HashSet<UUID> ignoredPlayersTeleportEvent = new HashSet<>(4);
+    static final @NotNull HashSet<UUID> ignoredPlayersDismountEvent = new HashSet<>(4);
     private static final @NotNull Vector zero = new Vector(0, 0, 0);
     private static @NotNull List<String> commandsOnEntryCancelled = Collections.emptyList();
 
@@ -152,7 +150,7 @@ public final class EnterLeaveListener implements Listener {
         }
     }
 
-    private static boolean handleFromTo(@NotNull Location from, @NotNull Location to, @NotNull UUID worldFrom, @NotNull UUID worldTo, @NotNull Player player, @NotNull TerrainEvent.EnterLeaveReason reason) {
+    static boolean handleFromTo(@NotNull Location from, @NotNull Location to, @NotNull UUID worldFrom, @NotNull UUID worldTo, @NotNull Player player, @NotNull TerrainEvent.EnterLeaveReason reason) {
         int fromX = from.getBlockX(), fromY = from.getBlockY(), fromZ = from.getBlockZ();
         int toX = to.getBlockX(), toY = to.getBlockY(), toZ = to.getBlockZ();
         boolean sameWorlds = worldFrom == worldTo;
@@ -381,26 +379,6 @@ public final class EnterLeaveListener implements Listener {
         Location from = player.getLocation(), to = event.getRespawnLocation();
         if (handleFromTo(from, to, player.getWorld().getUID(), to.getWorld().getUID(), player, TerrainEvent.EnterLeaveReason.RESPAWN)) {
             event.setRespawnLocation(from);
-        }
-    }
-
-    @EventHandler(priority = EventPriority.LOW, ignoreCancelled = true)
-    public void onMount(EntityMountEvent event) {
-        if (!(event.getEntity() instanceof Player player)) return;
-        Location from = player.getLocation(), to = event.getMount().getLocation();
-        if (handleFromTo(from, to, player.getWorld().getUID(), event.getMount().getWorld().getUID(), player, TerrainEvent.EnterLeaveReason.MOUNT)) {
-            event.setCancelled(true);
-        }
-    }
-
-    @EventHandler
-    public void onDismount(EntityDismountEvent event) {
-        if (!(event.getEntity() instanceof Player player)) return;
-        if (ignoredPlayersDismountEvent.remove(player.getUniqueId())) return;
-        Location from = event.getDismounted().getLocation(), to = player.getLocation();
-        if (handleFromTo(from, to, event.getDismounted().getWorld().getUID(), player.getWorld().getUID(), player, TerrainEvent.EnterLeaveReason.DISMOUNT)) {
-            ignoredPlayersTeleportEvent.add(player.getUniqueId());
-            player.teleport(from);
         }
     }
 }
