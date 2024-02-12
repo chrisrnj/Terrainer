@@ -27,6 +27,7 @@ import com.epicnicity322.terrainer.bukkit.event.terrain.TerrainCanLeaveEvent;
 import com.epicnicity322.terrainer.bukkit.event.terrain.TerrainEnterEvent;
 import com.epicnicity322.terrainer.bukkit.event.terrain.TerrainLeaveEvent;
 import com.epicnicity322.terrainer.bukkit.util.BlockStateToBlockMapping;
+import com.epicnicity322.terrainer.bukkit.util.TaskFactory;
 import com.epicnicity322.terrainer.core.Coordinate;
 import com.epicnicity322.terrainer.core.config.Configurations;
 import com.epicnicity322.terrainer.core.event.TerrainEvent;
@@ -63,7 +64,6 @@ import org.bukkit.inventory.meta.PotionMeta;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
-import org.bukkit.scheduler.BukkitTask;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -885,41 +885,53 @@ public final class ProtectionsListener extends Protections<Player, CommandSender
     }
 
     private void sendBar(@NotNull String message, @NotNull Player player) {
-        UUID playerId = player.getUniqueId();
-        BossBarTask previous = bossBarTasks.get(playerId);
+        UUID playerID = player.getUniqueId();
+        BossBarTask previous = bossBarTasks.get(playerID);
+        BossBar bar;
+        Mutable<TaskFactory.CancellableTask> barRemoverTask;
 
+        // Creating or getting current bossbar of player.
         if (previous == null) {
-            BossBar bar = Bukkit.createBossBar(message, BarColor.RED, BarStyle.SOLID);
-            Mutable<BukkitTask> task = new Mutable<>() {
-                private @NotNull BukkitTask task = Bukkit.getScheduler().runTaskLater(plugin, () -> {
-                    bossBarTasks.remove(playerId);
-                    bar.removePlayer(player);
-                }, 100);
+            bar = Bukkit.createBossBar(message, BarColor.RED, BarStyle.SOLID);
+            bar.addPlayer(player);
+            barRemoverTask = new Mutable<>() {
+                private @Nullable TaskFactory.CancellableTask task;
 
                 @Override
-                public BukkitTask getValue() {
+                public @Nullable TaskFactory.CancellableTask getValue() {
                     return task;
                 }
 
                 @Override
-                public void setValue(@NotNull BukkitTask task) {
+                public void setValue(@Nullable TaskFactory.CancellableTask task) {
                     this.task = task;
                 }
             };
-            previous = new BossBarTask(bar, task);
-            bossBarTasks.put(player.getUniqueId(), previous);
-            bar.addPlayer(player);
-        } else {
-            BossBar bar = previous.bar;
-            bar.setTitle(message);
-            previous.task.getValue().cancel();
-            previous.task.setValue(Bukkit.getScheduler().runTaskLater(plugin, () -> {
-                bossBarTasks.remove(playerId);
+
+            // Starting bar remover task.
+            Runnable barRemoverRunnable = () -> {
+                bossBarTasks.remove(playerID);
                 bar.removePlayer(player);
-            }, 100));
+            };
+            barRemoverTask.setValue(plugin.getTaskFactory().runDelayed(player, 100, barRemoverRunnable, barRemoverRunnable));
+
+            // Adding bar to current alive boss bars.
+            if (barRemoverTask.getValue() != null) bossBarTasks.put(playerID, new BossBarTask(bar, barRemoverTask));
+        } else {
+            bar = previous.bar;
+            barRemoverTask = previous.task;
+            bar.setTitle(message);
+
+            // Cancelling previous bar remover task and starting it again.
+            if (barRemoverTask.getValue() != null) barRemoverTask.getValue().cancel();
+            Runnable barRemoverRunnable = () -> {
+                bossBarTasks.remove(playerID);
+                bar.removePlayer(player);
+            };
+            barRemoverTask.setValue(plugin.getTaskFactory().runDelayed(player, 100, barRemoverRunnable, barRemoverRunnable));
         }
     }
 
-    private record BossBarTask(@NotNull BossBar bar, @NotNull Mutable<BukkitTask> task) {
+    private record BossBarTask(@NotNull BossBar bar, @NotNull Mutable<TaskFactory.CancellableTask> task) {
     }
 }

@@ -29,7 +29,6 @@ import org.bukkit.NamespacedKey;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.persistence.PersistentDataType;
-import org.bukkit.scheduler.BukkitTask;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -37,7 +36,7 @@ import java.util.HashMap;
 import java.util.UUID;
 
 public final class BukkitPlayerUtil extends PlayerUtil<Player, CommandSender> {
-    private static final @NotNull HashMap<UUID, BukkitTask> markerKillTasks = new HashMap<>();
+    private static final @NotNull HashMap<UUID, TaskFactory.CancellableTask> markerKillTasks = new HashMap<>();
     private final @NotNull TerrainerPlugin plugin;
     private final @NotNull NamespacedKey blockLimitKey;
     private final @NotNull NamespacedKey claimLimitKey;
@@ -131,7 +130,10 @@ public final class BukkitPlayerUtil extends PlayerUtil<Player, CommandSender> {
         long showTime = Configurations.CONFIG.getConfiguration().getNumber("Markers.Show Time").orElse(1200).longValue();
 
         if (showTime != 0) {
-            BukkitTask previous = markerKillTasks.put(player.getUniqueId(), Bukkit.getScheduler().runTaskLater(plugin, () -> removeMarkers(player), showTime));
+            UUID playerID = player.getUniqueId();
+            TaskFactory.CancellableTask killMarkersTask = plugin.getTaskFactory().runDelayed(player, showTime, () -> removeMarkers(player), () -> markerKillTasks.remove(playerID));
+            if (killMarkersTask == null) return;
+            TaskFactory.CancellableTask previous = markerKillTasks.put(playerID, killMarkersTask);
             if (previous != null) previous.cancel();
         }
     }
@@ -139,7 +141,7 @@ public final class BukkitPlayerUtil extends PlayerUtil<Player, CommandSender> {
     @Override
     public void removeMarkers(@NotNull Player player) {
         super.removeMarkers(player);
-        BukkitTask task = markerKillTasks.remove(player.getUniqueId());
+        TaskFactory.CancellableTask task = markerKillTasks.remove(player.getUniqueId());
         if (task != null) task.cancel();
     }
 

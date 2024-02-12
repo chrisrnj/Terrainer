@@ -22,6 +22,7 @@ import com.epicnicity322.epicpluginlib.bukkit.command.Command;
 import com.epicnicity322.epicpluginlib.bukkit.command.CommandManager;
 import com.epicnicity322.epicpluginlib.bukkit.lang.MessageSender;
 import com.epicnicity322.epicpluginlib.bukkit.logger.Logger;
+import com.epicnicity322.epicpluginlib.core.EpicPluginLib;
 import com.epicnicity322.epicpluginlib.core.config.ConfigurationHolder;
 import com.epicnicity322.epicpluginlib.core.logger.ConsoleLogger;
 import com.epicnicity322.terrainer.bukkit.command.*;
@@ -35,6 +36,7 @@ import com.epicnicity322.terrainer.bukkit.listener.*;
 import com.epicnicity322.terrainer.bukkit.util.BukkitPlayerUtil;
 import com.epicnicity322.terrainer.bukkit.util.EconomyHandler;
 import com.epicnicity322.terrainer.bukkit.util.NMSHandler;
+import com.epicnicity322.terrainer.bukkit.util.TaskFactory;
 import com.epicnicity322.terrainer.core.Terrainer;
 import com.epicnicity322.terrainer.core.config.Configurations;
 import com.epicnicity322.terrainer.core.terrain.TerrainManager;
@@ -88,6 +90,7 @@ public final class TerrainerPlugin extends JavaPlugin {
     private final @NotNull Set<Command> commands = Set.of(bordersCommand, new ClaimCommand(), new ConfirmCommand(), new DefineCommand(), new DeleteCommand(), new DescriptionCommand(), new FlagCommand(), new PermissionCommand.GrantCommand(), new PermissionCommand.RevokeCommand(), new InfoCommand(bordersCommand), new LimitCommand(), new ListCommand(), new PosCommand.Pos1Command(), new PosCommand.Pos2Command(), new Pos3DCommand.Pos13DCommand(), new Pos3DCommand.Pos23DCommand(), new PriorityCommand(), new ReloadCommand(), new RenameCommand(), new ShopCommand(), new TransferCommand(), new WandCommand(selectorWandKey, infoWandKey));
     private final @NotNull BukkitPlayerUtil playerUtil = new BukkitPlayerUtil(this);
     private final @NotNull PreLoginListener preLoginListener = new PreLoginListener();
+    private final @NotNull TaskFactory taskFactory = new TaskFactory(this);
 
     public TerrainerPlugin() {
         instance = this;
@@ -198,7 +201,10 @@ public final class TerrainerPlugin extends JavaPlugin {
 
     @Override
     public void onEnable() {
-        logger.log("WARNING: Some flags for Interaction, Explosion and Entity Damage events are not being enforced in this build.", ConsoleLogger.Level.WARN);
+        logger.log("WARNING: This plugin is still in development and some protections may not work as intended! No guarantee is made that any terrains or flags made in this version will work in the final version.", ConsoleLogger.Level.WARN);
+        if (!EpicPluginLib.Platform.isPaper()) {
+            logger.log("ATTENTION: Although Terrainer runs on spigot/craftbukkit, some protections are only possible with Paper. If you keep using spigot, your terrains are at risk of not being fully protected against all threats!", ConsoleLogger.Level.ERROR);
+        }
         if (reload()) logger.log("Configurations loaded successfully.");
 
         PluginManager pm = getServer().getPluginManager();
@@ -248,8 +254,8 @@ public final class TerrainerPlugin extends JavaPlugin {
 
         loadCommands();
 
-        // Terrains might have data of other plugins, so they load when the server is done loading.
-        getServer().getScheduler().runTask(this, () -> {
+        // Terrains might hold data of other plugins, so they only load after the server is done loading.
+        taskFactory.runGlobalTask(() -> {
             try {
                 TerrainManager.load();
 
@@ -277,6 +283,10 @@ public final class TerrainerPlugin extends JavaPlugin {
         for (Player p : players) {
             p.kickPlayer(lang.getColored("Protections.Kick Message").replace("<default>", Objects.requireNonNullElse(getServer().getShutdownMessage(), "Server stopped")));
         }
+    }
+
+    public @NotNull TaskFactory getTaskFactory() {
+        return taskFactory;
     }
 
     private void loadCommands() {

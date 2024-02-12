@@ -22,19 +22,15 @@ import com.epicnicity322.epicpluginlib.bukkit.command.Command;
 import com.epicnicity322.epicpluginlib.bukkit.command.CommandRunnable;
 import com.epicnicity322.terrainer.bukkit.TerrainerPlugin;
 import com.epicnicity322.terrainer.bukkit.util.CommandUtil;
+import com.epicnicity322.terrainer.bukkit.util.TaskFactory;
 import com.epicnicity322.terrainer.core.Coordinate;
 import com.epicnicity322.terrainer.core.config.Configurations;
 import com.epicnicity322.terrainer.core.terrain.Terrain;
 import com.epicnicity322.yamlhandler.Configuration;
-import org.bukkit.Bukkit;
 import org.bukkit.Particle;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
-import org.bukkit.plugin.Plugin;
-import org.bukkit.scheduler.BukkitRunnable;
-import org.bukkit.scheduler.BukkitTask;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 import java.util.Collection;
 import java.util.UUID;
@@ -44,7 +40,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * A command that toggles the showing of border particles to the player.
  */
 public final class BordersCommand extends Command {
-    private static final @NotNull ConcurrentHashMap<UUID, BukkitRunnable> viewers = new ConcurrentHashMap<>();
+    private static final @NotNull ConcurrentHashMap<UUID, TaskFactory.CancellableTask> viewers = new ConcurrentHashMap<>();
     private final @NotNull TerrainerPlugin plugin;
     private @NotNull Particle particle = Particle.CLOUD;
 
@@ -72,76 +68,48 @@ public final class BordersCommand extends Command {
     }
 
     public void showBorders(@NotNull Player player, @NotNull Collection<Terrain> terrains) {
-        stopShowingBorders(player);
+        UUID playerID = player.getUniqueId();
+        stopShowingBorders(playerID);
         if (!player.hasPermission("terrainer.borders.show")) return;
         Configuration config = Configurations.CONFIG.getConfiguration();
         if (!config.getBoolean("Borders.Enabled").orElse(false)) return;
         if (viewers.size() >= config.getNumber("Borders.Max Viewing").orElse(20).intValue()) return;
+
         UUID world = player.getWorld().getUID();
-        double yOffSet = config.getNumber("Borders.Y OffSet").orElse(0.5).doubleValue();
+        long startTime = System.currentTimeMillis();
 
-        BukkitRunnable runnable = new BukkitRunnable() {
-            private @Nullable BukkitTask stopper;
+        Runnable particleRunnable = () -> {
+            long time = config.getNumber("Borders.Time").orElse(200).longValue() * 50; // A tick has 50ms.
 
-            @Override
-            public void run() {
-                if (!player.isOnline() || !world.equals(player.getWorld().getUID())) {
-                    stopShowingBorders(player);
-                    return;
-                }
-
-                double y = player.getLocation().getY() + yOffSet;
-
-                for (Terrain t : terrains) {
-                    double finalY = y;
-                    if (finalY > t.maxDiagonal().y() + 1) finalY = t.maxDiagonal().y() + 1;
-                    else if (finalY < t.minDiagonal().y()) finalY = t.minDiagonal().y();
-
-                    for (Coordinate coordinate : t.borders()) {
-                        player.spawnParticle(particle, coordinate.x(), finalY, coordinate.z(), 0);
-                    }
-                }
+            if (System.currentTimeMillis() - startTime >= time || !player.isOnline() || !world.equals(player.getWorld().getUID())) {
+                stopShowingBorders(playerID);
+                return;
             }
 
-            @Override
-            public synchronized @NotNull BukkitTask runTaskTimer(@NotNull Plugin plugin, long delay, long period) throws IllegalArgumentException, IllegalStateException {
-                try {
-                    return super.runTaskTimer(plugin, delay, period);
-                } finally {
-                    stopper = Bukkit.getScheduler().runTaskLater(plugin, () -> stopShowingBorders(player), config.getNumber("Borders.Time").orElse(200).longValue());
-                }
-            }
+            double yOffSet = config.getNumber("Borders.Y OffSet").orElse(0.5).doubleValue();
+            double y = player.getLocation().getY() + yOffSet;
 
-            @Override
-            public synchronized @NotNull BukkitTask runTaskTimerAsynchronously(@NotNull Plugin plugin, long delay, long period) throws IllegalArgumentException, IllegalStateException {
-                try {
-                    return super.runTaskTimerAsynchronously(plugin, delay, period);
-                } finally {
-                    stopper = Bukkit.getScheduler().runTaskLater(plugin, () -> stopShowingBorders(player), config.getNumber("Borders.Time").orElse(200).longValue());
-                }
-            }
+            for (Terrain t : terrains) {
+                double finalY = y;
+                if (finalY > t.maxDiagonal().y() + 1) finalY = t.maxDiagonal().y() + 1;
+                else if (finalY < t.minDiagonal().y()) finalY = t.minDiagonal().y();
 
-            @Override
-            public synchronized void cancel() throws IllegalStateException {
-                super.cancel();
-                if (stopper != null) stopper.cancel();
+                for (Coordinate coordinate : t.borders()) {
+                    player.spawnParticle(particle, coordinate.x(), finalY, coordinate.z(), 0);
+                }
             }
         };
 
-        viewers.put(player.getUniqueId(), runnable);
         long frequency = config.getNumber("Borders.Frequency").orElse(5).longValue();
-
-        if (config.getBoolean("Borders.Async").orElse(false)) {
-            runnable.runTaskTimerAsynchronously(plugin, 0, frequency);
-        } else {
-            runnable.runTaskTimer(plugin, 0, frequency);
-        }
+        TaskFactory.CancellableTask particleTask = plugin.getTaskFactory().runAtFixedRate(player, frequency, config.getBoolean("Borders.Async").orElse(false), particleRunnable, () -> stopShowingBorders(playerID));
+        if (particleTask == null) return;
+        viewers.put(playerID, particleTask);
     }
 
-    public void stopShowingBorders(@NotNull Player player) {
-        BukkitRunnable runnable = viewers.remove(player.getUniqueId());
-        if (runnable == null) return;
-        runnable.cancel();
+    public void stopShowingBorders(@NotNull UUID player) {
+        TaskFactory.CancellableTask particleTask = viewers.remove(player);
+        if (particleTask == null) return;
+        particleTask.cancel();
     }
 
     @Override
