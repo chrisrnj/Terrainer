@@ -147,6 +147,7 @@ public final class CommandUtil {
 
         if (foundTerrains.size() == 1) {
             onFind.accept(new CommandArguments(preceding.toArray(new String[0]), foundTerrains.get(0)));
+            return;
         }
 
         // If multiple terrains are found, send GUI to select which terrain they want to edit.
