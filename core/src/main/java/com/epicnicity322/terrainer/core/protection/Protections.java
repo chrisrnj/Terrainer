@@ -353,122 +353,122 @@ public abstract class Protections<P extends R, R, M, B, E> {
         return false;
     }
 
-    protected boolean bucketFill(@NotNull UUID world, double x, double y, double z, @NotNull P player) {
+    public boolean bucketFill(@NotNull UUID world, double x, double y, double z, @NotNull P player) {
         return handleProtection(player, world, x, y, z, Flags.BUILD, true);
     }
 
-    protected boolean bucketEmpty(@NotNull UUID world, double x, double y, double z, @NotNull P player) {
+    public boolean bucketEmpty(@NotNull UUID world, double x, double y, double z, @NotNull P player) {
         return handleProtection(player, world, x, y, z, Flags.BUILD, true);
     }
 
-    protected boolean physicalInteract(@NotNull UUID world, double x, double y, double z, @NotNull P player, @NotNull M material) {
+    public boolean physicalInteract(@NotNull UUID world, double x, double y, double z, @NotNull P player, @NotNull M material) {
         return handleProtection(player, world, x, y, z, flagPhysicalInteraction(material), true);
     }
 
-    protected boolean placeEntity(@NotNull UUID world, double x, double y, double z, @NotNull P player, @NotNull E entity) {
+    public boolean placeEntity(@NotNull UUID world, double x, double y, double z, @NotNull P player, @NotNull E entity) {
         return handleProtection(player, world, x, y, z, flagEntityPlaced(entity), true);
     }
 
-    protected boolean entityInteraction(@NotNull UUID world, double x, double y, double z, @NotNull P player, @NotNull E entity, @NotNull M mainHand, @NotNull M offHand) {
+    public boolean entityInteraction(@NotNull UUID world, double x, double y, double z, @NotNull P player, @NotNull E entity, @NotNull M mainHand, @NotNull M offHand) {
         return handleProtection(player, world, x, y, z, flagEntityInteraction(entity, mainHand, offHand, playerUtil.isSneaking(player)), true);
     }
 
-    protected boolean itemPickup(@NotNull UUID world, double x, double y, double z, @NotNull P player) {
+    public boolean itemPickup(@NotNull UUID world, double x, double y, double z, @NotNull P player) {
         return handleProtection(player, world, x, y, z, Flags.ITEM_PICKUP, true);
     }
 
-    protected boolean pickupArrow(@NotNull UUID world, double x, double y, double z, @NotNull P player, boolean flyAtPlayer) {
+    public boolean pickupArrow(@NotNull UUID world, double x, double y, double z, @NotNull P player, boolean flyAtPlayer) {
         return handleProtection(player, world, x, y, z, Flags.ITEM_PICKUP, flyAtPlayer);
     }
 
-    protected boolean itemDrop(@NotNull UUID world, double x, double y, double z, @NotNull P player) {
+    public boolean itemDrop(@NotNull UUID world, double x, double y, double z, @NotNull P player) {
         return handleProtection(player, world, x, y, z, Flags.ITEM_DROP, true);
     }
 
-    protected boolean leafDecay(@NotNull UUID world, double x, double y, double z) {
+    public boolean leafDecay(@NotNull UUID world, double x, double y, double z) {
         return handleProtection(world, x, y, z, Flags.LEAF_DECAY);
     }
 
-    protected boolean creatureSpawn(@NotNull UUID world, double x, double y, double z) {
+    public boolean creatureSpawn(@NotNull UUID world, double x, double y, double z) {
         return handleProtection(world, x, y, z, Flags.MOB_SPAWN);
     }
 
-    protected boolean spawnerSpawn(@NotNull UUID world, double x, double y, double z) {
+    public boolean spawnerSpawn(@NotNull UUID world, double x, double y, double z) {
         return handleProtection(world, x, y, z, Flags.SPAWNERS);
     }
 
-    protected boolean liquidFlow(@NotNull UUID world, double x, double y, double z, double fromX, double fromY, double fromZ) {
+    public boolean liquidFlow(@NotNull UUID world, double x, double y, double z, double fromX, double fromY, double fromZ) {
         return handleBlockFromTo(world, x, y, z, fromX, fromY, fromZ, Flags.LIQUID_FLOW, Flags.BUILD);
     }
 
-    protected boolean doubleChestOpen(@NotNull UUID world, double x, double y, double z, double otherX, double otherY, double otherZ, @NotNull P player) {
+    public boolean doubleChestOpen(@NotNull UUID world, double x, double y, double z, double otherX, double otherY, double otherZ, @NotNull P player) {
         return handleProtection(player, world, x, y, z, Flags.CONTAINERS, true) && handleProtection(player, world, otherX, otherY, otherZ, Flags.CONTAINERS, true);
     }
 
-    protected boolean containerOpen(@NotNull UUID world, double x, double y, double z, @NotNull P player) {
+    public boolean containerOpen(@NotNull UUID world, double x, double y, double z, @NotNull P player) {
         return handleProtection(player, world, x, y, z, Flags.CONTAINERS, true);
     }
 
-    protected boolean fallingBlockFall(@NotNull UUID world, double x, double y, double z, double fromX, double fromY, double fromZ) {
+    public boolean fallingBlockFall(@NotNull UUID world, double x, double y, double z, double fromX, double fromY, double fromZ) {
         return handleOutsideAction(world, x, y, z, fromX, fromY, fromZ, Flags.BUILD);
     }
 
-    protected boolean dispenserDispense(@NotNull UUID world, double x, double y, double z, double fromX, double fromY, double fromZ) {
+    public boolean dispenserDispense(@NotNull UUID world, double x, double y, double z, double fromX, double fromY, double fromZ) {
         return handleBlockFromTo(world, x, y, z, fromX, fromY, fromZ, Flags.DISPENSERS, Flags.OUTSIDE_DISPENSERS);
     }
 
-    protected boolean structureGrow(@NotNull UUID world, double x, double y, double z, @NotNull List<B> blocks) {
+    public boolean structureGrow(@NotNull UUID world, double x, double y, double z, @NotNull List<B> blocks) {
         return handleOutsideBlockProtection(world, x, y, z, blocks, true, Flags.PLANT_GROW, Flags.BUILD) && !blocks.isEmpty();
     }
 
-    protected boolean spongeAbsorb(@NotNull UUID world, double x, double y, double z, @NotNull List<B> blocks) {
+    public boolean spongeAbsorb(@NotNull UUID world, double x, double y, double z, @NotNull List<B> blocks) {
         return handleOutsideBlockProtection(world, x, y, z, blocks, true, Flags.SPONGES, Flags.BUILD) && !blocks.isEmpty();
     }
 
-    protected boolean signChange(@NotNull UUID world, double x, double y, double z, @NotNull P player) {
+    public boolean signChange(@NotNull UUID world, double x, double y, double z, @NotNull P player) {
         return handleProtection(player, world, x, y, z, Flags.SIGN_EDIT, true);
     }
 
-    protected boolean frostWalk(@NotNull UUID world, double x, double y, double z, @NotNull P player) {
+    public boolean frostWalk(@NotNull UUID world, double x, double y, double z, @NotNull P player) {
         return handleProtection(player, world, x, y, z, Flags.FROST_WALK, false);
     }
 
-    protected boolean projectileLaunch(@NotNull UUID world, double x, double y, double z, @NotNull P shooter, @NotNull E projectile) {
+    public boolean projectileLaunch(@NotNull UUID world, double x, double y, double z, @NotNull P shooter, @NotNull E projectile) {
         return handleProtection(shooter, world, x, y, z, isPotion(projectile) ? Flags.POTIONS : Flags.PROJECTILES, true);
     }
 
-    protected boolean glide(@NotNull UUID world, double x, double y, double z, @NotNull P player) {
+    public boolean glide(@NotNull UUID world, double x, double y, double z, @NotNull P player) {
         return handleProtection(player, world, x, y, z, Flags.GLIDE, true);
     }
 
-    protected boolean mount(@NotNull UUID world, double x, double y, double z, @NotNull P player) {
+    public boolean mount(@NotNull UUID world, double x, double y, double z, @NotNull P player) {
         return handleProtection(player, world, x, y, z, Flags.ENTER_VEHICLES, true);
     }
 
-    protected boolean vehicleDestroy(@NotNull UUID world, double x, double y, double z, @NotNull P player, @NotNull E vehicle) {
+    public boolean vehicleDestroy(@NotNull UUID world, double x, double y, double z, @NotNull P player, @NotNull E vehicle) {
         return handleProtection(player, world, x, y, z, isBoat(vehicle) ? Flags.BUILD_BOATS : Flags.BUILD_MINECARTS, true);
     }
 
-    protected boolean itemConsume(@NotNull UUID world, double x, double y, double z, @NotNull P player, boolean potion) {
+    public boolean itemConsume(@NotNull UUID world, double x, double y, double z, @NotNull P player, boolean potion) {
         return handleProtection(player, world, x, y, z, potion ? Flags.POTIONS : Flags.EAT, true);
     }
 
-    protected boolean projectileHit(@NotNull UUID world, double x, double y, double z, double fromX, double fromY, double fromZ, @NotNull E projectile, @Nullable P shooter) {
+    public boolean projectileHit(@NotNull UUID world, double x, double y, double z, double fromX, double fromY, double fromZ, @NotNull E projectile, @Nullable P shooter) {
         if (shooter == null)
             return handleOutsideAction(world, x, y, z, fromX, fromY, fromZ, isPotion(projectile) ? Flags.POTIONS : Flags.OUTSIDE_PROJECTILES);
 
         return handleProtection(shooter, world, x, y, z, isPotion(projectile) ? Flags.POTIONS : Flags.OUTSIDE_PROJECTILES, true);
     }
 
-    protected boolean playerDamage(@NotNull UUID world, double x, double y, double z) {
+    public boolean playerDamage(@NotNull UUID world, double x, double y, double z) {
         return handleProtection(world, x, y, z, Flags.VULNERABILITY);
     }
 
-    protected boolean entityDamageByExplodingBlock(@NotNull UUID world, double x, double y, double z, double fromX, double fromY, double fromZ, @NotNull E victim) {
+    public boolean entityDamageByExplodingBlock(@NotNull UUID world, double x, double y, double z, double fromX, double fromY, double fromZ, @NotNull E victim) {
         return handleBlockFromTo(world, x, y, z, fromX, fromY, fromZ, Flags.EXPLOSION_DAMAGE, flagEntityHit(victim));
     }
 
-    protected boolean entityDamageByEntity(@NotNull UUID world, double x, double y, double z, @NotNull E victim, @NotNull E damager, boolean explosion) {
+    public boolean entityDamageByEntity(@NotNull UUID world, double x, double y, double z, @NotNull E victim, @NotNull E damager, boolean explosion) {
         if (isPlayer(victim)) {
             P damagerPlayer = entityOrShooterToPlayer(damager);
 
@@ -502,7 +502,7 @@ public abstract class Protections<P extends R, R, M, B, E> {
         }
     }
 
-    protected boolean entityExplode(@NotNull UUID world, double x, double y, double z, @NotNull List<B> blocks) {
+    public boolean entityExplode(@NotNull UUID world, double x, double y, double z, @NotNull List<B> blocks) {
         return handleOutsideBlockProtection(world, x, y, z, blocks, true, Flags.EXPLOSION_DAMAGE, Flags.BUILD);
     }
 
@@ -510,40 +510,40 @@ public abstract class Protections<P extends R, R, M, B, E> {
      * Bukkit does not provide the TNT that exploded a hanging entity. Because of this, hangings on this platform will
      * not check if the TNT is coming from outside the terrain.
      */
-    protected boolean explodeHanging(@NotNull UUID world, double x, double y, double z) {
+    public boolean explodeHanging(@NotNull UUID world, double x, double y, double z) {
         return handleProtection(world, x, y, z, Flags.BUILD, Flags.EXPLOSION_DAMAGE);
     }
 
-    protected boolean blockExplode(@NotNull UUID world, double x, double y, double z, @NotNull List<B> blocks) {
+    public boolean blockExplode(@NotNull UUID world, double x, double y, double z, @NotNull List<B> blocks) {
         return handleOutsideBlockProtection(world, x, y, z, blocks, true, Flags.EXPLOSION_DAMAGE, Flags.BUILD);
     }
 
-    protected boolean blockFertilize(@NotNull UUID world, double x, double y, double z, @NotNull List<B> blocks) {
+    public boolean blockFertilize(@NotNull UUID world, double x, double y, double z, @NotNull List<B> blocks) {
         return handleOutsideBlockProtection(world, x, y, z, blocks, true, Flags.PLANT_GROW, Flags.BUILD) && !blocks.isEmpty();
     }
 
-    protected boolean blockGrow(@NotNull UUID world, double x, double y, double z, double fromX, double fromY, double fromZ) {
+    public boolean blockGrow(@NotNull UUID world, double x, double y, double z, double fromX, double fromY, double fromZ) {
         return handleBlockFromTo(world, x, y, z, fromX, fromY, fromZ, Flags.PLANT_GROW, Flags.BUILD);
     }
 
-    protected boolean blockForm(@NotNull UUID world, double x, double y, double z) {
+    public boolean blockForm(@NotNull UUID world, double x, double y, double z) {
         return handleProtection(world, x, y, z, Flags.BLOCK_FORM);
     }
 
-    protected boolean blockSpread(@NotNull UUID world, double x, double y, double z, double fromX, double fromY, double fromZ, @NotNull M material) {
+    public boolean blockSpread(@NotNull UUID world, double x, double y, double z, double fromX, double fromY, double fromZ, @NotNull M material) {
         return handleBlockFromTo(world, x, y, z, fromX, fromY, fromZ, isFire(material) ? Flags.FIRE_SPREAD : Flags.BLOCK_SPREAD, Flags.BUILD);
     }
 
-    protected boolean blockBurn(@NotNull UUID world, double x, double y, double z) {
+    public boolean blockBurn(@NotNull UUID world, double x, double y, double z) {
         return handleProtection(world, x, y, z, Flags.FIRE_DAMAGE);
     }
 
-    protected boolean blockBurn(@NotNull UUID world, double x, double y, double z, double fromX, double fromY, double fromZ) {
+    public boolean blockBurn(@NotNull UUID world, double x, double y, double z, double fromX, double fromY, double fromZ) {
         return handleBlockFromTo(world, x, y, z, fromX, fromY, fromZ, Flags.FIRE_DAMAGE, Flags.BUILD);
     }
 
     // Prevent block break if BUILD is false. If it's a container, prevent if BUILD or CONTAINERS is false.
-    protected boolean blockBreak(@NotNull UUID world, double x, double y, double z, @NotNull P player, @NotNull M material) {
+    public boolean blockBreak(@NotNull UUID world, double x, double y, double z, @NotNull P player, @NotNull M material) {
         if (isContainer(material)) {
             return handleProtection(player, world, x, y, z, Flags.BUILD, Flags.CONTAINERS);
         } else {
@@ -551,7 +551,7 @@ public abstract class Protections<P extends R, R, M, B, E> {
         }
     }
 
-    protected boolean blockPlace(@NotNull UUID world, double x, double y, double z, @NotNull P player, @NotNull M material) {
+    public boolean blockPlace(@NotNull UUID world, double x, double y, double z, @NotNull P player, @NotNull M material) {
         if (isFire(material)) {
             return handleProtection(player, world, x, y, z, Flags.BUILD, Flags.LIGHTERS);
         } else {
@@ -559,11 +559,11 @@ public abstract class Protections<P extends R, R, M, B, E> {
         }
     }
 
-    protected boolean pistonRetract(@NotNull UUID world, double x, double y, double z, @NotNull List<B> movedBlocks) {
+    public boolean pistonRetract(@NotNull UUID world, double x, double y, double z, @NotNull List<B> movedBlocks) {
         return handleOutsideBlockProtection(world, x, y, z, movedBlocks, false, Flags.PISTONS, Flags.OUTSIDE_PISTONS);
     }
 
-    protected boolean pistonExtend(@NotNull UUID world, @NotNull Collection<B> movedBlocks, @NotNull Function<B, B> relative) {
+    public boolean pistonExtend(@NotNull UUID world, @NotNull Collection<B> movedBlocks, @NotNull Function<B, B> relative) {
         for (B block : movedBlocks) {
             B to = relative.apply(block);
             if (!handleBlockFromTo(world, x(to), y(to), z(to), x(block), y(block), z(block), Flags.PISTONS, Flags.OUTSIDE_PISTONS)) {
@@ -574,7 +574,7 @@ public abstract class Protections<P extends R, R, M, B, E> {
         return true;
     }
 
-    protected boolean rightClickInteract(@NotNull UUID world, double x, double y, double z, @NotNull P player, @NotNull M material, @Nullable M hand) {
+    public boolean rightClickInteract(@NotNull UUID world, double x, double y, double z, @NotNull P player, @NotNull M material, @Nullable M hand) {
         Flag<Boolean> flag;
         boolean message = true;
 
@@ -596,7 +596,7 @@ public abstract class Protections<P extends R, R, M, B, E> {
         return handleProtection(player, world, x, y, z, flag, message);
     }
 
-    protected boolean startFlight(@NotNull UUID world, double x, double y, double z, @NotNull P player) {
+    public boolean startFlight(@NotNull UUID world, double x, double y, double z, @NotNull P player) {
         if (!handleProtection(player, world, x, y, z, Flags.FLY, true)) {
             if (playerUtil.canFly(player)) {
                 // Setting tag on player to return flight when leaving the terrain.
@@ -608,7 +608,7 @@ public abstract class Protections<P extends R, R, M, B, E> {
         return true;
     }
 
-    protected boolean command(@NotNull UUID world, double x, double y, double z, @NotNull P player, @NotNull String command) {
+    public boolean command(@NotNull UUID world, double x, double y, double z, @NotNull P player, @NotNull String command) {
         if (playerUtil.hasPermission(player, Flags.COMMAND_BLACKLIST.bypassPermission())) return true;
         List<Terrain> terrains = TerrainManager.terrains(world);
 
