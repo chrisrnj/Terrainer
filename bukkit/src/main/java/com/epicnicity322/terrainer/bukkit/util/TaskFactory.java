@@ -32,11 +32,15 @@ import org.jetbrains.annotations.Nullable;
  */
 public final class TaskFactory {
     private static final boolean folia = ReflectionUtil.getClass("io.papermc.paper.threadedregions.RegionizedServer") != null;
+
+    static {
+        if (folia) Terrainer.logger().log("Tasks will run with regionised multithreading.");
+    }
+
     private final @NotNull TerrainerPlugin plugin;
 
     public TaskFactory(@NotNull TerrainerPlugin plugin) {
         this.plugin = plugin;
-        if (folia) Terrainer.logger().log("Folia API detected. Tasks will now work with regionised multithreading.");
     }
 
     public void runGlobalTask(@NotNull Runnable runnable) {
