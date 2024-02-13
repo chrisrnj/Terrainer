@@ -18,7 +18,9 @@
 
 package com.epicnicity322.terrainer.bukkit.listener;
 
+import com.epicnicity322.epicpluginlib.bukkit.reflection.ReflectionUtil;
 import com.epicnicity322.terrainer.bukkit.event.terrain.*;
+import com.epicnicity322.terrainer.core.Terrainer;
 import com.epicnicity322.terrainer.core.event.TerrainEvent;
 import com.epicnicity322.terrainer.core.terrain.Terrain;
 import com.epicnicity322.terrainer.core.terrain.TerrainManager;
@@ -42,8 +44,13 @@ import java.util.*;
 public final class EnterLeaveListener implements Listener {
     static final @NotNull HashSet<UUID> ignoredPlayersTeleportEvent = new HashSet<>(4);
     static final @NotNull HashSet<UUID> ignoredPlayersDismountEvent = new HashSet<>(4);
+    private static final boolean asyncTeleport = ReflectionUtil.getMethod(Entity.class, "teleportAsync", Location.class) != null;
     private static final @NotNull Vector zero = new Vector(0, 0, 0);
     private static @NotNull List<String> commandsOnEntryCancelled = Collections.emptyList();
+
+    static {
+        if (asyncTeleport) Terrainer.logger().log("Teleports will be done asynchronously.");
+    }
 
     public static void setCommandsOnEntryCancelled(@NotNull List<String> commandsOnEntryCancelled) {
         EnterLeaveListener.commandsOnEntryCancelled = commandsOnEntryCancelled;
@@ -144,9 +151,17 @@ public final class EnterLeaveListener implements Listener {
                 Location tp = to.clone();
                 tp.setYaw(player.getYaw());
                 tp.setPitch(player.getPitch());
-                player.teleport(tp);
+                if (asyncTeleport) {
+                    player.teleportAsync(tp);
+                } else {
+                    player.teleport(tp);
+                }
             }
-            vehicle.teleport(to);
+            if (asyncTeleport) {
+                vehicle.teleportAsync(to);
+            } else {
+                vehicle.teleport(to);
+            }
         }
     }
 
@@ -242,7 +257,12 @@ public final class EnterLeaveListener implements Listener {
             // If player is in a vehicle, ignore dismount event (player teleport will trigger it) and teleport the vehicle as well.
             if (player.getVehicle() != null) {
                 ignoredPlayersDismountEvent.add(player.getUniqueId());
-                player.getVehicle().teleport(to);
+                Entity vehicle = player.getVehicle();
+                if (asyncTeleport) {
+                    vehicle.teleportAsync(to);
+                } else {
+                    vehicle.teleport(to);
+                }
             }
         }
     }
