@@ -285,12 +285,15 @@ public final class TerrainerPlugin extends JavaPlugin {
     @Override
     public void onDisable() {
         TerrainManager.save();
-        var players = Bukkit.getOnlinePlayers();
-        if (!players.isEmpty()) {
-            logger.log("Terrainer will kick all players to prevent damage to terrains.");
-        }
-        for (Player p : players) {
-            p.kickPlayer(lang.getColored("Protections.Kick Message").replace("<default>", Objects.requireNonNullElse(getServer().getShutdownMessage(), "Server stopped")));
+        boolean kickPlayers = Configurations.CONFIG.getConfiguration().getBoolean("Kick Players On Disable").orElse(false) && (ReflectionUtil.getClass("io.papermc.paper.threadedregions.RegionizedServer") == null);
+        if (kickPlayers) {
+            var players = Bukkit.getOnlinePlayers();
+            if (!players.isEmpty()) {
+                logger.log("Terrainer will kick all players to prevent damage to terrains.");
+            }
+            for (Player p : players) {
+                p.kickPlayer(lang.getColored("Protections.Kick Message").replace("<default>", Objects.requireNonNullElse(getServer().getShutdownMessage(), "Server stopped")));
+            }
         }
     }
 

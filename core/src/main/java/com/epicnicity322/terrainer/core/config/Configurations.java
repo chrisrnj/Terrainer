@@ -47,6 +47,9 @@ public final class Configurations {
             # The maximum length a terrain's name can be.
             Max Name Length: 26
                         
+            # Protect against potential actions when the server reloads.
+            Kick Players On Disable: true
+                        
             # You can set a group's default block limits through this setting.
             # You can add you own limits and use them in groups through the permission 'terrainer.limit.blocks.<group>'
             # For unlimited blocks, use 'terrainer.bypass.limit.blocks' permission.
