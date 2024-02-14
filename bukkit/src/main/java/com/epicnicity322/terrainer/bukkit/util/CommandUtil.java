@@ -143,7 +143,7 @@ public final class CommandUtil {
         }
         if (foundTerrains == null || foundTerrains.isEmpty()) {
             if (location && sender.hasPermission(permissionWorld)) {
-                lang.send(sender, lang.get("Matcher.Only World Terrain").replace("<label>", label).replace("<args>", args[0] + " --t " + ((Player) sender).getWorld().getName()));
+                lang.send(sender, lang.get("Matcher.Only World Terrain").replace("<label>", label).replace("<args>", args[0]).replace("<world>", ((Player) sender).getWorld().getName()));
                 return;
             }
             lang.send(sender, lang.get(noPermission ? "Matcher.No Permission" : location ? "Matcher.Location.Not Found" : "Matcher.Name.Not Found").replace("<label>", label).replace("<args>", args[0] + " " + exampleSyntax));

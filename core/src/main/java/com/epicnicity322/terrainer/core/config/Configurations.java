@@ -716,7 +716,7 @@ public final class Configurations {
                 Multiple: '&4More than one terrain was found with that name. Please specify the terrain''s ID instead of name.'
                 Not Found: '&4No terrain matching the specified name or ID was found.'
               No Permission: '&4You don''t have permission to do that in this terrain.'
-              Only World Terrain: '&4No terrain was found in this location. &cIf you want to edit the world''s global terrain, use &7&n/<label> <args> --t <world>'
+              Only World Terrain: '&4No terrain was found in this location. &eIf you want to edit the world''s global terrain, use &7&n/<label> <args> --t <world>'
                         
             Flags:
               Allow: '&a&lALLOW'
