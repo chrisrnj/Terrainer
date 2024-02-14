@@ -94,7 +94,7 @@ public final class PriorityCommand extends Command {
             return;
         }
 
-        CommandUtil.findTerrain("terrainer.priority.others", false, label, sender, args0, lang.getColored("Priority.Select"), arguments -> {
+        CommandUtil.findTerrain("terrainer.priority.others", "terrainer.priority.world", false, label, sender, args0, lang.getColored("Priority.Select"), arguments -> {
             if (arguments == null) return;
             Terrain terrain = arguments.terrain();
             String[] args = arguments.preceding();

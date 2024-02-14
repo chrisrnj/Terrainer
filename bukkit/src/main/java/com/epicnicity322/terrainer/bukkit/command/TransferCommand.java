@@ -54,7 +54,7 @@ public final class TransferCommand extends Command {
     @Override
     public void run(@NotNull String label, @NotNull CommandSender sender, @NotNull String[] args0) {
         MessageSender lang = TerrainerPlugin.getLanguage();
-        CommandUtil.findTerrain("terrainer.transfer.others", false, label, sender, args0, lang.getColored("Transfer.Select"), arguments -> {
+        CommandUtil.findTerrain("terrainer.transfer.others", "terrainer.transfer.world", false, label, sender, args0, lang.getColored("Transfer.Select"), arguments -> {
             Terrain terrain = arguments.terrain();
 
             if (terrain instanceof WorldTerrain) {

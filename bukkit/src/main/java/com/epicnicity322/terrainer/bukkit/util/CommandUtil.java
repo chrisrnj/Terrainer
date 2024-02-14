@@ -65,6 +65,7 @@ public final class CommandUtil {
      * edit.
      *
      * @param permissionOthers The permission that allows the sender to find other people's terrains.
+     * @param permissionWorld  The permission that allows the sender to find the world's global terrain.
      * @param allowModerators  Allows moderators to find the terrain.
      * @param label            The command label.
      * @param sender           The sender of the command.
@@ -72,7 +73,7 @@ public final class CommandUtil {
      * @param selectMessage    The message to set as title for the terrain choosing GUI in case more than one terrain was found.
      * @param onFind           The consumer that will receive the terrain and the command arguments once the terrain is found.
      */
-    public static void findTerrain(@NotNull String permissionOthers, boolean allowModerators, @NotNull String label, @NotNull CommandSender sender, @NotNull String @NotNull [] args, @NotNull String selectMessage, @NotNull Consumer<CommandArguments> onFind) {
+    public static void findTerrain(@NotNull String permissionOthers, @NotNull String permissionWorld, boolean allowModerators, @NotNull String label, @NotNull CommandSender sender, @NotNull String @NotNull [] args, @NotNull String selectMessage, @NotNull Consumer<CommandArguments> onFind) {
         MessageSender lang = TerrainerPlugin.getLanguage();
         StringBuilder terrainNameBuilder = new StringBuilder();
         boolean join = false;
@@ -138,9 +139,13 @@ public final class CommandUtil {
         // Checking permissions and sending terrain not found message if no terrain was found.
         boolean noPermission = false;
         if (foundTerrains != null) {
-            noPermission = foundTerrains.removeIf(t -> isNotAllowedToFind(t, sender, allowModerators, permissionOthers));
+            noPermission = foundTerrains.removeIf(t -> isNotAllowedToFind(t, sender, allowModerators, permissionOthers, permissionWorld));
         }
         if (foundTerrains == null || foundTerrains.isEmpty()) {
+            if (location && sender.hasPermission(permissionWorld)) {
+                lang.send(sender, lang.get("Matcher.Only World Terrain").replace("<label>", label).replace("<args>", args[0] + " --t " + ((Player) sender).getWorld().getName()));
+                return;
+            }
             lang.send(sender, lang.get(noPermission ? "Matcher.No Permission" : location ? "Matcher.Location.Not Found" : "Matcher.Name.Not Found").replace("<label>", label).replace("<args>", args[0] + " " + exampleSyntax));
             return;
         }
@@ -156,7 +161,7 @@ public final class CommandUtil {
                 HumanEntity p = event.getWhoClicked();
                 p.closeInventory();
                 // If the player took too long to select and the terrain is no longer available, return.
-                if (!TerrainManager.terrains(terrain.world()).contains(terrain) || isNotAllowedToFind(terrain, p, allowModerators, permissionOthers)) {
+                if (!TerrainManager.terrains(terrain.world()).contains(terrain) || isNotAllowedToFind(terrain, p, allowModerators, permissionOthers, permissionWorld)) {
                     lang.send(p, lang.get("Matcher.Changed"));
                     return;
                 }
@@ -167,10 +172,10 @@ public final class CommandUtil {
         }
     }
 
-    private static boolean isNotAllowedToFind(@NotNull Terrain terrain, @NotNull CommandSender sender, boolean allowModerators, @NotNull String permission) {
+    private static boolean isNotAllowedToFind(@NotNull Terrain terrain, @NotNull CommandSender sender, boolean allowModerators, @NotNull String permission, @NotNull String permissionWorld) {
         UUID id = sender instanceof Player player ? player.getUniqueId() : null;
 
-        return id != null && !Objects.equals(terrain.owner(), id) && !sender.hasPermission(permission) && (!allowModerators || !terrain.moderators().view().contains(id));
+        return id != null && !Objects.equals(terrain.owner(), id) && !sender.hasPermission(terrain instanceof WorldTerrain ? permissionWorld : permission) && (!allowModerators || !terrain.moderators().view().contains(id));
     }
 
     public static @Nullable TargetResponse target(int targetIndex, @Nullable String permissionOthers, @NotNull CommandSender sender, @NotNull String[] args) {

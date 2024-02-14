@@ -51,7 +51,7 @@ public final class DeleteCommand extends Command {
     @Override
     public void run(@NotNull String label, @NotNull CommandSender sender, @NotNull String[] args) {
         MessageSender lang = TerrainerPlugin.getLanguage();
-        CommandUtil.findTerrain("terrainer.delete.others", false, label, sender, args, lang.getColored("Delete.Select"), commandArguments -> {
+        CommandUtil.findTerrain("terrainer.delete.others", "terrainer.delete.world", false, label, sender, args, lang.getColored("Delete.Select"), commandArguments -> {
             Terrain terrain = commandArguments.terrain();
             // If world terrain is not found in list of loaded worlds, remove like a regular terrain.
             boolean worldTerrain = terrain instanceof WorldTerrain && Bukkit.getWorlds().stream().anyMatch(world -> world.getUID().equals(terrain.world()));
