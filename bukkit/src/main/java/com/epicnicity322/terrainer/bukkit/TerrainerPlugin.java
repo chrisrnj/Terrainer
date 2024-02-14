@@ -40,14 +40,12 @@ import com.epicnicity322.terrainer.bukkit.util.NMSHandler;
 import com.epicnicity322.terrainer.bukkit.util.TaskFactory;
 import com.epicnicity322.terrainer.core.Terrainer;
 import com.epicnicity322.terrainer.core.config.Configurations;
+import com.epicnicity322.terrainer.core.terrain.Flags;
 import com.epicnicity322.terrainer.core.terrain.TerrainManager;
 import com.epicnicity322.terrainer.core.util.PlayerUtil;
 import com.epicnicity322.yamlhandler.Configuration;
 import com.epicnicity322.yamlhandler.ConfigurationSection;
-import org.bukkit.Bukkit;
-import org.bukkit.NamespacedKey;
-import org.bukkit.Particle;
-import org.bukkit.World;
+import org.bukkit.*;
 import org.bukkit.command.PluginCommand;
 import org.bukkit.entity.Player;
 import org.bukkit.event.HandlerList;
@@ -79,6 +77,11 @@ public final class TerrainerPlugin extends JavaPlugin {
     static {
         Terrainer.setLang(lang);
         Terrainer.setLogger(logger);
+        Flags.setEffectChecker(value -> {
+            var key = NamespacedKey.fromString(value);
+            if (key == null) return false;
+            return Registry.EFFECT.get(key) != null;
+        });
         //TODO: Translate to languages.
         lang.addLanguage("EN_US", Configurations.LANG_EN_US);
         lang.addLanguage("PT_BR", Configurations.LANG_EN_US);

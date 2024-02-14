@@ -24,6 +24,8 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
+import java.util.function.Function;
+import java.util.function.Predicate;
 
 /**
  * A class with default terrain flags. You may add
@@ -81,10 +83,6 @@ public final class Flags {
      * Prevents players from eating food in terrains.
      */
     public static final @NotNull Flag<Boolean> EAT = Flag.newBooleanFlag("Eat", true);
-    /**
-     * Gives the effects to the players in the terrain like a beacon. Upon leaving the terrain, the effects are removed.
-     */
-    public static final @NotNull Flag<Map<String, Integer>> EFFECTS = Flag.newIntegerMapFlag("Effects", null);
     /**
      * Prevents players from harming enemy entities.
      */
@@ -297,15 +295,43 @@ public final class Flags {
     public static final @NotNull Flag<Boolean> VULNERABILITY = Flag.newBooleanFlag("Vulnerability", true);
 
     private static final @NotNull HashSet<Flag<?>> customValues = new HashSet<>();
-    private static final @NotNull Set<Flag<?>> values = Set.of(ANVILS, ARMOR_STANDS, BLOCK_FORM, BLOCK_SPREAD, BUILD,
-            BUILD_BOATS, BUILD_MINECARTS, BUTTONS, COMMAND_BLACKLIST, CONTAINERS, DISPENSERS, DOORS, EAT, EFFECTS,
-            ENEMY_HARM, ENTER, ENTER_CONSOLE_COMMANDS, ENTER_PLAYER_COMMANDS, ENTER_VEHICLES, ENTITY_HARM,
-            ENTITY_INTERACTIONS, EXPLOSION_DAMAGE, FIRE_DAMAGE, FIRE_SPREAD, FLY, FROST_WALK, GLIDE, INTERACTIONS,
-            ITEM_DROP, ITEM_FRAMES, ITEM_PICKUP, LEAF_DECAY, LEAVE, LEAVE_CONSOLE_COMMANDS, LEAVE_MESSAGE,
-            LEAVE_PLAYER_COMMANDS, LIGHTERS, LIQUID_FLOW, MESSAGE_LOCATION, MOB_SPAWN, MODS_CAN_EDIT_FLAGS,
-            MODS_CAN_MANAGE_MODS, OUTSIDE_DISPENSERS, OUTSIDE_PISTONS, OUTSIDE_PROJECTILES, PISTONS, PLANT, PLANT_GROW,
-            PLOW, POTIONS, PREPARE, PRESSURE_PLATES, PROJECTILES, PVP, SHOW_BORDERS, SIGN_CLICK, SIGN_EDIT, SPAWNERS,
-            SPONGES, TRAMPLE, VULNERABILITY);
+
+    private static @NotNull Predicate<String> effectChecker = effect -> true;
+
+    private static final @NotNull Function<String, Map<String, Integer>> effectTransformer = input -> {
+        String[] entries = input.split(",");
+        HashMap<String, Integer> map = new HashMap<>((int) (entries.length / 0.75) + 1);
+
+        for (String s : entries) {
+            int equalIndex = s.lastIndexOf('=');
+            String effect;
+            if (equalIndex == -1) {
+                effect = s;
+                if (!effectChecker.test(effect))
+                    throw new FlagTransformException(Terrainer.lang().get("Flags.Error.Unknown Effect").replace("<value>", effect));
+                map.put(effect, 0);
+            } else {
+                effect = s.substring(0, equalIndex);
+                if (!effectChecker.test(effect))
+                    throw new FlagTransformException(Terrainer.lang().get("Flags.Error.Unknown Effect").replace("<value>", effect));
+                String level = s.substring(equalIndex + 1);
+                try {
+                    map.put(effect, Integer.parseInt(level));
+                } catch (NumberFormatException e) {
+                    throw new FlagTransformException(Terrainer.lang().get("General.Not A Number").replace("<value>", level));
+                }
+            }
+        }
+        return map;
+    };
+
+    /**
+     * Gives the effects to the players in the terrain like a beacon. Upon leaving the terrain, the effects are removed.
+     */
+    @SuppressWarnings("unchecked")
+    public static final @NotNull Flag<Map<String, Integer>> EFFECTS = new Flag<>("Effects", (Class<Map<String, Integer>>) (Class<?>) Map.class, Collections.emptyMap(), effectTransformer, Map::toString);
+
+    private static final @NotNull Set<Flag<?>> values = Set.of(ANVILS, ARMOR_STANDS, BLOCK_FORM, BLOCK_SPREAD, BUILD, BUILD_BOATS, BUILD_MINECARTS, BUTTONS, COMMAND_BLACKLIST, CONTAINERS, DISPENSERS, DOORS, EAT, EFFECTS, ENEMY_HARM, ENTER, ENTER_CONSOLE_COMMANDS, ENTER_PLAYER_COMMANDS, ENTER_VEHICLES, ENTITY_HARM, ENTITY_INTERACTIONS, EXPLOSION_DAMAGE, FIRE_DAMAGE, FIRE_SPREAD, FLY, FROST_WALK, GLIDE, INTERACTIONS, ITEM_DROP, ITEM_FRAMES, ITEM_PICKUP, LEAF_DECAY, LEAVE, LEAVE_CONSOLE_COMMANDS, LEAVE_MESSAGE, LEAVE_PLAYER_COMMANDS, LIGHTERS, LIQUID_FLOW, MESSAGE_LOCATION, MOB_SPAWN, MODS_CAN_EDIT_FLAGS, MODS_CAN_MANAGE_MODS, OUTSIDE_DISPENSERS, OUTSIDE_PISTONS, OUTSIDE_PROJECTILES, PISTONS, PLANT, PLANT_GROW, PLOW, POTIONS, PREPARE, PRESSURE_PLATES, PROJECTILES, PVP, SHOW_BORDERS, SIGN_CLICK, SIGN_EDIT, SPAWNERS, SPONGES, TRAMPLE, VULNERABILITY);
 
     private Flags() {
     }
@@ -354,5 +380,14 @@ public final class Flags {
             }
         }
         return null;
+    }
+
+    /**
+     * Sets the checker of valid potion effect names for {@link Flags#EFFECTS} flag.
+     *
+     * @param effectChecker The new effect checker.
+     */
+    public static void setEffectChecker(@NotNull Predicate<String> effectChecker) {
+        Flags.effectChecker = effectChecker;
     }
 }
