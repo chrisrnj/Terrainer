@@ -94,10 +94,10 @@ public final class TerrainerPlugin extends JavaPlugin {
     private final @NotNull PreLoginListener preLoginListener = new PreLoginListener();
     private final @NotNull TaskFactory taskFactory = new TaskFactory(this);
     private final @NotNull AtomicBoolean enterLeaveEvents = new AtomicBoolean(true);
-    private final @NotNull ProtectionsListener protectionsListener = new ProtectionsListener(this, bordersCommand);
-    private final @NotNull PistonListener pistonListener = new PistonListener(protectionsListener);
-    private final @NotNull BlockFromToListener blockFromToListener = new BlockFromToListener(protectionsListener);
-    private final @NotNull CreatureSpawnListener creatureSpawnListener = new CreatureSpawnListener(protectionsListener);
+    private final @NotNull ProtectionsListener protectionsListener;
+    private final @NotNull PistonListener pistonListener;
+    private final @NotNull BlockFromToListener blockFromToListener;
+    private final @NotNull CreatureSpawnListener creatureSpawnListener;
     private final @NotNull EnterLeaveListener enterLeaveListener = new EnterLeaveListener();
     private final @NotNull EntityMoveListener entityMoveListener = new EntityMoveListener();
 
@@ -105,6 +105,10 @@ public final class TerrainerPlugin extends JavaPlugin {
         instance = this;
         Terrainer.setPlayerUtil(playerUtil);
         logger.setLogger(getLogger());
+        protectionsListener = new ProtectionsListener(this, bordersCommand);
+        pistonListener = new PistonListener(protectionsListener);
+        blockFromToListener = new BlockFromToListener(protectionsListener);
+        creatureSpawnListener = new CreatureSpawnListener(protectionsListener);
     }
 
     public static @NotNull MessageSender getLanguage() {

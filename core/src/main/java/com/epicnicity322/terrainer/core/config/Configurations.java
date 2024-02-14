@@ -211,7 +211,7 @@ public final class Configurations {
                         
             Performance:
               # There are multiple checks for when the players move. Disabling them can improve performance, but at a
-              # cost of features related to terrain entering/leaving.
+              #cost of features related to terrain entering/leaving.
               Disable Enter Leave Events: false
               # Entity Move Event checks whether players riding entities enters terrains. Disabling it can improve
               #performance, but at a cost of the accuracy of entering/leaving terrains.
@@ -224,7 +224,7 @@ public final class Configurations {
               #performance, but at a cost of Liquid Flow flag and potentially flooding terrains from outside.
               Disable Block From To Event: false
               # Creature Spawn Event is responsible for handling Mob Spawn and Spawner Spawn flags. Disabling it can
-              #improve performance, but at the cost of losing those flags.
+              #improve performance, but at a cost of losing those flags.
               Disable Creature Spawn Event: false
                         
             List:
