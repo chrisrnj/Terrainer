@@ -232,36 +232,54 @@ public final class Configurations {
             Flags:
               # GUI Items for the Flag Management GUI.
               Values:
+                Anvils:
+                  Material: ANVIL
                 Armor Stands:
                   Material: ARMOR_STAND
+                Block Form:
+                  Material: POWDER_SNOW_BUCKET
+                Block Spread:
+                  Material: SCULK_CATALYST
                 Build:
                   Material: BRICKS
-                Build Vehicles:
+                Build Boats:
+                  Material: OAK_BOAT
+                Build Minecarts:
                   Material: MINECART
                 Buttons:
-                  Material: LEVER
+                  Material: OAK_BUTTON
+                Command Blacklist:
+                  Material: BARRIER
                 Containers:
                   Material: CHEST
                 Dispensers:
                   Material: DISPENSER
                 Doors:
                   Material: OAK_DOOR
+                Eat:
+                  Material: COOKED_BEEF
                 Effects:
                   Material: BEACON
                 Enemy Harm:
                   Material: BONE
                 Enter:
                   Material: LIME_WOOL
+                Enter Console Commands:
+                  Material: COMMAND_BLOCK
+                Enter Player Commands:
+                  Material: COMMAND_BLOCK
                 Enter Vehicles:
-                  Material: OAK_BOAT
+                  Material: SADDLE
                 Entity Harm:
-                  Material: PORKCHOP
+                  Material: PIG_SPAWN_EGG
                 Entity Interactions:
                   Material: LEAD
                 Explosion Damage:
                   Material: TNT
                 Fire Damage:
                   Material: FIRE_CHARGE
+                Fire Spread:
+                  Material: CAMPFIRE
                 Fly:
                   Material: FEATHER
                 Frost Walk:
@@ -269,7 +287,7 @@ public final class Configurations {
                 Glide:
                   Material: ELYTRA
                 Interactions:
-                  Material: FLINT_AND_STEEL
+                  Material: BRUSH
                 Item Drop:
                   Material: DROPPER
                 Item Frames:
@@ -280,8 +298,14 @@ public final class Configurations {
                   Material: OAK_LEAVES
                 Leave:
                   Material: RED_WOOL
+                Leave Console Commands:
+                  Material: COMMAND_BLOCK
                 Leave Message:
                   Material: PAPER
+                Leave Player Commands:
+                  Material: COMMAND_BLOCK
+                Lighters:
+                  Material: FLINT_AND_STEEL
                 Liquid Flow:
                   Material: WATER_BUCKET
                 Message Location:
@@ -297,21 +321,35 @@ public final class Configurations {
                 Outside Pistons:
                   Material: STICKY_PISTON
                 Outside Projectiles:
-                  Material: ARROW
+                  Material: BOW
                 Pistons:
                   Material: PISTON
+                Plant:
+                  Material: WHEAT_SEEDS
+                Plant Grow:
+                  Material: OAK_SAPLING
+                Plow:
+                  Material: IRON_HOE
+                Potions:
+                  Material: SPLASH_POTION
+                Prepare:
+                  Material: CRAFTING_TABLE
                 Pressure Plates:
                   Material: OAK_PRESSURE_PLATE
                 Projectiles:
-                  Material: BOW
+                  Material: ARROW
                 PvP:
                   Material: DIAMOND_SWORD
+                Show Borders:
+                  Material: GLOWSTONE
                 Sign Click:
                   Material: OAK_SIGN
                 Sign Edit:
                   Material: DARK_OAK_SIGN
                 Spawners:
                   Material: SPAWNER
+                Sponges:
+                  Material: SPONGE
                 Trample:
                   Material: FARMLAND
                 Vulnerability:
@@ -671,13 +709,14 @@ public final class Configurations {
                         
             Matcher:
               Changed: '&4The terrain you selected could not be found because it was changed while you were selecting it.'
-              No Permission: '&4You don''t have permission to do that in this terrain.'
-              Name:
-                Multiple: '&4More than one terrain was found with that name. Please specify the terrain''s ID instead of name.'
-                Not Found: '&4No terrain matching the specified name or ID was found.'
               Location:
                 Multiple: '&4More than one terrain was found in the location, please specify the terrain''s name or ID. Ex: &7&n/<label> <args>'
                 Not Found: '&4No terrain was found in this location, please specify the terrain''s name or ID. Ex: &7&n/<label> <args>'
+              Name:
+                Multiple: '&4More than one terrain was found with that name. Please specify the terrain''s ID instead of name.'
+                Not Found: '&4No terrain matching the specified name or ID was found.'
+              No Permission: '&4You don''t have permission to do that in this terrain.'
+              Only World Terrain: '&4No terrain was found in this location. &cIf you want to edit the world''s global terrain, use &7&n/<label> <args> --t <world>'
                         
             Flags:
               Allow: '&a&lALLOW'
@@ -691,6 +730,7 @@ public final class Configurations {
                 Message Location: '&4The only accepted values for message location are: &7ActionBar&4, &7BossBar&4, &7Chat&4, &7Title&4 or &7NONE&4.'
                 Not Owner: '&4Only the owner is allowed to edit this flag.'
                 Unknown: '&4Something went wrong while setting this flag. Please contact an administrator.'
+                Unknown Effect: '&4Invalid potion effect: &f<value>'
               Management GUI Title: '&2Flags of <terrain>&2:'
               Select: '&cSelect the terrain to edit flags:'
               Values:
