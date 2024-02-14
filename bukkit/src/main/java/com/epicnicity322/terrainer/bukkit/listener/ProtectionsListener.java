@@ -261,8 +261,7 @@ public final class ProtectionsListener extends Protections<Player, CommandSender
     @Override
     protected @NotNull Flag<Boolean> flagEntityHit(@NotNull Entity entity) {
         return switch (entity.getType()) {
-            case ARMOR_STAND -> Flags.ARMOR_STANDS;
-            case ITEM_FRAME, GLOW_ITEM_FRAME, PAINTING -> Flags.BUILD;
+            case ARMOR_STAND, ITEM_FRAME, GLOW_ITEM_FRAME, PAINTING -> Flags.BUILD;
             case CHEST_BOAT, MINECART_CHEST, MINECART_HOPPER -> Flags.CONTAINERS;
             case MINECART -> Flags.BUILD_MINECARTS;
             default -> {
