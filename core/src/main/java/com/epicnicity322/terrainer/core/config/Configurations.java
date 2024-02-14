@@ -315,7 +315,7 @@ public final class Configurations {
                 Mods Can Edit Flags:
                   Material: WRITABLE_BOOK
                 Mods Can Manage Mods:
-                  Material: WOODEN_AXE
+                  Material: WRITABLE_BOOK
                 Outside Dispensers:
                   Material: DISPENSER
                 Outside Pistons:
