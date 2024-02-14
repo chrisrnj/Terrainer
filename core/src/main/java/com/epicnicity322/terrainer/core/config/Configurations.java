@@ -50,6 +50,11 @@ public final class Configurations {
             # Protect against potential actions when the server reloads.
             Kick Players On Disable: true
                         
+            # The permission for flying.
+            # When flying players enter terrains that have the flag FLY denied, they will have their ability to fly removed.
+            # Players who have this permission will have their ability to fly granted back when they leave the terrain.
+            Fly Permission: 'essentials.fly'
+                        
             # You can set a group's default block limits through this setting.
             # You can add you own limits and use them in groups through the permission 'terrainer.limit.blocks.<group>'
             # For unlimited blocks, use 'terrainer.bypass.limit.blocks' permission.
@@ -204,10 +209,23 @@ public final class Configurations {
               # Bypass: terrainer.wand.info.nocooldown
               Cooldown: 3600 #seconds
                         
-            # The permission for flying.
-            # When flying players enter terrains that have the flag FLY denied, they will have their ability to fly removed.
-            # Players who have this permission will have their ability to fly granted back when they leave the terrain.
-            Fly Permission: 'essentials.fly'
+            Performance:
+              # There are multiple checks for when the players move. Disabling them can improve performance, but at a
+              # cost of features related to terrain entering/leaving.
+              Disable Enter Leave Events: false
+              # Entity Move Event checks whether players riding entities enters terrains. Disabling it can improve
+              #performance, but at a cost of the accuracy of entering/leaving terrains.
+              Disable Entity Move Event: false
+              # Piston events can be really expensive because every time a piston moves, Terrainer has to check whether
+              #each block is within a terrain. Disabling it can improve performance, but at a cost of Pistons and
+              #Outside Pistons flags.
+              Disable Piston Events: false
+              # Block From To Event checks whether water, lava, and dragon eggs are in terrains. Disabling it can improve
+              #performance, but at a cost of Liquid Flow flag and potentially flooding terrains from outside.
+              Disable Block From To Event: false
+              # Creature Spawn Event is responsible for handling Mob Spawn and Spawner Spawn flags. Disabling it can
+              #improve performance, but at the cost of losing those flags.
+              Disable Creature Spawn Event: false
                         
             List:
               Chat:
@@ -721,7 +739,7 @@ public final class Configurations {
               Allow: '&a&lALLOW'
               Deny: '&c&lDENY'
               Undefined: '&7&lUndefined'
-              Set: '&7Flag <flag>&7 set in the terrain &f<name>&7 with value: &f<state>&7.'
+              Set: '&7Flag <flag>&7 set for the terrain &f<name>&7 with value: &f<state>&7.'
               Unset: '&7Flag <flag>&7 removed from terrain &f<name>&7.'
               Default Alert: '&7Terrain &f<name>&7 will now use the default value of <flag>&7: &f<state>&7.'
               Error:

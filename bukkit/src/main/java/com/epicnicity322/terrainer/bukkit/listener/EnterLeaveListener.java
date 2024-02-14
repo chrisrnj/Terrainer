@@ -20,6 +20,7 @@ package com.epicnicity322.terrainer.bukkit.listener;
 
 import com.epicnicity322.epicpluginlib.bukkit.reflection.ReflectionUtil;
 import com.epicnicity322.terrainer.bukkit.event.terrain.*;
+import com.epicnicity322.terrainer.bukkit.util.ToggleableListener;
 import com.epicnicity322.terrainer.core.Terrainer;
 import com.epicnicity322.terrainer.core.event.TerrainEvent;
 import com.epicnicity322.terrainer.core.terrain.Terrain;
@@ -32,7 +33,6 @@ import org.bukkit.entity.Player;
 import org.bukkit.entity.Vehicle;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
-import org.bukkit.event.Listener;
 import org.bukkit.event.player.*;
 import org.bukkit.event.vehicle.VehicleMoveEvent;
 import org.bukkit.util.Vector;
@@ -41,7 +41,10 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
 
-public final class EnterLeaveListener implements Listener {
+/**
+ * A listener for enter leave (movement) events.
+ */
+public final class EnterLeaveListener extends ToggleableListener {
     static final @NotNull HashSet<UUID> ignoredPlayersTeleportEvent = new HashSet<>(4);
     static final @NotNull HashSet<UUID> ignoredPlayersDismountEvent = new HashSet<>(4);
     private static final boolean asyncTeleport = ReflectionUtil.getMethod(Entity.class, "teleportAsync", Location.class) != null;

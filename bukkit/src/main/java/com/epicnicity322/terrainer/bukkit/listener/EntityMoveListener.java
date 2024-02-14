@@ -18,16 +18,16 @@
 
 package com.epicnicity322.terrainer.bukkit.listener;
 
+import com.epicnicity322.terrainer.bukkit.util.ToggleableListener;
 import io.papermc.paper.event.entity.EntityMoveEvent;
 import org.bukkit.Location;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
-import org.bukkit.event.Listener;
 
 /**
- * A listener for events exclusive from PaperMC.
+ * A listener for exclusive for entity move events, available for PaperMC only.
  */
-public final class PaperListener implements Listener {
+public final class EntityMoveListener extends ToggleableListener {
     // Fire enter/leave events if the entity is carrying a player.
     @EventHandler(priority = EventPriority.LOW, ignoreCancelled = true)
     public void onEntityMove(EntityMoveEvent event) {

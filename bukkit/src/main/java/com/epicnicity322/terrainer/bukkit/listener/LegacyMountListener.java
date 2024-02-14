@@ -30,6 +30,7 @@ import org.spigotmc.event.entity.EntityDismountEvent;
 import org.spigotmc.event.entity.EntityMountEvent;
 
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * A class for handling mount events before they were ported from spigot to bukkit.
@@ -37,9 +38,11 @@ import java.util.UUID;
 @SuppressWarnings({"UnstableApiUsage", "deprecation"})
 public final class LegacyMountListener implements Listener {
     private final @NotNull ProtectionsListener protectionsListener;
+    private final @NotNull AtomicBoolean enterLeaveEvents;
 
-    public LegacyMountListener(@NotNull ProtectionsListener protectionsListener) {
+    public LegacyMountListener(@NotNull ProtectionsListener protectionsListener, @NotNull AtomicBoolean enterLeaveEvents) {
         this.protectionsListener = protectionsListener;
+        this.enterLeaveEvents = enterLeaveEvents;
     }
 
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
@@ -55,6 +58,7 @@ public final class LegacyMountListener implements Listener {
             return;
         }
 
+        if (!enterLeaveEvents.get()) return;
         if (EnterLeaveListener.handleFromTo(from, to, player.getWorld().getUID(), toWorld, player, TerrainEvent.EnterLeaveReason.MOUNT)) {
             event.setCancelled(true);
         }
@@ -62,6 +66,7 @@ public final class LegacyMountListener implements Listener {
 
     @EventHandler
     public void onDismount(EntityDismountEvent event) {
+        if (!enterLeaveEvents.get()) return;
         if (!(event.getEntity() instanceof Player player)) return;
         if (EnterLeaveListener.ignoredPlayersDismountEvent.remove(player.getUniqueId())) return;
         Location from = event.getDismounted().getLocation(), to = player.getLocation();

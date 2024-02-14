@@ -34,10 +34,7 @@ import com.epicnicity322.terrainer.bukkit.event.terrain.TerrainRemoveEvent;
 import com.epicnicity322.terrainer.bukkit.hook.economy.VaultHook;
 import com.epicnicity322.terrainer.bukkit.hook.nms.ReflectionHook;
 import com.epicnicity322.terrainer.bukkit.listener.*;
-import com.epicnicity322.terrainer.bukkit.util.BukkitPlayerUtil;
-import com.epicnicity322.terrainer.bukkit.util.EconomyHandler;
-import com.epicnicity322.terrainer.bukkit.util.NMSHandler;
-import com.epicnicity322.terrainer.bukkit.util.TaskFactory;
+import com.epicnicity322.terrainer.bukkit.util.*;
 import com.epicnicity322.terrainer.core.Terrainer;
 import com.epicnicity322.terrainer.core.config.Configurations;
 import com.epicnicity322.terrainer.core.terrain.Flags;
@@ -57,6 +54,7 @@ import org.jetbrains.annotations.Nullable;
 import java.io.IOException;
 import java.lang.reflect.Field;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public final class TerrainerPlugin extends JavaPlugin {
     private static final @NotNull MessageSender lang = new MessageSender(() -> Configurations.CONFIG.getConfiguration().getString("Language").orElse("EN_US"), Configurations.LANG_EN_US.getDefaultConfiguration());
@@ -95,6 +93,13 @@ public final class TerrainerPlugin extends JavaPlugin {
     private final @NotNull BukkitPlayerUtil playerUtil = new BukkitPlayerUtil(this);
     private final @NotNull PreLoginListener preLoginListener = new PreLoginListener();
     private final @NotNull TaskFactory taskFactory = new TaskFactory(this);
+    private final @NotNull AtomicBoolean enterLeaveEvents = new AtomicBoolean(true);
+    private final @NotNull ProtectionsListener protectionsListener = new ProtectionsListener(this, bordersCommand);
+    private final @NotNull PistonListener pistonListener = new PistonListener(protectionsListener);
+    private final @NotNull BlockFromToListener blockFromToListener = new BlockFromToListener(protectionsListener);
+    private final @NotNull CreatureSpawnListener creatureSpawnListener = new CreatureSpawnListener(protectionsListener);
+    private final @NotNull EnterLeaveListener enterLeaveListener = new EnterLeaveListener();
+    private final @NotNull EntityMoveListener entityMoveListener = new EntityMoveListener();
 
     public TerrainerPlugin() {
         instance = this;
@@ -174,6 +179,10 @@ public final class TerrainerPlugin extends JavaPlugin {
         // Instance required from now on
         if (instance == null) return false;
 
+        // Loading listener performance settings
+        instance.enterLeaveEvents.set(!config.getBoolean("Performance.Disable Enter Leave Events").orElse(false));
+        instance.reloadListeners();
+
         // Borders Particle
         String particleName = config.getString("Borders.Particle").orElse("CLOUD").toUpperCase(Locale.ROOT);
         try {
@@ -229,17 +238,14 @@ public final class TerrainerPlugin extends JavaPlugin {
             t.printStackTrace();
         }
 
-        var protectionsListener = new ProtectionsListener(this, bordersCommand);
-        pm.registerEvents(protectionsListener, this);
         if (ReflectionUtil.getClass("org.bukkit.event.entity.EntityMountEvent") != null) {
-            pm.registerEvents(new MountListener(protectionsListener), this);
+            pm.registerEvents(new MountListener(protectionsListener, enterLeaveEvents), this);
         } else if (ReflectionUtil.getClass("org.spigotmc.event.entity.EntityMountEvent") != null) {
-            pm.registerEvents(new LegacyMountListener(protectionsListener), this);
+            pm.registerEvents(new LegacyMountListener(protectionsListener, enterLeaveEvents), this);
         } else {
             logger.log("Could not find entity mount/dismount events, protections related to these events will not be enforced.", ConsoleLogger.Level.ERROR);
         }
-        pm.registerEvents(new EnterLeaveListener(), this);
-        pm.registerEvents(new PaperListener(), this);
+        pm.registerEvents(protectionsListener, this);
         pm.registerEvents(new FlagListener(), this);
         pm.registerEvents(new SelectionListener(selectorWandKey, infoWandKey, bordersCommand), this);
 
@@ -311,5 +317,39 @@ public final class TerrainerPlugin extends JavaPlugin {
             return;
         }
         CommandManager.registerCommand(main, commands);
+    }
+
+    private void reloadListeners() {
+        Configuration config = Configurations.CONFIG.getConfiguration();
+        boolean enterLeaveEvents = this.enterLeaveEvents.get();
+        boolean entityMoveEvent = !config.getBoolean("Performance.Disable Entity Move Event").orElse(false);
+        boolean pistonEvents = !config.getBoolean("Performance.Disable Piston Events").orElse(false);
+        boolean blockFromToEvent = !config.getBoolean("Performance.Disable Block From To Event").orElse(false);
+        boolean creatureSpawnEvent = !config.getBoolean("Performance.Disable Creature Spawn Event").orElse(false);
+
+        loadListener(enterLeaveListener, enterLeaveEvents, "Enter/Leave", true);
+        if (ReflectionUtil.getClass("io.papermc.paper.event.entity.EntityMoveEvent") != null) {
+            loadListener(entityMoveListener, enterLeaveEvents && entityMoveEvent, "Entity Move", false);
+        } else {
+            logger.log("Entity Move listener could not be enabled because it is a PaperMC event! Protections and features related to this event will not work.", ConsoleLogger.Level.WARN);
+        }
+        loadListener(pistonListener, pistonEvents, "Piston", true);
+        loadListener(blockFromToListener, blockFromToEvent, "Block From/To", false);
+        loadListener(creatureSpawnListener, creatureSpawnEvent, "Creature Spawn", false);
+    }
+
+    private void loadListener(@NotNull ToggleableListener listener, boolean register, @NotNull String name, boolean plural) {
+        if (register) {
+            if (!listener.registered.get()) {
+                getServer().getPluginManager().registerEvents(listener, this);
+                listener.registered.set(true);
+            }
+        } else {
+            logger.log(name + " event" + (plural ? "s are" : " is") + " disabled! Protections and features related to " + (plural ? "these events" : "this event") + " will not work.", ConsoleLogger.Level.WARN);
+            if (listener.registered.get()) {
+                HandlerList.unregisterAll(listener);
+                listener.registered.set(false);
+            }
+        }
     }
 }

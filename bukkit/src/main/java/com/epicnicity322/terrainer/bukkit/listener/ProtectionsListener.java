@@ -371,22 +371,6 @@ public final class ProtectionsListener extends Protections<Player, CommandSender
     }
 
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
-    public void onCreatureSpawn(CreatureSpawnEvent event) {
-        Location loc = event.getLocation();
-
-        switch (event.getSpawnReason()) {
-            case BUILD_IRONGOLEM, BUILD_SNOWMAN, BUILD_WITHER, CUSTOM, DISPENSE_EGG, DUPLICATION, ENDER_PEARL, JOCKEY, MOUNT, NATURAL, NETHER_PORTAL, OCELOT_BABY, PATROL, RAID, REINFORCEMENTS, SILVERFISH_BLOCK, SLIME_SPLIT, SPAWNER_EGG, SPELL, TRAP, VILLAGE_DEFENSE, VILLAGE_INVASION -> {
-                if (!creatureSpawn(loc.getWorld().getUID(), loc.getBlockX(), loc.getBlockY(), loc.getBlockZ()))
-                    event.setCancelled(true);
-            }
-            case SPAWNER -> {
-                if (!spawnerSpawn(loc.getWorld().getUID(), loc.getBlockX(), loc.getBlockY(), loc.getBlockZ()))
-                    event.setCancelled(true);
-            }
-        }
-    }
-
-    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
     public void onItemPickup(EntityPickupItemEvent event) {
         if (event.getEntityType() != EntityType.PLAYER) return;
         Item item = event.getItem();
@@ -400,30 +384,6 @@ public final class ProtectionsListener extends Protections<Player, CommandSender
         Item item = event.getItemDrop();
         Location loc = item.getLocation();
         if (!itemDrop(item.getWorld().getUID(), loc.getBlockX(), loc.getBlockY(), loc.getBlockZ(), event.getPlayer()))
-            event.setCancelled(true);
-    }
-
-    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
-    public void onPistonExtend(BlockPistonExtendEvent event) {
-        Block piston = event.getBlock();
-        Collection<Block> movedBlocks = event.getBlocks().isEmpty() ? Collections.singleton(piston) : event.getBlocks();
-        if (!pistonExtend(piston.getWorld().getUID(), movedBlocks, b -> b.getRelative(event.getDirection())))
-            event.setCancelled(true);
-    }
-
-    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
-    public void onPistonRetract(BlockPistonRetractEvent event) {
-        if (event.getBlocks().isEmpty()) return;
-        Block piston = event.getBlock();
-        if (!pistonRetract(piston.getWorld().getUID(), piston.getX(), piston.getY(), piston.getZ(), event.getBlocks()))
-            event.setCancelled(true);
-    }
-
-    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
-    public void onLiquidFlow(BlockFromToEvent event) {
-        Block from = event.getBlock();
-        Block to = event.getToBlock();
-        if (!liquidFlow(to.getWorld().getUID(), to.getX(), to.getY(), to.getZ(), from.getX(), from.getY(), from.getZ()))
             event.setCancelled(true);
     }
 
