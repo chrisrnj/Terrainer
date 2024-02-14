@@ -110,7 +110,7 @@ public final class Flags {
      */
     public static final @NotNull Flag<Boolean> ENTITY_HARM = Flag.newBooleanFlag("Entity Harm", false);
     /**
-     * Allows everyone to interact with entities, breed entities and use armor stands in a terrain.
+     * Allows everyone to interact with entities, breed entities in a terrain.
      */
     public static final @NotNull Flag<Boolean> ENTITY_INTERACTIONS = Flag.newBooleanFlag("Entity Interactions", false);
     /**
