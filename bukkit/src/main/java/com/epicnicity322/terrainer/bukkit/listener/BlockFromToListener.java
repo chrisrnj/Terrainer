@@ -28,7 +28,7 @@ import org.jetbrains.annotations.NotNull;
 /**
  * A listener for exclusive for block from to event.
  */
-public class BlockFromToListener extends ToggleableListener {
+public final class BlockFromToListener extends ToggleableListener {
     private final @NotNull ProtectionsListener protectionsListener;
 
     public BlockFromToListener(@NotNull ProtectionsListener protectionsListener) {

@@ -32,7 +32,7 @@ import java.util.Collections;
 /**
  * A listener for exclusive for piston events.
  */
-public class PistonListener extends ToggleableListener {
+public final class PistonListener extends ToggleableListener {
     private final @NotNull ProtectionsListener protectionsListener;
 
     public PistonListener(@NotNull ProtectionsListener protectionsListener) {

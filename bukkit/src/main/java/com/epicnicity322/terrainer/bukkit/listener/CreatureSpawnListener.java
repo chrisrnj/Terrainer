@@ -29,7 +29,7 @@ import org.jetbrains.annotations.NotNull;
 /**
  * A listener for exclusive for creature spawn event.
  */
-public class CreatureSpawnListener extends ToggleableListener {
+public final class CreatureSpawnListener extends ToggleableListener {
     private final @NotNull ProtectionsListener protectionsListener;
 
     public CreatureSpawnListener(@NotNull ProtectionsListener protectionsListener) {
