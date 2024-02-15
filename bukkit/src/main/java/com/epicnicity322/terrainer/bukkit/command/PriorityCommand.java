@@ -60,7 +60,7 @@ public final class PriorityCommand extends Command {
         if (sender instanceof Player player && args0.length == 2 && (args0[1].equalsIgnoreCase("-h") || args0[1].equalsIgnoreCase(lang.get("Commands.Priority.Here")))) {
             Location loc = player.getLocation();
             UUID world = player.getWorld().getUID();
-            List<Terrain> terrains = TerrainManager.getTerrainsAt(world, loc.getBlockX(), loc.getBlockY(), loc.getBlockZ());
+            List<Terrain> terrains = TerrainManager.getActiveTerrainsAt(world, loc.getBlockX(), loc.getBlockY(), loc.getBlockZ());
             boolean removed = false;
 
             // World Terrains are not shown with -here.

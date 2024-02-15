@@ -59,6 +59,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public final class TerrainerPlugin extends JavaPlugin {
     private static final @NotNull MessageSender lang = new MessageSender(() -> Configurations.CONFIG.getConfiguration().getString("Language").orElse("EN_US"), Configurations.LANG_EN_US.getDefaultConfiguration());
     private static final @NotNull Logger logger = new Logger(Terrainer.logger().getPrefix());
+    private static final @NotNull BukkitChunkUtil chunkUtil = new BukkitChunkUtil();
     private static @Nullable TerrainerPlugin instance;
     private static @Nullable EconomyHandler economyHandler;
     private static @NotNull NMSHandler nmsHandler = new NMSHandler() {
@@ -75,6 +76,7 @@ public final class TerrainerPlugin extends JavaPlugin {
     static {
         Terrainer.setLang(lang);
         Terrainer.setLogger(logger);
+        Terrainer.setChunkUtil(chunkUtil);
         Flags.setEffectChecker(value -> {
             var key = NamespacedKey.fromString(value);
             if (key == null) return false;
@@ -284,6 +286,7 @@ public final class TerrainerPlugin extends JavaPlugin {
                 // Loading worlds and world load listener.
                 for (World world : getServer().getWorlds()) TerrainManager.loadWorld(world.getUID(), world.getName());
                 pm.registerEvents(new WorldLoadListener(), this);
+                pm.registerEvents(new ChunkListener(), this);
 
                 logger.log("Terrains loaded.");
             } catch (IOException e) {

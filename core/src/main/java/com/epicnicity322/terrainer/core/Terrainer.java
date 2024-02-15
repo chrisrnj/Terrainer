@@ -21,6 +21,7 @@ package com.epicnicity322.terrainer.core;
 import com.epicnicity322.epicpluginlib.core.lang.LanguageHolder;
 import com.epicnicity322.epicpluginlib.core.logger.ConsoleLogger;
 import com.epicnicity322.terrainer.core.config.Configurations;
+import com.epicnicity322.terrainer.core.util.ChunkUtil;
 import com.epicnicity322.terrainer.core.util.PlayerUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.UnknownNullability;
@@ -29,6 +30,7 @@ public final class Terrainer {
     private static @NotNull ConsoleLogger<?> logger = ConsoleLogger.simpleLogger("[Terrainer] ");
     private static @NotNull LanguageHolder<?, ?> lang = LanguageHolder.simpleLanguage(() -> "", Configurations.LANG_EN_US.getDefaultConfiguration());
     private static @UnknownNullability PlayerUtil<?, ?> playerUtil = null;
+    private static @UnknownNullability ChunkUtil<?> chunkUtil = null;
 
     private Terrainer() {
     }
@@ -55,5 +57,13 @@ public final class Terrainer {
 
     public static void setPlayerUtil(@NotNull PlayerUtil<?, ?> playerUtil) {
         Terrainer.playerUtil = playerUtil;
+    }
+
+    public static @UnknownNullability ChunkUtil<?> chunkUtil() {
+        return chunkUtil;
+    }
+
+    public static void setChunkUtil(@NotNull ChunkUtil<?> chunkUtil) {
+        Terrainer.chunkUtil = chunkUtil;
     }
 }

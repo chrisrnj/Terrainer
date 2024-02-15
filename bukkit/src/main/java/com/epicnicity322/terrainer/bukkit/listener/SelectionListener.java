@@ -202,7 +202,7 @@ public final class SelectionListener implements Listener {
 
     private void sendInfo(@NotNull Player player, @NotNull Block block) {
         MessageSender lang = TerrainerPlugin.getLanguage();
-        List<Terrain> terrains = TerrainManager.getTerrainsAt(block.getWorld().getUID(), block.getX(), block.getY(), block.getZ());
+        List<Terrain> terrains = TerrainManager.getActiveTerrainsAt(block.getWorld().getUID(), block.getX(), block.getY(), block.getZ());
 
         if (terrains.isEmpty()) {
             lang.send(player, lang.get("Info.Error.No Terrains"));

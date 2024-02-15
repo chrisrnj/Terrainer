@@ -117,38 +117,15 @@ public abstract class Protections<P extends R, R, M, B, E> {
 
     public boolean handleProtection(@NotNull P player, @NotNull UUID world, double x, double y, double z, @NotNull Flag<Boolean> flag, boolean message) {
         if (playerUtil.hasPermission(player, flag.bypassPermission())) return true;
-        List<Terrain> terrains = TerrainManager.terrains(world);
-
-        for (int i = 0; i < terrains.size(); i++) {
-            Terrain terrain = terrains.get(i);
-
-            if (!terrain.isWithin(x, y, z)) continue;
-            if (playerUtil.hasAnyRelations(player, terrain)) return true;
-
-            Boolean state = terrain.flags().getData(flag);
-
-            if (state != null) {
-                // Terrain with the highest priority that has the flag set has been found.
-                // There may be more terrains in the location with same priority, but the terrain that was found first wins.
-
-                if (!state) {
-                    // Flag set to false, do additional checks to terrains with same priority and return.
-                    // If the player has relations to any of the terrains in the location with same priority, then allow.
-                    state = checkPlayerRelationToRestOfTerrainsWithSamePriority(player, terrains, i + 1, terrain.priority(), x, y, z);
-                    if (!state && message) lang.send(player, lang.get("Protections." + flag.id()));
-                    return state;
-                }
-                break;
-            }
-        }
-
-        return true;
+        boolean allow = TerrainManager.isFlagAllowedAt(flag, playerUtil.getUniqueId(player), world, x, y, z);
+        if (!allow && message) lang.send(player, lang.get("Protections." + flag.id()));
+        return allow;
     }
 
     public boolean handleProtection(@NotNull P player, @NotNull UUID world, double x, double y, double z, @NotNull Flag<Boolean> flag1, @NotNull Flag<Boolean> flag2) {
         if (playerUtil.hasPermission(player, flag1.bypassPermission()) && playerUtil.hasPermission(player, flag2.bypassPermission()))
             return true;
-        List<Terrain> terrains = TerrainManager.terrains(world);
+        List<Terrain> terrains = TerrainManager.activeTerrains(world);
         boolean state1Found = false;
         boolean state2Found = false;
 
@@ -194,7 +171,7 @@ public abstract class Protections<P extends R, R, M, B, E> {
     }
 
     public boolean handleProtection(@NotNull UUID world, double x, double y, double z, @NotNull Flag<Boolean> flag) {
-        List<Terrain> terrains = TerrainManager.terrains(world);
+        List<Terrain> terrains = TerrainManager.activeTerrains(world);
 
         for (Terrain terrain : terrains) {
             if (!terrain.isWithin(x, y, z)) continue;
@@ -206,7 +183,7 @@ public abstract class Protections<P extends R, R, M, B, E> {
     }
 
     public boolean handleProtection(@NotNull UUID world, double x, double y, double z, @NotNull Flag<Boolean> flag1, @NotNull Flag<Boolean> flag2) {
-        List<Terrain> terrains = TerrainManager.terrains(world);
+        List<Terrain> terrains = TerrainManager.activeTerrains(world);
 
         boolean state1Found = false;
         boolean state2Found = false;
@@ -240,7 +217,7 @@ public abstract class Protections<P extends R, R, M, B, E> {
     }
 
     public boolean handleBlockFromTo(@NotNull UUID world, double x, double y, double z, double fromX, double fromY, double fromZ, @NotNull Flag<Boolean> flagInside, @NotNull Flag<Boolean> flagOutside) {
-        List<Terrain> terrains = TerrainManager.terrains(world);
+        List<Terrain> terrains = TerrainManager.activeTerrains(world);
 
         // Highest priority wins.
         boolean flagInsideFound = false;
@@ -278,7 +255,7 @@ public abstract class Protections<P extends R, R, M, B, E> {
     }
 
     public boolean handleOutsideAction(@NotNull UUID world, double x, double y, double z, double fromX, double fromY, double fromZ, @NotNull Flag<Boolean> flag) {
-        List<Terrain> terrains = TerrainManager.terrains(world);
+        List<Terrain> terrains = TerrainManager.activeTerrains(world);
 
         for (Terrain terrain : terrains) {
             if (!terrain.isWithin(x, y, z)) continue;
@@ -292,7 +269,7 @@ public abstract class Protections<P extends R, R, M, B, E> {
     }
 
     public boolean handleOutsideBlockProtection(@NotNull UUID world, double x, double y, double z, @NotNull List<B> blocks, boolean removeFromList, @NotNull Flag<Boolean> flagInside, @NotNull Flag<Boolean> flagOutside) {
-        List<Terrain> terrains = TerrainManager.terrains(world);
+        List<Terrain> terrains = TerrainManager.activeTerrains(world);
         ArrayList<B> blocksToTest = new ArrayList<>(blocks);
         boolean flagInsideFound = false;
 
@@ -473,7 +450,7 @@ public abstract class Protections<P extends R, R, M, B, E> {
             P damagerPlayer = entityOrShooterToPlayer(damager);
 
             if (damagerPlayer != null) {
-                List<Terrain> terrains = TerrainManager.terrains(world);
+                List<Terrain> terrains = TerrainManager.activeTerrains(world);
 
                 for (Terrain terrain : terrains) {
                     if (!terrain.isWithin(x, y, z)) continue;
@@ -610,7 +587,7 @@ public abstract class Protections<P extends R, R, M, B, E> {
 
     public boolean command(@NotNull UUID world, double x, double y, double z, @NotNull P player, @NotNull String command) {
         if (playerUtil.hasPermission(player, Flags.COMMAND_BLACKLIST.bypassPermission())) return true;
-        List<Terrain> terrains = TerrainManager.terrains(world);
+        List<Terrain> terrains = TerrainManager.activeTerrains(world);
 
         Integer priorityFound = null;
         Set<String> blockedCommands = null;

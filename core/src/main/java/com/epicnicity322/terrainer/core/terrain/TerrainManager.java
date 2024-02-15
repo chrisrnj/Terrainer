@@ -20,6 +20,7 @@ package com.epicnicity322.terrainer.core.terrain;
 
 import com.epicnicity322.epicpluginlib.core.logger.ConsoleLogger;
 import com.epicnicity322.epicpluginlib.core.util.PathUtils;
+import com.epicnicity322.terrainer.core.Chunk;
 import com.epicnicity322.terrainer.core.Terrainer;
 import com.epicnicity322.terrainer.core.WorldCoordinate;
 import com.epicnicity322.terrainer.core.config.Configurations;
@@ -45,9 +46,17 @@ import java.util.stream.Stream;
 public final class TerrainManager {
     public static final @NotNull Path TERRAINS_FOLDER = Configurations.DATA_FOLDER.resolve("Terrains");
     /**
-     * A map with the World's ID as key and a list of terrains in this world as value. This list is sorted based on the minDiagonal's coordinate ID.
+     * A map with the World's ID as key and a list of terrains in this world as value. This list is sorted based on {@link #priorityComparator}.
      */
     private static final @NotNull Map<UUID, List<Terrain>> terrains = new ConcurrentHashMap<>();
+    /**
+     * A map with the World's ID as key and a list of <b>active</b> terrains in this world as value. This list is sorted based on {@link #priorityComparator}.
+     */
+    private static final @NotNull Map<UUID, List<Terrain>> activeTerrains = new ConcurrentHashMap<>();
+    /**
+     * A comparator used to sort lists based on terrain priorities, from high to low.
+     */
+    private static final @NotNull Comparator<Terrain> priorityComparator = (c1, c2) -> -Integer.compare(c1.priority, c2.priority);
     /**
      * The selected diagonals of players. Key as the player's ID and value as an array with size 2 containing the diagonals.
      */
@@ -74,6 +83,48 @@ public final class TerrainManager {
     }
 
     /**
+     * Gets the active terrains of a specific world. The provided list has the terrains sorted based on {@link Terrain#priority()}.
+     * <p>
+     * Active terrains are terrains that currently reside in loaded chunks. These terrains are terrains that should have
+     * their protections enforced.
+     *
+     * @param world The world of the terrains.
+     * @return An unmodifiable list with the active terrains of this world.
+     */
+    public static @NotNull List<Terrain> activeTerrains(@NotNull UUID world) {
+        List<Terrain> activeTerrains = TerrainManager.activeTerrains.get(world);
+        if (activeTerrains == null) return Collections.emptyList();
+        return Collections.unmodifiableList(activeTerrains);
+    }
+
+    /**
+     * Marks a terrain as active, meaning that it currently resides in loaded chunks.
+     * <p>
+     * A terrain should only be marked as active if actions that require protection checking should be performed on them.
+     * Terrainer automatically fully handles marking of active terrains without calling this method, this is available
+     * only for the sake of compatibility with other mods that change how ticking and the world works.
+     * <p>
+     * Terrains marked as active by this method SHOULD be in the list of active terrains. To register a terrain, use the
+     * method {@link #add(Terrain)}.
+     *
+     * @param terrain The terrain to add in the list of terrains that are being protected currently.
+     * @param active  Whether to add or remove the terrain from the list of active.
+     * @throws IllegalStateException If this terrain is not a registered terrain.
+     */
+    public static void setActive(@NotNull Terrain terrain, boolean active) {
+        if (active) {
+            List<Terrain> terrains = TerrainManager.terrains.get(terrain.world);
+            if (terrains == null || !terrains.contains(terrain))
+                throw new IllegalStateException("Unregistered terrains can not be set as active.");
+            List<Terrain> list = activeTerrains.computeIfAbsent(terrain.world, k -> Collections.synchronizedList(new SortedList<>(priorityComparator)));
+            if (!list.contains(terrain)) list.add(terrain);
+        } else {
+            List<Terrain> terrains = activeTerrains.get(terrain.world);
+            if (terrains != null) terrains.remove(terrain);
+        }
+    }
+
+    /**
      * Registers a terrain object to {@link #allTerrains()}. Registered terrain objects are saved, loaded, and have their
      * protections enforced. They also are saved automatically once any changes to the instance are made.
      * <p>
@@ -97,6 +148,8 @@ public final class TerrainManager {
 
     /**
      * Adds the terrain to {@link #allTerrains()} without calling {@link #loadAutoSave()}.
+     * <p>
+     * This method will automatically set the terrain as active if it's found within a loaded chunk.
      *
      * @param terrain The terrain to add.
      * @return Whether the terrain was added and {@link #loadAutoSave()} should be called.
@@ -110,18 +163,22 @@ public final class TerrainManager {
 
         // Events passed, terrain should be added.
 
-        if (worldTerrains == null) {
-            // Creating a new list for this world, terrains are sorted based on priority.
-            worldTerrains = Collections.synchronizedList(new SortedList<>((c1, c2) -> -Integer.compare(c1.priority, c2.priority)));
-            terrains.put(terrain.world, worldTerrains);
-        }
-
         // Removing instance with the same ID if found.
         remove(terrain.id, false);
 
         // Adding new instance of terrain and setting Terrain#save to true, so it's saved automatically.
-        worldTerrains.add(terrain);
+        terrains.computeIfAbsent(terrain.world, k -> Collections.synchronizedList(new SortedList<>(priorityComparator))).add(terrain);
         terrain.save = true;
+
+        // Adding new instance of terrain to active terrains if it's found active.
+        if (Terrainer.chunkUtil() != null) {
+            List<Chunk> loadedTerrainChunks = Terrainer.chunkUtil().loadedChunks(terrain);
+            if (!loadedTerrainChunks.isEmpty()) {
+                activeTerrains.computeIfAbsent(terrain.world, k -> Collections.synchronizedList(new SortedList<>(priorityComparator))).add(terrain);
+                terrain.loadedChunks.addAll(loadedTerrainChunks);
+            }
+        }
+
         return true;
     }
 
@@ -177,6 +234,13 @@ public final class TerrainManager {
         worldTerrains.remove(found);
         if (worldTerrains.isEmpty()) terrains.remove(world);
 
+        // Removing from active terrains.
+        List<Terrain> activeWorldTerrains = activeTerrains.get(world);
+        if (activeWorldTerrains != null) {
+            activeWorldTerrains.remove(found);
+            if (activeWorldTerrains.isEmpty()) activeTerrains.remove(world);
+        }
+
         if (callEvents) {
             // Adding this terrain's ID to be removed and loading the auto saver.
             terrainsToRemove.add(terrainID);
@@ -194,11 +258,18 @@ public final class TerrainManager {
      */
     static void update(@NotNull Terrain terrain) {
         List<Terrain> worldTerrains = terrains.get(terrain.world);
-        if (worldTerrains == null) return;
-
-        // If the list of world terrains contained the terrain, then add it again at sorted index.
-        if (worldTerrains.remove(terrain)) {
-            worldTerrains.add(terrain);
+        if (worldTerrains != null) {
+            // If the list of world terrains contained the terrain, then add it again at sorted index.
+            if (worldTerrains.remove(terrain)) {
+                worldTerrains.add(terrain);
+            }
+        }
+        List<Terrain> activeWorldTerrains = activeTerrains.get(terrain.world);
+        if (activeWorldTerrains != null) {
+            // If the list of active world terrains contained the terrain, then add it again at sorted index.
+            if (activeWorldTerrains.remove(terrain)) {
+                activeWorldTerrains.add(terrain);
+            }
         }
     }
 
@@ -206,7 +277,7 @@ public final class TerrainManager {
      * Concat terrains from all worlds into a single iterable.
      *
      * @return An unmodifiable iterable of all currently loaded terrains.
-     * @see #terrains(UUID) It is recommended to get terrains by world, for better performance.
+     * @see #activeTerrains(UUID) It is recommended to get the active terrains in a world, for better performance.
      */
     public static @NotNull Iterable<Terrain> allTerrains() {
         return Iterables.unmodifiableIterable(Iterables.concat(terrains.values()));
@@ -243,8 +314,43 @@ public final class TerrainManager {
     }
 
     /**
+     * Runs through active terrains in this world and adds the ones that have the coordinate within to a new {@link ArrayList}.
+     * The provided list has the terrains sorted based on {@link Terrain#priority()}.
+     *
+     * @param world The world of the coordinates.
+     * @param x     The X coordinate.
+     * @param y     The Y coordinate.
+     * @param z     The Z coordinate.
+     * @return A mutable list with the terrains containing the location.
+     */
+    public static @NotNull List<Terrain> getActiveTerrainsAt(@NotNull UUID world, double x, double y, double z) {
+        List<Terrain> activeWorldTerrains = activeTerrains.get(world);
+        if (activeWorldTerrains == null) return Collections.emptyList();
+
+        // Terrains are sorted based on priority. They are iterated over and the ones that have the coordinate within are added.
+        ArrayList<Terrain> terrainsAt = new ArrayList<>();
+
+        for (Terrain terrain : activeWorldTerrains) if (terrain.isWithin(x, y, z)) terrainsAt.add(terrain);
+
+        return terrainsAt;
+    }
+
+    /**
+     * Runs through active terrains in this world and adds the ones that have the coordinate within to a new {@link ArrayList}.
+     * The provided list has the terrains sorted based on {@link Terrain#priority()}.
+     *
+     * @param worldCoordinate The coordinate to get terrains at.
+     * @return A mutable list with the terrains containing the location.
+     */
+    public static @NotNull List<Terrain> getActiveTerrainsAt(@NotNull WorldCoordinate worldCoordinate) {
+        return getActiveTerrainsAt(worldCoordinate.world(), worldCoordinate.coordinate().x(), worldCoordinate.coordinate().y(), worldCoordinate.coordinate().z());
+    }
+
+    /**
      * Runs through all terrains in this world and adds the ones that have the coordinate within to a new {@link ArrayList}.
      * The provided list has the terrains sorted based on {@link Terrain#priority()}.
+     * <p>
+     * Do not use this for checking flags! Use either {@link #isFlagAllowedAt(Flag, UUID, UUID, double, double, double)} or {@link #getActiveTerrainsAt(UUID, double, double, double)}
      *
      * @param world The world of the coordinates.
      * @param x     The X coordinate.
@@ -267,6 +373,8 @@ public final class TerrainManager {
     /**
      * Runs through all terrains in this world and adds the ones that have the coordinate within to a new {@link ArrayList}.
      * The provided list has the terrains sorted based on {@link Terrain#priority()}.
+     * <p>
+     * Do not use this for checking flags! Use either {@link #isFlagAllowedAt(Flag, UUID, WorldCoordinate)} or {@link #getActiveTerrainsAt(WorldCoordinate)}
      *
      * @param worldCoordinate The coordinate to get terrains at.
      * @return A mutable list with the terrains containing the location.
@@ -300,8 +408,8 @@ public final class TerrainManager {
      * @param worldCoordinate The coordinate to get the terrain at.
      * @return The terrain in the location that has this flag, null if not found.
      */
-    public static @Nullable Terrain getHighestPriorityTerrainWithFlagAt(@NotNull Flag<?> flag, @NotNull WorldCoordinate worldCoordinate) {
-        return getHighestPriorityTerrainWithFlagAt(flag, worldCoordinate.world(), worldCoordinate.coordinate().x(), worldCoordinate.coordinate().y(), worldCoordinate.coordinate().z());
+    public static @Nullable Terrain getHighestPriorityActiveTerrainWithFlagAt(@NotNull Flag<?> flag, @NotNull WorldCoordinate worldCoordinate) {
+        return getHighestPriorityActiveTerrainWithFlagAt(flag, worldCoordinate.world(), worldCoordinate.coordinate().x(), worldCoordinate.coordinate().y(), worldCoordinate.coordinate().z());
     }
 
     /**
@@ -318,9 +426,9 @@ public final class TerrainManager {
      * @param z     The Z coordinate of the location.
      * @return The terrain in the location that has this flag, null if not found.
      */
-    public static @Nullable Terrain getHighestPriorityTerrainWithFlagAt(@NotNull Flag<?> flag, @NotNull UUID world, double x, double y, double z) {
+    public static @Nullable Terrain getHighestPriorityActiveTerrainWithFlagAt(@NotNull Flag<?> flag, @NotNull UUID world, double x, double y, double z) {
         // Terrain list is sorted by priority.
-        for (Terrain terrain : terrains(world)) {
+        for (Terrain terrain : activeTerrains(world)) {
             if (!terrain.isWithin(x, y, z)) continue;
             if (terrain.flags().getData(flag) != null) return terrain;
         }
@@ -332,8 +440,8 @@ public final class TerrainManager {
      * <p>
      * Conditions for flag allowance:
      * <ul>
-     *     <li>Returns true if the location has no terrains with the specified flag.</li>
-     *     <li>Returns true if the flag is explicitly allowed for the terrain with the highest priority at the location.</li>
+     *     <li>Returns true if the location has no active terrains with the specified flag.</li>
+     *     <li>Returns true if the flag is explicitly allowed for the active terrain with the highest priority at the location.</li>
      *     <li>Returns false if the flag is explicitly denied and the player lacks any relations to terrains with the same or higher priority as the terrain where the flag was denied.</li>
      * </ul>
      * <p>
@@ -355,8 +463,8 @@ public final class TerrainManager {
      * <p>
      * Conditions for flag allowance:
      * <ul>
-     *     <li>Returns true if the location has no terrains with the specified flag.</li>
-     *     <li>Returns true if the flag is explicitly allowed for the terrain with the highest priority at the location.</li>
+     *     <li>Returns true if the location has no active terrains with the specified flag.</li>
+     *     <li>Returns true if the flag is explicitly allowed for the active terrain with the highest priority at the location.</li>
      *     <li>Returns false if the flag is explicitly denied and the player lacks any relations to terrains with the same or higher priority as the terrain where the flag was denied.</li>
      * </ul>
      * <p>
@@ -379,7 +487,7 @@ public final class TerrainManager {
         Integer foundPriority = null;
 
         // Terrain list is sorted by priority.
-        for (Terrain terrain : terrains(world)) {
+        for (Terrain terrain : activeTerrains(world)) {
             // If the flag was already found, check if the player has relations to terrains in the location which have the same priority.
             if (foundPriority != null && terrain.priority != foundPriority) return false;
             if (!terrain.isWithin(x, y, z)) continue;
@@ -436,8 +544,9 @@ public final class TerrainManager {
         }
 
         alertDangerousFlagAllowed(savedWorld, Flags.EXPLOSION_DAMAGE);
-        alertDangerousFlagAllowed(savedWorld, Flags.FIRE_SPREAD);
         alertDangerousFlagAllowed(savedWorld, Flags.FIRE_DAMAGE);
+        alertDangerousFlagAllowed(savedWorld, Flags.FIRE_SPREAD);
+        alertDangerousFlagAllowed(savedWorld, Flags.LAVA_FIRE);
     }
 
     private static void alertDangerousFlagAllowed(@NotNull Terrain terrain, @NotNull Flag<Boolean> flag) {
@@ -686,6 +795,38 @@ public final class TerrainManager {
             }
         }
         return cancel;
+    }
+
+    @ApiStatus.Internal
+    public static final class ChunkListener {
+        @ApiStatus.Internal
+        public static void onChunkLoad(int x, int z, @NotNull UUID world) {
+            List<Terrain> worldTerrains = terrains.get(world);
+            if (worldTerrains == null) return;
+            Chunk chunk = new Chunk(x, z);
+
+            for (Terrain terrain : worldTerrains) {
+                if (terrain.isWithinChunk(x, z)) {
+                    // Adding terrain to active if it isn't already.
+                    List<Terrain> activeWorldTerrains = activeTerrains.computeIfAbsent(world, k -> new SortedList<>(priorityComparator));
+                    if (!activeWorldTerrains.contains(terrain)) activeWorldTerrains.add(terrain);
+                    // Setting chunk as active.
+                    terrain.loadedChunks.add(chunk);
+                }
+            }
+        }
+
+        @ApiStatus.Internal
+        public static void onChunkUnload(int x, int z, @NotNull UUID world) {
+            List<Terrain> activeWorldTerrains = TerrainManager.activeTerrains.get(world);
+            if (activeWorldTerrains == null) return;
+            Chunk chunk = new Chunk(x, z);
+
+            activeWorldTerrains.removeIf(terrain -> {
+                terrain.loadedChunks.remove(chunk);
+                return terrain.loadedChunks.isEmpty();
+            });
+        }
     }
 
     record FlagSetResult<T>(boolean cancel, T newData) {

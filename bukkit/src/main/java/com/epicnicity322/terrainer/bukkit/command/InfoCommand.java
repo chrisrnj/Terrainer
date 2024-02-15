@@ -89,7 +89,7 @@ public final class InfoCommand extends Command {
             }
         } else if (sender instanceof Player player) {
             Location loc = player.getLocation();
-            terrains = TerrainManager.getTerrainsAt(player.getWorld().getUID(), loc.getBlockX(), loc.getBlockY(), loc.getBlockZ());
+            terrains = TerrainManager.getActiveTerrainsAt(player.getWorld().getUID(), loc.getBlockX(), loc.getBlockY(), loc.getBlockZ());
         } else {
             lang.send(sender, lang.get("General.Invalid Arguments").replace("<label>", label).replace("<label2>", args[0]).replace("<args>", "<uuid>"));
             return;

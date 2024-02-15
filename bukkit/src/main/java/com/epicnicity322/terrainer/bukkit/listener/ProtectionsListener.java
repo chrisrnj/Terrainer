@@ -831,6 +831,20 @@ public final class ProtectionsListener extends Protections<Player, CommandSender
                 }
             }
         }
+
+        List<String> consoleCommandList = terrain.flags().getData(Flags.LEAVE_CONSOLE_COMMANDS);
+        if (consoleCommandList != null) {
+            for (String command : consoleCommandList) {
+                plugin.getServer().dispatchCommand(plugin.getServer().getConsoleSender(), command.replace("%p", player.getName()).replace("%t", terrain.name()));
+            }
+        }
+
+        List<String> playerCommandList = terrain.flags().getData(Flags.LEAVE_PLAYER_COMMANDS);
+        if (playerCommandList != null) {
+            for (String command : playerCommandList) {
+                plugin.getServer().dispatchCommand(player, command.replace("%p", player.getName()).replace("%t", terrain.name()));
+            }
+        }
     }
 
     private void sendBar(@NotNull String message, @NotNull Player player) {

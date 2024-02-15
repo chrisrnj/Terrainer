@@ -89,7 +89,7 @@ public final class EnterLeaveListener extends ToggleableListener {
         boolean cancel = false;
 
         terrainLoop:
-        for (Terrain terrain : TerrainManager.terrains(world)) {
+        for (Terrain terrain : TerrainManager.activeTerrains(world)) {
             boolean inFrom = terrain.isWithin(fromX, fromY, fromZ);
             boolean inTo = terrain.isWithin(toX, toY, toZ);
 
@@ -182,7 +182,7 @@ public final class EnterLeaveListener extends ToggleableListener {
         boolean enterAllowed = false;
 
         if (sameWorlds) {
-            for (Terrain terrain : TerrainManager.terrains(worldTo)) {
+            for (Terrain terrain : TerrainManager.activeTerrains(worldTo)) {
                 boolean inFrom = terrain.isWithin(fromX, fromY, fromZ);
                 boolean inTo = terrain.isWithin(toX, toY, toZ);
 
@@ -298,7 +298,7 @@ public final class EnterLeaveListener extends ToggleableListener {
         LinkedList<Terrain> callEnterEvents = null;
         boolean enterChecked = false;
 
-        for (Terrain terrain : TerrainManager.terrains(world)) {
+        for (Terrain terrain : TerrainManager.activeTerrains(world)) {
             if (!terrain.isWithin(x, y, z)) continue;
             if (callEnterEvents == null) callEnterEvents = new LinkedList<>();
             callEnterEvents.add(terrain);
@@ -333,7 +333,7 @@ public final class EnterLeaveListener extends ToggleableListener {
         int x = loc.getBlockX(), y = loc.getBlockY(), z = loc.getBlockZ();
         UUID world = player.getWorld().getUID();
 
-        for (Terrain terrain : TerrainManager.terrains(world)) {
+        for (Terrain terrain : TerrainManager.activeTerrains(world)) {
             if (!terrain.isWithin(x, y, z)) continue;
             var leave = new TerrainLeaveEvent(loc, loc, player, terrain, TerrainEvent.EnterLeaveReason.LEAVE_SERVER);
             Bukkit.getPluginManager().callEvent(leave);

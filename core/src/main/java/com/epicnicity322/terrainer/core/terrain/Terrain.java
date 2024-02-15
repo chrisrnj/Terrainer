@@ -20,6 +20,7 @@ package com.epicnicity322.terrainer.core.terrain;
 
 import com.epicnicity322.epicpluginlib.core.logger.ConsoleLogger;
 import com.epicnicity322.epicpluginlib.core.util.PathUtils;
+import com.epicnicity322.terrainer.core.Chunk;
 import com.epicnicity322.terrainer.core.Coordinate;
 import com.epicnicity322.terrainer.core.Terrainer;
 import com.epicnicity322.terrainer.core.WorldCoordinate;
@@ -34,6 +35,7 @@ import java.io.*;
 import java.nio.file.Path;
 import java.time.ZonedDateTime;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
@@ -44,13 +46,14 @@ import java.util.stream.Collectors;
 public class Terrain implements Serializable {
     private static final @NotNull YamlConfigurationLoader loader = new YamlConfigurationLoader();
     @Serial
-    private static final long serialVersionUID = 1796255576306619296L;
+    private static final long serialVersionUID = 9067498793535714328L;
     final @NotNull UUID world;
     final @NotNull UUID id;
     final @NotNull ZonedDateTime creationDate;
     final @NotNull PrivateSet<UUID> moderators;
     final @NotNull PrivateSet<UUID> members;
     final @NotNull FlagMap flags;
+    final transient @NotNull Set<Chunk> loadedChunks = ConcurrentHashMap.newKeySet();
     @Nullable UUID owner;
     @NotNull Coordinate minDiagonal;
     @NotNull Coordinate maxDiagonal;
@@ -424,8 +427,8 @@ public class Terrain implements Serializable {
      * <p>
      * If this terrain is registered, this method will update the terrain's index in the list of terrains by removing and
      * adding it again, in order to keep the list sorted by priority. So to avoid {@link ConcurrentModificationException},
-     * it is not recommended to use this method while iterating  through terrains using {@link TerrainManager#allTerrains()}
-     * or {@link TerrainManager#terrains(UUID)}.
+     * it is not recommended to use this method while iterating through terrains using {@link TerrainManager#allTerrains()},
+     * {@link TerrainManager#activeTerrains(UUID)} and {@link TerrainManager#terrains(UUID)}.
      *
      * @param priority The new priority of this terrain.
      */

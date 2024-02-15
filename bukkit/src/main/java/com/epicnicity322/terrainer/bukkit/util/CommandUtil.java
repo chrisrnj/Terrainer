@@ -111,7 +111,7 @@ public final class CommandUtil {
             Location loc = player.getLocation();
             int x = loc.getBlockX(), y = loc.getBlockY(), z = loc.getBlockZ();
             UUID world = player.getWorld().getUID();
-            foundTerrains = TerrainManager.getTerrainsAt(world, x, y, z);
+            foundTerrains = TerrainManager.getActiveTerrainsAt(world, x, y, z);
             // World terrain is only editable if its name/id is specified in the command.
             foundTerrains.removeIf(t -> t instanceof WorldTerrain);
             location = true;
