@@ -82,7 +82,7 @@ public abstract class PlayerUtil<P extends R, R> {
      */
     public abstract @NotNull String getOwnerName(@Nullable UUID uuid);
 
-    protected abstract @NotNull UUID getUniqueId(@NotNull P player);
+    public abstract @NotNull UUID getUniqueId(@NotNull P player);
 
     protected abstract @NotNull R getConsoleRecipient();
 
@@ -427,7 +427,7 @@ public abstract class PlayerUtil<P extends R, R> {
     public void showMarkers(@NotNull P player, int y) {
         removeMarkers(player);
         WorldCoordinate location = location(player);
-        var terrains = TerrainManager.getTerrainsAt(location);
+        var terrains = TerrainManager.getActiveTerrainsAt(location);
         terrains.removeIf(t -> t instanceof WorldTerrain);
         addOverlapping(terrains, player);
 
