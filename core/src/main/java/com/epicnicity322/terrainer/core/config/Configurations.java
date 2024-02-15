@@ -1010,7 +1010,7 @@ public final class Configurations {
                     &7The location of the message will be the same
                     &7as the one set in 'Message Location' flag.
                 Leave Player Commands:
-                  Display Name: '&d&lLeave Console Commands'
+                  Display Name: '&d&lLeave Player Commands'
                   Lore: |-
                     &7Value: &f<var0>
                     
