@@ -30,10 +30,10 @@ import java.util.Objects;
 import java.util.UUID;
 
 public final class WorldTerrain extends Terrain {
+    static final @NotNull Coordinate min = new Coordinate(Double.MIN_VALUE, Double.MIN_VALUE, Double.MIN_VALUE);
+    static final @NotNull Coordinate max = new Coordinate(Double.MAX_VALUE, Double.MAX_VALUE, Double.MAX_VALUE);
     @Serial
     private static final long serialVersionUID = 4143636588732215131L;
-    private static final @NotNull Coordinate min = new Coordinate(Double.MIN_VALUE, Double.MIN_VALUE, Double.MIN_VALUE);
-    private static final @NotNull Coordinate max = new Coordinate(Double.MAX_VALUE, Double.MAX_VALUE, Double.MAX_VALUE);
 
     public WorldTerrain(@NotNull UUID world, @NotNull String name) {
         // The ID of the terrain is the same as of the world's.
