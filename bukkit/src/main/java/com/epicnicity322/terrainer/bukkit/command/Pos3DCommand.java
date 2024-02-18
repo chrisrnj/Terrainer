@@ -25,7 +25,7 @@ import com.epicnicity322.terrainer.bukkit.TerrainerPlugin;
 import com.epicnicity322.terrainer.bukkit.util.CommandUtil;
 import com.epicnicity322.terrainer.core.Coordinate;
 import com.epicnicity322.terrainer.core.WorldCoordinate;
-import com.epicnicity322.terrainer.core.terrain.TerrainManager;
+import com.epicnicity322.terrainer.core.util.PlayerUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
@@ -122,7 +122,7 @@ public abstract class Pos3DCommand extends Command implements Position {
             return;
         }
 
-        WorldCoordinate[] selections = TerrainManager.getSelection(player == null ? null : player.getUniqueId());
+        WorldCoordinate[] selections = PlayerUtil.selections(player == null ? null : player.getUniqueId());
 
         selections[isFirst() ? 0 : 1] = new WorldCoordinate(world.getUID(), new Coordinate(x, y, z));
 

@@ -29,7 +29,7 @@ import com.epicnicity322.terrainer.core.Coordinate;
 import com.epicnicity322.terrainer.core.WorldCoordinate;
 import com.epicnicity322.terrainer.core.config.Configurations;
 import com.epicnicity322.terrainer.core.terrain.Terrain;
-import com.epicnicity322.terrainer.core.terrain.TerrainManager;
+import com.epicnicity322.terrainer.core.util.PlayerUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.World;
@@ -61,7 +61,7 @@ public final class ClaimCommand extends Command {
         MessageSender lang = TerrainerPlugin.getLanguage();
         Player player = sender instanceof Player player1 ? player1 : null;
         UUID owner = player == null ? null : player.getUniqueId();
-        WorldCoordinate[] selection = TerrainManager.getSelection(owner);
+        WorldCoordinate[] selection = PlayerUtil.selections(owner);
 
         if (selection[0] == null || selection[1] == null) {
             lang.send(sender, lang.get("Create.Error.Not Selected").replace("<label>", label));

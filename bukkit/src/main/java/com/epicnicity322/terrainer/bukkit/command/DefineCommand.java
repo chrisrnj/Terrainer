@@ -29,6 +29,7 @@ import com.epicnicity322.terrainer.core.WorldCoordinate;
 import com.epicnicity322.terrainer.core.terrain.Flags;
 import com.epicnicity322.terrainer.core.terrain.Terrain;
 import com.epicnicity322.terrainer.core.terrain.TerrainManager;
+import com.epicnicity322.terrainer.core.util.PlayerUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
@@ -60,7 +61,7 @@ public final class DefineCommand extends Command {
     @Override
     public void run(@NotNull String label, @NotNull CommandSender sender, @NotNull String[] args) {
         MessageSender lang = TerrainerPlugin.getLanguage();
-        WorldCoordinate[] selection = TerrainManager.getSelection(sender instanceof Player p ? p.getUniqueId() : null);
+        WorldCoordinate[] selection = PlayerUtil.selections(sender instanceof Player p ? p.getUniqueId() : null);
 
         if (selection[0] == null || selection[1] == null) {
             lang.send(sender, lang.get("Create.Error.Not Selected").replace("<label>", label));

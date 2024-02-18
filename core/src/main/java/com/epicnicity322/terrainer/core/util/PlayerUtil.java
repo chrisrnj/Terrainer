@@ -50,6 +50,15 @@ public abstract class PlayerUtil<P extends R, R> {
      */
     private static final @NotNull HashMap<String, Integer> defaultClaimLimits = new HashMap<>(8);
     private static final @NotNull HashMap<UUID, ArrayList<Integer>> markers = new HashMap<>();
+    /**
+     * The selected diagonals of players. Key as the player's ID and value as an array with size 2 containing the diagonals.
+     */
+    private static final @NotNull HashMap<UUID, WorldCoordinate[]> selections = new HashMap<>();
+    /**
+     * The ID to use in the selection map as placeholder for the console player.
+     */
+    private static final @NotNull UUID consoleUUID = UUID.randomUUID();
+
     private final @NotNull LanguageHolder<?, R> lang;
 
     protected PlayerUtil(@NotNull LanguageHolder<?, R> lang) {
@@ -64,6 +73,19 @@ public abstract class PlayerUtil<P extends R, R> {
     public static void setDefaultClaimLimits(@NotNull Map<String, Integer> claimLimits) {
         defaultClaimLimits.clear();
         defaultClaimLimits.putAll(claimLimits);
+    }
+
+    /**
+     * Gets a mutable array with length 2, with the marked coordinate diagonals this player made.
+     * <p>
+     * Players can select either through command or the selection wand.
+     *
+     * @param player The UUID of the player to get selections from, or null to get from CONSOLE.
+     * @return The selected coordinates of this player.
+     */
+    public static @Nullable WorldCoordinate @NotNull [] selections(@Nullable UUID player) {
+        if (player == null) player = consoleUUID;
+        return selections.computeIfAbsent(player, k -> new WorldCoordinate[2]);
     }
 
     public abstract boolean canFly(@NotNull P player);
@@ -427,7 +449,7 @@ public abstract class PlayerUtil<P extends R, R> {
     public void showMarkers(@NotNull P player, int y) {
         removeMarkers(player);
         WorldCoordinate location = location(player);
-        var terrains = TerrainManager.getTerrainsAt(location);
+        var terrains = TerrainManager.terrainsAt(location);
         terrains.removeIf(t -> t instanceof WorldTerrain);
         addOverlapping(terrains, player);
 
@@ -440,7 +462,7 @@ public abstract class PlayerUtil<P extends R, R> {
             spawnMarkersAtBorders(terrain.minDiagonal(), terrain.maxDiagonal(), player, terrainY, true);
         }
 
-        WorldCoordinate[] selections = TerrainManager.getSelection(getUniqueId(player));
+        WorldCoordinate[] selections = selections(getUniqueId(player));
         spawnMarkersAtBorders(selections[0] == null ? null : selections[0].coordinate(), selections[1] == null ? null : selections[1].coordinate(), player, y, false);
     }
 
