@@ -30,7 +30,7 @@ public final class WorldLoadListener implements Listener {
     @EventHandler
     public void onWorldLoad(WorldLoadEvent event) {
         UUID world = event.getWorld().getUID();
-        if (TerrainManager.getTerrainByID(world) instanceof WorldTerrain) return;
+        if (TerrainManager.terrainByID(world) instanceof WorldTerrain) return;
         TerrainManager.loadWorld(world, event.getWorld().getName());
     }
 }

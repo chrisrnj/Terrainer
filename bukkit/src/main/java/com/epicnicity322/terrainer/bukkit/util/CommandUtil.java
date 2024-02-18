@@ -97,7 +97,7 @@ public final class CommandUtil {
         }
 
         String terrainName = terrainNameBuilder.toString();
-        List<Terrain> foundTerrains = null;
+        Collection<Terrain> foundTerrains = null;
         boolean location = false;
 
         // If no terrain was specified in the command, look for terrain in player's location.
@@ -111,7 +111,7 @@ public final class CommandUtil {
             Location loc = player.getLocation();
             int x = loc.getBlockX(), y = loc.getBlockY(), z = loc.getBlockZ();
             UUID world = player.getWorld().getUID();
-            foundTerrains = TerrainManager.getTerrainsAt(world, x, y, z);
+            foundTerrains = TerrainManager.terrainsAt(world, x, y, z);
             // World terrain is only editable if its name/id is specified in the command.
             foundTerrains.removeIf(t -> t instanceof WorldTerrain);
             location = true;
@@ -125,7 +125,7 @@ public final class CommandUtil {
 
             if (id != null) {
                 foundTerrains = new ArrayList<>(2);
-                foundTerrains.add(TerrainManager.getTerrainByID(id));
+                foundTerrains.add(TerrainManager.terrainByID(id));
             } else {
                 // Finding terrain by name. The ones the player is not allowed to find are ignored.
                 for (Terrain t : TerrainManager.allTerrains()) {
@@ -151,7 +151,7 @@ public final class CommandUtil {
         }
 
         if (foundTerrains.size() == 1) {
-            onFind.accept(new CommandArguments(preceding.toArray(new String[0]), foundTerrains.get(0)));
+            onFind.accept(new CommandArguments(preceding.toArray(new String[0]), foundTerrains.iterator().next()));
             return;
         }
 

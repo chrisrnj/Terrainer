@@ -28,6 +28,7 @@ import com.epicnicity322.terrainer.core.WorldCoordinate;
 import com.epicnicity322.terrainer.core.config.Configurations;
 import com.epicnicity322.terrainer.core.terrain.Terrain;
 import com.epicnicity322.terrainer.core.terrain.TerrainManager;
+import com.epicnicity322.terrainer.core.util.PlayerUtil;
 import com.epicnicity322.terrainer.core.util.TerrainerUtil;
 import com.epicnicity322.yamlhandler.Configuration;
 import org.bukkit.Bukkit;
@@ -49,7 +50,7 @@ import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
 
 import java.time.format.DateTimeFormatter;
-import java.util.List;
+import java.util.Collection;
 import java.util.Locale;
 import java.util.UUID;
 
@@ -146,7 +147,7 @@ public final class SelectionListener implements Listener {
                     return;
                 }
 
-                WorldCoordinate[] selections = TerrainManager.getSelection(player.getUniqueId());
+                WorldCoordinate[] selections = PlayerUtil.selections(player.getUniqueId());
 
                 // Clear if we are using only right clicks and both points are already selected.
                 if (!leftAndRight && selections[0] != null && selections[1] != null) {
@@ -202,7 +203,7 @@ public final class SelectionListener implements Listener {
 
     private void sendInfo(@NotNull Player player, @NotNull Block block) {
         MessageSender lang = TerrainerPlugin.getLanguage();
-        List<Terrain> terrains = TerrainManager.getTerrainsAt(block.getWorld().getUID(), block.getX(), block.getY(), block.getZ());
+        Collection<Terrain> terrains = TerrainManager.terrainsAt(block.getWorld().getUID(), block.getX(), block.getY(), block.getZ());
 
         if (terrains.isEmpty()) {
             lang.send(player, lang.get("Info.Error.No Terrains"));

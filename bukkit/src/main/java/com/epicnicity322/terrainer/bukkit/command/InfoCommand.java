@@ -38,7 +38,7 @@ import org.jetbrains.annotations.NotNull;
 
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
-import java.util.List;
+import java.util.Collection;
 import java.util.UUID;
 
 public final class InfoCommand extends Command {
@@ -66,7 +66,7 @@ public final class InfoCommand extends Command {
     @Override
     public void run(@NotNull String label, @NotNull CommandSender sender, @NotNull String[] args) {
         MessageSender lang = TerrainerPlugin.getLanguage();
-        List<Terrain> terrains;
+        Collection<Terrain> terrains;
 
         if (args.length > 1) {
             UUID id = null;
@@ -85,11 +85,11 @@ public final class InfoCommand extends Command {
                 }
             } else {
                 terrains = new ArrayList<>(2);
-                terrains.add(TerrainManager.getTerrainByID(id));
+                terrains.add(TerrainManager.terrainByID(id));
             }
         } else if (sender instanceof Player player) {
             Location loc = player.getLocation();
-            terrains = TerrainManager.getTerrainsAt(player.getWorld().getUID(), loc.getBlockX(), loc.getBlockY(), loc.getBlockZ());
+            terrains = TerrainManager.terrainsAt(player.getWorld().getUID(), loc.getBlockX(), loc.getBlockY(), loc.getBlockZ());
         } else {
             lang.send(sender, lang.get("General.Invalid Arguments").replace("<label>", label).replace("<label2>", args[0]).replace("<args>", "<uuid>"));
             return;

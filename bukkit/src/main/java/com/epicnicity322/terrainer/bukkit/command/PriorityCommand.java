@@ -32,10 +32,11 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 public final class PriorityCommand extends Command {
     @Override
@@ -60,7 +61,7 @@ public final class PriorityCommand extends Command {
         if (sender instanceof Player player && args0.length == 2 && (args0[1].equalsIgnoreCase("-h") || args0[1].equalsIgnoreCase(lang.get("Commands.Priority.Here")))) {
             Location loc = player.getLocation();
             UUID world = player.getWorld().getUID();
-            List<Terrain> terrains = TerrainManager.getTerrainsAt(world, loc.getBlockX(), loc.getBlockY(), loc.getBlockZ());
+            Collection<Terrain> terrains = TerrainManager.terrainsAt(world, loc.getBlockX(), loc.getBlockY(), loc.getBlockZ());
             boolean removed = false;
 
             // World Terrains are not shown with -here.
@@ -74,11 +75,13 @@ public final class PriorityCommand extends Command {
                 return;
             }
             if (terrains.size() == 1) {
-                lang.send(sender, lang.get("Priority.Single").replace("<priority>", Integer.toString(terrains.get(0).priority())).replace("<terrain>", terrains.get(0).name()));
+                Terrain single = terrains.iterator().next();
+                lang.send(sender, lang.get("Priority.Single").replace("<priority>", Integer.toString(single.priority())).replace("<terrain>", single.name()));
                 return;
             }
             if (checkIfTerrainsHaveSamePriority(terrains)) {
-                lang.send(sender, lang.get("Priority.Same.Here").replace("<priority>", Integer.toString(terrains.get(0).priority())).replace("<terrains>", TerrainerUtil.listToString(terrains, Terrain::name)));
+                Terrain first = terrains.iterator().next();
+                lang.send(sender, lang.get("Priority.Same.Here").replace("<priority>", Integer.toString(first.priority())).replace("<terrains>", TerrainerUtil.listToString(terrains, Terrain::name)));
                 if (removed) lang.send(sender, lang.get("Priority.Removed"));
                 return;
             }
@@ -151,12 +154,10 @@ public final class PriorityCommand extends Command {
     }
 
     private List<Terrain> getOverlappingTerrains(Terrain terrain) {
-        List<Terrain> terrains = new ArrayList<>(TerrainManager.terrains(terrain.world()));
-        terrains.removeIf(t -> !terrain.isOverlapping(t));
-        return terrains;
+        return TerrainManager.terrains(terrain.world()).stream().filter(terrain::isOverlapping).sorted(TerrainManager.PRIORITY_COMPARATOR).collect(Collectors.toList());
     }
 
-    private boolean checkIfTerrainsHaveSamePriority(List<Terrain> terrains) {
+    private boolean checkIfTerrainsHaveSamePriority(Collection<Terrain> terrains) {
         Integer priority = null;
 
         for (Terrain terrain : terrains) {

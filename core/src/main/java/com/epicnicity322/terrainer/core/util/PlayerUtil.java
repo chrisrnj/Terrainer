@@ -358,7 +358,7 @@ public abstract class PlayerUtil<P extends R, R> {
 
     protected abstract @NotNull WorldCoordinate location(@NotNull P player);
 
-    private void addOverlapping(@NotNull List<Terrain> terrains, @NotNull P player) {
+    private void addOverlapping(@NotNull Collection<Terrain> terrains, @NotNull P player) {
         if (terrains.isEmpty()) return;
 
         boolean overlapPermission = hasPermission(player, "terrainer.bypass.overlap");
