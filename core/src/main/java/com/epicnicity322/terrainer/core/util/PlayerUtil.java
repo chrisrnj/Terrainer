@@ -104,7 +104,7 @@ public abstract class PlayerUtil<P extends R, R> {
      */
     public abstract @NotNull String getOwnerName(@Nullable UUID uuid);
 
-    protected abstract @NotNull UUID getUniqueId(@NotNull P player);
+    public abstract @NotNull UUID getUniqueId(@NotNull P player);
 
     protected abstract @NotNull R getConsoleRecipient();
 

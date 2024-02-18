@@ -81,7 +81,7 @@ public final class BukkitPlayerUtil extends PlayerUtil<Player, CommandSender> {
     }
 
     @Override
-    protected @NotNull UUID getUniqueId(@NotNull Player player) {
+    public @NotNull UUID getUniqueId(@NotNull Player player) {
         return player.getUniqueId();
     }
 
