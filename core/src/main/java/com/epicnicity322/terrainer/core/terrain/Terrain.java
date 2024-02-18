@@ -44,7 +44,7 @@ import java.util.stream.Collectors;
 public class Terrain implements Serializable {
     private static final @NotNull YamlConfigurationLoader loader = new YamlConfigurationLoader();
     @Serial
-    private static final long serialVersionUID = 1796255576306619296L;
+    private static final long serialVersionUID = 3372758595551124968L;
     final @NotNull UUID world;
     final @NotNull UUID id;
     final @NotNull ZonedDateTime creationDate;
@@ -103,6 +103,30 @@ public class Terrain implements Serializable {
         this.description = description;
         this.creationDate = creationDate;
         this.flags = new FlagMap(flags);
+    }
+
+
+    /**
+     * Dummy constructor for terrains that uses default values. This is useful only when searching in a list of terrains.
+     *
+     * @param min The minimum diagonal of this terrain.
+     * @param max The maximum diagonal of this terrain.
+     */
+    @SuppressWarnings("DataFlowIssue") // Dummy terrain object will never use these variables
+    Terrain(@NotNull Coordinate min, @NotNull Coordinate max) {
+        this.minDiagonal = min;
+        this.maxDiagonal = max;
+        this.borders = null;
+        this.name = null;
+        this.id = null;
+        this.world = null;
+        this.owner = null;
+        this.priority = 0;
+        this.moderators = null;
+        this.members = null;
+        this.description = null;
+        this.creationDate = null;
+        this.flags = null;
     }
 
     /**
@@ -301,6 +325,11 @@ public class Terrain implements Serializable {
      * <p>
      * Both min and max diagonals are updated by calling this method. This is to make sure both diagonals are truly
      * minimum and maximum.
+     * <p>
+     * If this terrain is registered, this method will update the terrain's index in the list of terrains by removing and
+     * adding it again, in order to keep the list sorted by priority. So to avoid {@link ConcurrentModificationException},
+     * it is not recommended to use this method while iterating through terrains using {@link TerrainManager#allTerrains()}
+     * or {@link TerrainManager#terrains(UUID)}.
      *
      * @param first The first diagonal this terrain should be.
      */
@@ -310,6 +339,8 @@ public class Terrain implements Serializable {
         minDiagonal = findMinMax(first, maxDiagonal, true);
         maxDiagonal = findMinMax(first, maxDiagonal, false);
         borders = findBorders(minDiagonal, maxDiagonal);
+        // If this terrain is registered to save, then update the index in terrains list, so it remains sorted.
+        if (save) TerrainManager.update(this);
         markAsChanged();
     }
 
@@ -325,6 +356,11 @@ public class Terrain implements Serializable {
      * <p>
      * Both min and max diagonals are updated by calling this method. This is to make sure both diagonals are truly
      * minimum and maximum.
+     * <p>
+     * If this terrain is registered, this method will update the terrain's index in the list of terrains by removing and
+     * adding it again, in order to keep the list sorted by priority. So to avoid {@link ConcurrentModificationException},
+     * it is not recommended to use this method while iterating through terrains using {@link TerrainManager#allTerrains()}
+     * or {@link TerrainManager#terrains(UUID)}.
      *
      * @param second The second diagonal this terrain should be.
      */
@@ -334,6 +370,8 @@ public class Terrain implements Serializable {
         minDiagonal = findMinMax(minDiagonal, second, true);
         maxDiagonal = findMinMax(minDiagonal, second, false);
         borders = findBorders(minDiagonal, maxDiagonal);
+        // If this terrain is registered to save, then update the index in terrains list, so it remains sorted.
+        if (save) TerrainManager.update(this);
         markAsChanged();
     }
 
@@ -421,19 +459,12 @@ public class Terrain implements Serializable {
 
     /**
      * Sets this terrain's priority. The priority will be used when enforcing flags for multiple terrains.
-     * <p>
-     * If this terrain is registered, this method will update the terrain's index in the list of terrains by removing and
-     * adding it again, in order to keep the list sorted by priority. So to avoid {@link ConcurrentModificationException},
-     * it is not recommended to use this method while iterating  through terrains using {@link TerrainManager#allTerrains()}
-     * or {@link TerrainManager#terrains(UUID)}.
      *
      * @param priority The new priority of this terrain.
      */
     public void setPriority(int priority) {
         if (this.priority == priority) return;
         this.priority = priority;
-        // If this terrain is registered to save, then update the index in terrains list, so it remains sorted.
-        if (save) TerrainManager.update(this);
         markAsChanged();
     }
 
