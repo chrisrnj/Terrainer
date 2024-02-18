@@ -31,16 +31,18 @@ import java.util.UUID;
 
 public final class WorldTerrain extends Terrain {
     @Serial
-    private static final long serialVersionUID = 6844639450981466893L;
+    private static final long serialVersionUID = 4143636588732215131L;
+    private static final @NotNull Coordinate min = new Coordinate(Double.MIN_VALUE, Double.MIN_VALUE, Double.MIN_VALUE);
+    private static final @NotNull Coordinate max = new Coordinate(Double.MAX_VALUE, Double.MAX_VALUE, Double.MAX_VALUE);
 
     public WorldTerrain(@NotNull UUID world, @NotNull String name) {
-        super(new Coordinate(Double.MIN_VALUE, Double.MIN_VALUE, Double.MIN_VALUE), new Coordinate(Double.MAX_VALUE, Double.MAX_VALUE, Double.MAX_VALUE),
-                world, world, name, null, ZonedDateTime.now(), null, Integer.MAX_VALUE, null, null, null);
+        // The ID of the terrain is the same as of the world's.
+        super(min, max, world, world, name, null, ZonedDateTime.now(), null, Integer.MAX_VALUE, null, null, null);
     }
 
     WorldTerrain(@NotNull Terrain terrain, @NotNull String name) {
-        super(new Coordinate(Double.MIN_VALUE, Double.MIN_VALUE, Double.MIN_VALUE), new Coordinate(Double.MAX_VALUE, Double.MAX_VALUE, Double.MAX_VALUE),
-                terrain.world, terrain.world, name, terrain.description, terrain.creationDate, null, terrain.priority, terrain.moderators.set, terrain.members.set, terrain.flags.map);
+        // The ID of the terrain is the same as of the world's.
+        super(min, max, terrain.world, terrain.world, name, terrain.description, terrain.creationDate, null, terrain.priority, terrain.moderators.set, terrain.members.set, terrain.flags.map);
     }
 
     /**
@@ -110,7 +112,7 @@ public final class WorldTerrain extends Terrain {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         WorldTerrain terrain = (WorldTerrain) o;
-        return id.equals(terrain.id) && world.equals(terrain.world) && minDiagonal.equals(terrain.minDiagonal) && maxDiagonal.equals(terrain.maxDiagonal) && Objects.equals(owner, terrain.owner) && creationDate.equals(terrain.creationDate) && name.equals(terrain.name) && Objects.equals(description, terrain.description) && priority == terrain.priority && moderators.equals(terrain.moderators) && members.equals(terrain.members) && flags.equals(terrain.flags);
+        return id.equals(terrain.id) && world.equals(terrain.world) && creationDate.equals(terrain.creationDate) && name.equals(terrain.name) && Objects.equals(description, terrain.description) && priority == terrain.priority && moderators.equals(terrain.moderators) && members.equals(terrain.members) && flags.equals(terrain.flags);
     }
 
     @Override
