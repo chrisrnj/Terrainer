@@ -112,7 +112,8 @@ public class Terrain implements Serializable {
      * @param min The minimum diagonal of this terrain.
      * @param max The maximum diagonal of this terrain.
      */
-    @SuppressWarnings("DataFlowIssue") // Dummy terrain object will never use these variables
+    // Dummy terrain object will never use these variables
+    @SuppressWarnings("DataFlowIssue")
     Terrain(@NotNull Coordinate min, @NotNull Coordinate max) {
         this.minDiagonal = min;
         this.maxDiagonal = max;
