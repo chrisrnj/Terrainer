@@ -300,7 +300,7 @@ public final class TerrainManager {
 
         HashSet<Terrain> terrainsAt = new HashSet<>(8);
         // Getting index of terrain with the greatest min diagonals possible from the minDiagonals terrain list.
-        int finalIndex = Math.abs(Collections.binarySearch(terrainsMax, new Terrain(coordinate, WorldTerrain.max), MIN_DIAGONALS_COMPARATOR) + 2);
+        int finalIndex = Math.abs(Collections.binarySearch(terrainsMax, new Terrain(coordinate, WorldTerrain.max), MIN_DIAGONALS_COMPARATOR) + 1);
         // Getting index of terrain with the lowest max diagonals possible from the maxDiagonals terrain list.
         int startIndex = Math.abs(Collections.binarySearch(terrainsMin, new Terrain(WorldTerrain.min, coordinate), MAX_DIAGONALS_COMPARATOR) + 1);
 
@@ -484,7 +484,7 @@ public final class TerrainManager {
                 return true;
             }
         }
-        return true;
+        return foundPriority == null;
     }
 
     /**
