@@ -47,9 +47,8 @@ public class Terrain implements Serializable {
      * The maximum amount of chunks a single terrain can have.
      */
     public static final int MAX_CHUNK_AMOUNT = 8398404;
-    private static final @NotNull YamlConfigurationLoader loader = new YamlConfigurationLoader();
     @Serial
-    private static final long serialVersionUID = -8633858088891865529L;
+    private static final long serialVersionUID = 1811409380543049901L;
     final @NotNull UUID world;
     final @NotNull UUID id;
     final @NotNull ZonedDateTime creationDate;
@@ -144,7 +143,7 @@ public class Terrain implements Serializable {
      */
     public static void toFile(@NotNull Path path, @NotNull Terrain terrain) throws IOException {
         PathUtils.deleteAll(path);
-        Configuration config = new Configuration(loader);
+        Configuration config = new Configuration(new YamlConfigurationLoader());
         config.set("id", terrain.id.toString());
         config.set("name", terrain.name);
         config.set("description", terrain.description);
@@ -187,7 +186,7 @@ public class Terrain implements Serializable {
      */
     public static @NotNull Terrain fromFile(@NotNull Path path) {
         try {
-            Configuration terrain = loader.load(path);
+            Configuration terrain = new YamlConfigurationLoader().load(path);
             UUID terrainId = UUID.fromString(terrain.getString("id").orElseThrow());
             Coordinate min = new Coordinate(terrain.getNumber("diagonals.min-x").orElseThrow().doubleValue(), terrain.getNumber("diagonals.min-y").orElseThrow().doubleValue(), terrain.getNumber("diagonals.min-z").orElseThrow().doubleValue());
             Coordinate max = new Coordinate(terrain.getNumber("diagonals.max-x").orElseThrow().doubleValue(), terrain.getNumber("diagonals.max-y").orElseThrow().doubleValue(), terrain.getNumber("diagonals.max-z").orElseThrow().doubleValue());
