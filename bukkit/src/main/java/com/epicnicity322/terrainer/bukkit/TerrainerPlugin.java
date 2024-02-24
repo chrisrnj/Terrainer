@@ -277,7 +277,7 @@ public final class TerrainerPlugin extends JavaPlugin {
         loadCommands();
 
         // Terrains might hold data of other plugins, so they only load after the server is done loading.
-        taskFactory.runGlobalTask(() -> {
+        taskFactory.runGlobalAsyncTask(() -> {
             try {
                 TerrainManager.load();
 
@@ -285,7 +285,7 @@ public final class TerrainerPlugin extends JavaPlugin {
                 for (World world : getServer().getWorlds()) TerrainManager.loadWorld(world.getUID(), world.getName());
                 pm.registerEvents(new WorldLoadListener(), this);
 
-                logger.log("Terrains loaded.");
+                logger.log(TerrainManager.terrainsAmount() + " terrains loaded.");
             } catch (IOException e) {
                 logger.log("Unable to load terrains due to exception:", ConsoleLogger.Level.ERROR);
                 e.printStackTrace();

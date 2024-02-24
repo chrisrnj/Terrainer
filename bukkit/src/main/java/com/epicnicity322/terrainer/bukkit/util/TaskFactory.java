@@ -51,6 +51,14 @@ public final class TaskFactory {
         }
     }
 
+    public void runGlobalAsyncTask(@NotNull Runnable runnable) {
+        if (folia) {
+            plugin.getServer().getAsyncScheduler().runNow(plugin, task -> runnable.run());
+        } else {
+            plugin.getServer().getScheduler().runTaskAsynchronously(plugin, runnable);
+        }
+    }
+
     public @Nullable CancellableTask runAtFixedRate(@NotNull Entity entity, long period, boolean async, @NotNull Runnable runnable, @NotNull Runnable retired) {
         if (period <= 0) period = 1;
         if (folia) {
