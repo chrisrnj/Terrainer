@@ -115,47 +115,24 @@ public abstract class Protections<P extends R, R, M, B, E> {
      */
     protected abstract @NotNull Coordinate entityOrigin(@NotNull E entity);
 
-    public boolean handleProtection(@NotNull P player, @NotNull UUID world, double x, double y, double z, @NotNull Flag<Boolean> flag, boolean message) {
+    public boolean handleProtection(@NotNull P player, @NotNull UUID world, int x, int y, int z, @NotNull Flag<Boolean> flag, boolean message) {
         if (playerUtil.hasPermission(player, flag.bypassPermission())) return true;
-        List<Terrain> terrains = TerrainManager.terrains(world);
-
-        for (int i = 0; i < terrains.size(); i++) {
-            Terrain terrain = terrains.get(i);
-
-            if (!terrain.isWithin(x, y, z)) continue;
-            if (playerUtil.hasAnyRelations(player, terrain)) return true;
-
-            Boolean state = terrain.flags().getData(flag);
-
-            if (state != null) {
-                // Terrain with the highest priority that has the flag set has been found.
-                // There may be more terrains in the location with same priority, but the terrain that was found first wins.
-
-                if (!state) {
-                    // Flag set to false, do additional checks to terrains with same priority and return.
-                    // If the player has relations to any of the terrains in the location with same priority, then allow.
-                    state = checkPlayerRelationToRestOfTerrainsWithSamePriority(player, terrains, i + 1, terrain.priority(), x, y, z);
-                    if (!state && message) lang.send(player, lang.get("Protections." + flag.id()));
-                    return state;
-                }
-                break;
-            }
-        }
-
-        return true;
+        boolean allow = TerrainManager.isFlagAllowedAt(flag, playerUtil.getUniqueId(player), world, x, y, z);
+        if (!allow && message) lang.send(player, lang.get("Protections." + flag.id()));
+        return allow;
     }
 
-    public boolean handleProtection(@NotNull P player, @NotNull UUID world, double x, double y, double z, @NotNull Flag<Boolean> flag1, @NotNull Flag<Boolean> flag2) {
+    public boolean handleProtection(@NotNull P player, @NotNull UUID world, int x, int y, int z, @NotNull Flag<Boolean> flag1, @NotNull Flag<Boolean> flag2) {
         if (playerUtil.hasPermission(player, flag1.bypassPermission()) && playerUtil.hasPermission(player, flag2.bypassPermission()))
             return true;
-        List<Terrain> terrains = TerrainManager.terrains(world);
+        List<Terrain> terrains = TerrainManager.terrainsAt(world, x, y, z);
         boolean state1Found = false;
         boolean state2Found = false;
+        Iterator<Terrain> terrainIterator = terrains.iterator();
 
-        for (int i = 0; i < terrains.size(); i++) {
-            Terrain terrain = terrains.get(i);
+        while (terrainIterator.hasNext()) {
+            Terrain terrain = terrainIterator.next();
 
-            if (!terrain.isWithin(x, y, z)) continue;
             if (playerUtil.hasAnyRelations(player, terrain)) return true;
 
             // We're looking for the states with the highest priorities. If either one is false, finish checking if the
@@ -166,7 +143,7 @@ public abstract class Protections<P extends R, R, M, B, E> {
 
                 if (state1 != null) {
                     if (!state1) {
-                        state1 = checkPlayerRelationToRestOfTerrainsWithSamePriority(player, terrains, i + 1, terrain.priority(), x, y, z);
+                        state1 = checkPlayerRelationToRestOfTerrainsWithSamePriority(player, terrainIterator, terrain.priority());
                         if (!state1) lang.send(player, lang.get("Protections." + flag1.id()));
                         return state1;
                     }
@@ -178,7 +155,7 @@ public abstract class Protections<P extends R, R, M, B, E> {
 
                 if (state2 != null) {
                     if (!state2) {
-                        state2 = checkPlayerRelationToRestOfTerrainsWithSamePriority(player, terrains, i + 1, terrain.priority(), x, y, z);
+                        state2 = checkPlayerRelationToRestOfTerrainsWithSamePriority(player, terrainIterator, terrain.priority());
                         if (!state2) lang.send(player, lang.get("Protections." + flag2.id()));
                         return state2;
                     }
@@ -193,11 +170,10 @@ public abstract class Protections<P extends R, R, M, B, E> {
         return true;
     }
 
-    public boolean handleProtection(@NotNull UUID world, double x, double y, double z, @NotNull Flag<Boolean> flag) {
-        List<Terrain> terrains = TerrainManager.terrains(world);
+    public boolean handleProtection(@NotNull UUID world, int x, int y, int z, @NotNull Flag<Boolean> flag) {
+        List<Terrain> terrains = TerrainManager.terrainsAt(world, x, y, z);
 
         for (Terrain terrain : terrains) {
-            if (!terrain.isWithin(x, y, z)) continue;
             Boolean state = terrain.flags().getData(flag);
             if (state != null) return state;
         }
@@ -205,15 +181,13 @@ public abstract class Protections<P extends R, R, M, B, E> {
         return true;
     }
 
-    public boolean handleProtection(@NotNull UUID world, double x, double y, double z, @NotNull Flag<Boolean> flag1, @NotNull Flag<Boolean> flag2) {
-        List<Terrain> terrains = TerrainManager.terrains(world);
+    public boolean handleProtection(@NotNull UUID world, int x, int y, int z, @NotNull Flag<Boolean> flag1, @NotNull Flag<Boolean> flag2) {
+        List<Terrain> terrains = TerrainManager.terrainsAt(world, x, y, z);
 
         boolean state1Found = false;
         boolean state2Found = false;
 
         for (Terrain terrain : terrains) {
-            if (!terrain.isWithin(x, y, z)) continue;
-
             // We're looking for the states with the highest priorities. If either one is false, return false.
 
             if (!state1Found) {
@@ -239,16 +213,14 @@ public abstract class Protections<P extends R, R, M, B, E> {
         return true;
     }
 
-    public boolean handleBlockFromTo(@NotNull UUID world, double x, double y, double z, double fromX, double fromY, double fromZ, @NotNull Flag<Boolean> flagInside, @NotNull Flag<Boolean> flagOutside) {
-        List<Terrain> terrains = TerrainManager.terrains(world);
+    public boolean handleBlockFromTo(@NotNull UUID world, int x, int y, int z, int fromX, int fromY, int fromZ, @NotNull Flag<Boolean> flagInside, @NotNull Flag<Boolean> flagOutside) {
+        List<Terrain> terrains = TerrainManager.terrainsAt(world, x, y, z);
 
         // Highest priority wins.
         boolean flagInsideFound = false;
         boolean flagOutsideFound = false;
 
         for (Terrain terrain : terrains) {
-            if (!terrain.isWithin(x, y, z)) continue;
-
             if (!flagInsideFound) {
                 Boolean state = terrain.flags().getData(flagInside);
                 if (state != null) {
@@ -277,11 +249,10 @@ public abstract class Protections<P extends R, R, M, B, E> {
         return true;
     }
 
-    public boolean handleOutsideAction(@NotNull UUID world, double x, double y, double z, double fromX, double fromY, double fromZ, @NotNull Flag<Boolean> flag) {
-        List<Terrain> terrains = TerrainManager.terrains(world);
+    public boolean handleOutsideAction(@NotNull UUID world, int x, int y, int z, int fromX, int fromY, int fromZ, @NotNull Flag<Boolean> flag) {
+        Collection<Terrain> terrains = TerrainManager.terrainsAt(world, x, y, z);
 
         for (Terrain terrain : terrains) {
-            if (!terrain.isWithin(x, y, z)) continue;
             Boolean state = terrain.flags().getData(flag);
             if (state == null) continue;
             if (!state && !terrain.isWithin(fromX, fromY, fromZ)) return false;
@@ -291,184 +262,194 @@ public abstract class Protections<P extends R, R, M, B, E> {
         return true;
     }
 
-    public boolean handleOutsideBlockProtection(@NotNull UUID world, double x, double y, double z, @NotNull List<B> blocks, boolean removeFromList, @NotNull Flag<Boolean> flagInside, @NotNull Flag<Boolean> flagOutside) {
-        List<Terrain> terrains = TerrainManager.terrains(world);
-        ArrayList<B> blocksToTest = new ArrayList<>(blocks);
-        boolean flagInsideFound = false;
+    public boolean handleOutsideBlockProtection(@NotNull UUID world, int x, int y, int z, @NotNull List<B> blocks, boolean removeFromList, @NotNull Flag<Boolean> flagInside, @NotNull Flag<Boolean> flagOutside) {
+        // Checking the flag for the source block.
+        boolean sourceBlock = handleProtection(world, x, y, z, flagInside);
+        if (!sourceBlock) return false;
 
-        for (Terrain terrain : terrains) {
-            Boolean isSourceWithin = null;
-            Boolean insideState = null;
-            if (!flagInsideFound && (isSourceWithin = terrain.isWithin(x, y, z))) {
-                // Checking if flag is allowed in terrain.
-                insideState = terrain.flags().getData(flagInside);
-                if (insideState != null) {
-                    if (!insideState) return false;
-                    // flagInside found set as true, continue looping to check each block.
-                    flagInsideFound = true;
+        // Checking terrains in each block, and if the source is coming out of a terrain and any of the flags are false, remove block from list.
+        if (removeFromList) {
+            blocks.removeIf(block -> {
+                Terrain terrain = TerrainManager.highestPriorityTerrainWithFlagAt(flagOutside, world, x(block), y(block), z(block));
+                // If source is coming from outside the terrain and flagInside or flagOutside is false, then remove this block.
+                if (terrain != null && !terrain.isWithin(x, y, z)) {
+                    return Boolean.FALSE.equals(terrain.flags().getData(flagOutside)) || (Boolean.FALSE.equals(terrain.flags().getData(flagInside)));
                 }
-            }
-
-            Boolean outsideState = terrain.flags().getData(flagOutside);
-            if (outsideState == null) continue;
-
-            // Checking if each block is within the terrain.
-            for (int i = 0; i < blocksToTest.size(); i++) {
-                B block = blocksToTest.get(i);
-                if (!terrain.isWithin(x(block), y(block), z(block))) continue;
-
-                // Highest priority flag for this block found. Removing from the list of blocks.
-                blocksToTest.remove(block);
-                i--;
-
-                // If source is outside terrain and flagInside or flagOutside is false, then return false/remove from list.
-                if (!(isSourceWithin == null ? isSourceWithin = terrain.isWithin(x, y, z) : isSourceWithin)) {
-                    if (!outsideState || (insideState == null ? Boolean.FALSE.equals(insideState = terrain.flags().getData(flagInside)) : !insideState)) {
-                        if (removeFromList) {
-                            blocks.remove(block);
-                        } else {
-                            return false;
-                        }
+                return false;
+            });
+        } else {
+            for (B block : blocks) {
+                Terrain terrain = TerrainManager.highestPriorityTerrainWithFlagAt(flagOutside, world, x(block), y(block), z(block));
+                // If source is coming from outside the terrain and flagInside or flagOutside is false, then break and disallow.
+                if (terrain != null && !terrain.isWithin(x, y, z)) {
+                    if (Boolean.FALSE.equals(terrain.flags().getData(flagOutside)) || (Boolean.FALSE.equals(terrain.flags().getData(flagInside)))) {
+                        return false;
                     }
                 }
             }
-
-            // Breaking if PISTONS was found true and all blocks had terrains with OUTSIDE_PISTONS true.
-            if (flagInsideFound && blocksToTest.isEmpty()) break;
         }
-
         return true;
     }
 
-    private boolean checkPlayerRelationToRestOfTerrainsWithSamePriority(@NotNull P player, @NotNull List<Terrain> terrains, int startingIndex, int priority, double x, double y, double z) {
+
+    private boolean checkPlayerRelationToRestOfTerrainsWithSamePriority(@NotNull P player, @NotNull Iterator<Terrain> terrains, int priority) {
         // Continue looping through terrains with same priority to see if player has relations to any of them.
-        for (int i = startingIndex; i < terrains.size(); i++) {
-            Terrain terrain = terrains.get(i);
+        while (terrains.hasNext()) {
+            Terrain terrain = terrains.next();
 
             if (terrain.priority() != priority) break;
-            if (!terrain.isWithin(x, y, z)) continue;
             if (playerUtil.hasAnyRelations(player, terrain)) return true;
         }
 
         return false;
     }
 
-    public boolean bucketFill(@NotNull UUID world, double x, double y, double z, @NotNull P player) {
+    public boolean bucketFill(@NotNull UUID world, int x, int y, int z, @NotNull P player) {
         return handleProtection(player, world, x, y, z, Flags.BUILD, true);
     }
 
-    public boolean bucketEmpty(@NotNull UUID world, double x, double y, double z, @NotNull P player) {
+    public boolean bucketEmpty(@NotNull UUID world, int x, int y, int z, @NotNull P player) {
         return handleProtection(player, world, x, y, z, Flags.BUILD, true);
     }
 
-    public boolean physicalInteract(@NotNull UUID world, double x, double y, double z, @NotNull P player, @NotNull M material) {
+    public boolean physicalInteract(@NotNull UUID world, int x, int y, int z, @NotNull P player, @NotNull M material) {
         return handleProtection(player, world, x, y, z, flagPhysicalInteraction(material), true);
     }
 
-    public boolean placeEntity(@NotNull UUID world, double x, double y, double z, @NotNull P player, @NotNull E entity) {
+    public boolean placeEntity(@NotNull UUID world, int x, int y, int z, @NotNull P player, @NotNull E entity) {
         return handleProtection(player, world, x, y, z, flagEntityPlaced(entity), true);
     }
 
-    public boolean entityInteraction(@NotNull UUID world, double x, double y, double z, @NotNull P player, @NotNull E entity, @NotNull M mainHand, @NotNull M offHand) {
+    public boolean entityInteraction(@NotNull UUID world, int x, int y, int z, @NotNull P player, @NotNull E entity, @NotNull M mainHand, @NotNull M offHand) {
         return handleProtection(player, world, x, y, z, flagEntityInteraction(entity, mainHand, offHand, playerUtil.isSneaking(player)), true);
     }
 
-    public boolean itemPickup(@NotNull UUID world, double x, double y, double z, @NotNull P player) {
+    public boolean itemPickup(@NotNull UUID world, int x, int y, int z, @NotNull P player) {
         return handleProtection(player, world, x, y, z, Flags.ITEM_PICKUP, true);
     }
 
-    public boolean pickupArrow(@NotNull UUID world, double x, double y, double z, @NotNull P player, boolean flyAtPlayer) {
+    public boolean pickupArrow(@NotNull UUID world, int x, int y, int z, @NotNull P player, boolean flyAtPlayer) {
         return handleProtection(player, world, x, y, z, Flags.ITEM_PICKUP, flyAtPlayer);
     }
 
-    public boolean itemDrop(@NotNull UUID world, double x, double y, double z, @NotNull P player) {
+    public boolean itemDrop(@NotNull UUID world, int x, int y, int z, @NotNull P player) {
         return handleProtection(player, world, x, y, z, Flags.ITEM_DROP, true);
     }
 
-    public boolean leafDecay(@NotNull UUID world, double x, double y, double z) {
+    public boolean leafDecay(@NotNull UUID world, int x, int y, int z) {
         return handleProtection(world, x, y, z, Flags.LEAF_DECAY);
     }
 
-    public boolean creatureSpawn(@NotNull UUID world, double x, double y, double z) {
+    public boolean creatureSpawn(@NotNull UUID world, int x, int y, int z) {
         return handleProtection(world, x, y, z, Flags.MOB_SPAWN);
     }
 
-    public boolean spawnerSpawn(@NotNull UUID world, double x, double y, double z) {
+    public boolean spawnerSpawn(@NotNull UUID world, int x, int y, int z) {
         return handleProtection(world, x, y, z, Flags.SPAWNERS);
     }
 
-    public boolean liquidFlow(@NotNull UUID world, double x, double y, double z, double fromX, double fromY, double fromZ) {
+    public boolean liquidFlow(@NotNull UUID world, int x, int y, int z, int fromX, int fromY, int fromZ) {
         return handleBlockFromTo(world, x, y, z, fromX, fromY, fromZ, Flags.LIQUID_FLOW, Flags.BUILD);
     }
 
-    public boolean doubleChestOpen(@NotNull UUID world, double x, double y, double z, double otherX, double otherY, double otherZ, @NotNull P player) {
+    public boolean doubleChestOpen(@NotNull UUID world, int x, int y, int z, int otherX, int otherY, int otherZ, @NotNull P player) {
         return handleProtection(player, world, x, y, z, Flags.CONTAINERS, true) && handleProtection(player, world, otherX, otherY, otherZ, Flags.CONTAINERS, true);
     }
 
-    public boolean containerOpen(@NotNull UUID world, double x, double y, double z, @NotNull P player) {
+    public boolean containerOpen(@NotNull UUID world, int x, int y, int z, @NotNull P player) {
         return handleProtection(player, world, x, y, z, Flags.CONTAINERS, true);
     }
 
-    public boolean fallingBlockFall(@NotNull UUID world, double x, double y, double z, double fromX, double fromY, double fromZ) {
+    public boolean fallingBlockFall(@NotNull UUID world, int x, int y, int z, int fromX, int fromY, int fromZ) {
         return handleOutsideAction(world, x, y, z, fromX, fromY, fromZ, Flags.BUILD);
     }
 
-    public boolean dispenserDispense(@NotNull UUID world, double x, double y, double z, double fromX, double fromY, double fromZ) {
+    public boolean dispenserDispense(@NotNull UUID world, int x, int y, int z, int fromX, int fromY, int fromZ) {
         return handleBlockFromTo(world, x, y, z, fromX, fromY, fromZ, Flags.DISPENSERS, Flags.OUTSIDE_DISPENSERS);
     }
 
-    public boolean structureGrow(@NotNull UUID world, double x, double y, double z, @NotNull List<B> blocks) {
+    public boolean structureGrow(@NotNull UUID world, int x, int y, int z, @NotNull List<B> blocks) {
         return handleOutsideBlockProtection(world, x, y, z, blocks, true, Flags.PLANT_GROW, Flags.BUILD) && !blocks.isEmpty();
     }
 
-    public boolean spongeAbsorb(@NotNull UUID world, double x, double y, double z, @NotNull List<B> blocks) {
+    public boolean spongeAbsorb(@NotNull UUID world, int x, int y, int z, @NotNull List<B> blocks) {
         return handleOutsideBlockProtection(world, x, y, z, blocks, true, Flags.SPONGES, Flags.BUILD) && !blocks.isEmpty();
     }
 
-    public boolean signChange(@NotNull UUID world, double x, double y, double z, @NotNull P player) {
+    public boolean signChange(@NotNull UUID world, int x, int y, int z, @NotNull P player) {
         return handleProtection(player, world, x, y, z, Flags.SIGN_EDIT, true);
     }
 
-    public boolean frostWalk(@NotNull UUID world, double x, double y, double z, @NotNull P player) {
+    public boolean frostWalk(@NotNull UUID world, int x, int y, int z, @NotNull P player) {
         return handleProtection(player, world, x, y, z, Flags.FROST_WALK, false);
     }
 
-    public boolean projectileLaunch(@NotNull UUID world, double x, double y, double z, @NotNull P shooter, @NotNull E projectile) {
+    public boolean projectileLaunch(@NotNull UUID world, int x, int y, int z, @NotNull P shooter, @NotNull E projectile) {
         return handleProtection(shooter, world, x, y, z, isPotion(projectile) ? Flags.POTIONS : Flags.PROJECTILES, true);
     }
 
-    public boolean glide(@NotNull UUID world, double x, double y, double z, @NotNull P player) {
+    public boolean glide(@NotNull UUID world, int x, int y, int z, @NotNull P player) {
         return handleProtection(player, world, x, y, z, Flags.GLIDE, true);
     }
 
-    public boolean mount(@NotNull UUID world, double x, double y, double z, @NotNull P player) {
+    public boolean mount(@NotNull UUID world, int x, int y, int z, @NotNull P player) {
         return handleProtection(player, world, x, y, z, Flags.ENTER_VEHICLES, true);
     }
 
-    public boolean vehicleDestroy(@NotNull UUID world, double x, double y, double z, @NotNull P player, @NotNull E vehicle) {
+    public boolean vehicleDestroy(@NotNull UUID world, int x, int y, int z, @NotNull P player, @NotNull E vehicle) {
         return handleProtection(player, world, x, y, z, isBoat(vehicle) ? Flags.BUILD_BOATS : Flags.BUILD_MINECARTS, true);
     }
 
-    public boolean itemConsume(@NotNull UUID world, double x, double y, double z, @NotNull P player, boolean potion) {
+    public boolean itemConsume(@NotNull UUID world, int x, int y, int z, @NotNull P player, boolean potion) {
         return handleProtection(player, world, x, y, z, potion ? Flags.POTIONS : Flags.EAT, true);
     }
 
-    public boolean projectileHit(@NotNull UUID world, double x, double y, double z, double fromX, double fromY, double fromZ, @NotNull E projectile, @Nullable P shooter) {
+    public boolean projectileHit(@NotNull UUID world, int x, int y, int z, int fromX, int fromY, int fromZ, @NotNull E projectile, @Nullable P shooter) {
         if (shooter == null)
             return handleOutsideAction(world, x, y, z, fromX, fromY, fromZ, isPotion(projectile) ? Flags.POTIONS : Flags.OUTSIDE_PROJECTILES);
 
         return handleProtection(shooter, world, x, y, z, isPotion(projectile) ? Flags.POTIONS : Flags.OUTSIDE_PROJECTILES, true);
     }
 
-    public boolean playerDamage(@NotNull UUID world, double x, double y, double z) {
+    public boolean playerDamage(@NotNull UUID world, int x, int y, int z) {
         return handleProtection(world, x, y, z, Flags.VULNERABILITY);
     }
 
-    public boolean entityDamageByExplodingBlock(@NotNull UUID world, double x, double y, double z, double fromX, double fromY, double fromZ, @NotNull E victim) {
+    public boolean playerBlockIgnite(@NotNull UUID world, int x, int y, int z, @NotNull P player) {
+        return handleProtection(player, world, x, y, z, Flags.LIGHTERS, true);
+    }
+
+    public boolean blockIgnite(@NotNull UUID world, int x, int y, int z, int fromX, int fromY, int fromZ) {
+        return handleBlockFromTo(world, x, y, z, fromX, fromY, fromZ, Flags.FIRE_SPREAD, Flags.BUILD);
+    }
+
+    public boolean entityCombustByEntity(@NotNull UUID world, int x, int y, int z, int fromX, int fromY, int fromZ, @NotNull E entity, @NotNull E combuster) {
+        P player = entityOrShooterToPlayer(combuster);
+        if (player != null) {
+            return handleProtection(player, world, x, y, z, flagEntityHit(entity), true);
+        } else {
+            return handleBlockFromTo(world, x, y, z, fromX, fromY, fromZ, Flags.FIRE_DAMAGE, flagEntityHit(entity));
+        }
+    }
+
+    public boolean cauldronNaturallyChangeLevel(@NotNull UUID world, int x, int y, int z) {
+        return handleProtection(world, x, y, z, Flags.CAULDRONS_CHANGE_LEVEL_NATURALLY);
+    }
+
+    public boolean cauldronExtinguishEntity(@NotNull UUID world, int x, int y, int z, int fromX, int fromY, int fromZ, @NotNull E entity) {
+        P player = entityOrShooterToPlayer(entity);
+        if (player != null) {
+            return handleProtection(player, world, x, y, z, Flags.CAULDRONS, true);
+        } else {
+            return handleOutsideAction(world, x, y, z, fromX, fromY, fromZ, Flags.CAULDRONS_CHANGE_LEVEL_NATURALLY);
+        }
+    }
+
+    public boolean entityDamageByExplodingBlock(@NotNull UUID world, int x, int y, int z, int fromX, int fromY, int fromZ, @NotNull E victim) {
         return handleBlockFromTo(world, x, y, z, fromX, fromY, fromZ, Flags.EXPLOSION_DAMAGE, flagEntityHit(victim));
     }
 
-    public boolean entityDamageByEntity(@NotNull UUID world, double x, double y, double z, @NotNull E victim, @NotNull E damager, boolean explosion) {
+    public boolean entityDamageByEntity(@NotNull UUID world, int x, int y, int z, @NotNull E victim, @NotNull E damager, boolean explosion) {
         if (isPlayer(victim)) {
             P damagerPlayer = entityOrShooterToPlayer(damager);
 
@@ -493,16 +474,16 @@ public abstract class Protections<P extends R, R, M, B, E> {
 
         if (explosion) {
             Coordinate origin = entityOrigin(damager);
-            return handleBlockFromTo(world, x, y, z, origin.x(), origin.y(), origin.z(), Flags.EXPLOSION_DAMAGE, entityHitFlag);
+            return handleBlockFromTo(world, x, y, z, (int) origin.x(), (int) origin.y(), (int) origin.z(), Flags.EXPLOSION_DAMAGE, entityHitFlag);
         } else if ((player = entityOrShooterToPlayer(damager)) != null) { // When it's a player hitting an entity.
             return handleProtection(player, world, x, y, z, entityHitFlag, true);
         } else { // Usually reached when an arrow is shot by a dispenser or other type of entity hits an entity.
             Coordinate origin = entityOrigin(damager);
-            return handleOutsideAction(world, x, y, z, origin.x(), origin.y(), origin.z(), entityHitFlag);
+            return handleOutsideAction(world, x, y, z, (int) origin.x(), (int) origin.y(), (int) origin.z(), entityHitFlag);
         }
     }
 
-    public boolean entityExplode(@NotNull UUID world, double x, double y, double z, @NotNull List<B> blocks) {
+    public boolean entityExplode(@NotNull UUID world, int x, int y, int z, @NotNull List<B> blocks) {
         return handleOutsideBlockProtection(world, x, y, z, blocks, true, Flags.EXPLOSION_DAMAGE, Flags.BUILD);
     }
 
@@ -510,40 +491,40 @@ public abstract class Protections<P extends R, R, M, B, E> {
      * Bukkit does not provide the TNT that exploded a hanging entity. Because of this, hangings on this platform will
      * not check if the TNT is coming from outside the terrain.
      */
-    public boolean explodeHanging(@NotNull UUID world, double x, double y, double z) {
+    public boolean explodeHanging(@NotNull UUID world, int x, int y, int z) {
         return handleProtection(world, x, y, z, Flags.BUILD, Flags.EXPLOSION_DAMAGE);
     }
 
-    public boolean blockExplode(@NotNull UUID world, double x, double y, double z, @NotNull List<B> blocks) {
+    public boolean blockExplode(@NotNull UUID world, int x, int y, int z, @NotNull List<B> blocks) {
         return handleOutsideBlockProtection(world, x, y, z, blocks, true, Flags.EXPLOSION_DAMAGE, Flags.BUILD);
     }
 
-    public boolean blockFertilize(@NotNull UUID world, double x, double y, double z, @NotNull List<B> blocks) {
+    public boolean blockFertilize(@NotNull UUID world, int x, int y, int z, @NotNull List<B> blocks) {
         return handleOutsideBlockProtection(world, x, y, z, blocks, true, Flags.PLANT_GROW, Flags.BUILD) && !blocks.isEmpty();
     }
 
-    public boolean blockGrow(@NotNull UUID world, double x, double y, double z, double fromX, double fromY, double fromZ) {
+    public boolean blockGrow(@NotNull UUID world, int x, int y, int z, int fromX, int fromY, int fromZ) {
         return handleBlockFromTo(world, x, y, z, fromX, fromY, fromZ, Flags.PLANT_GROW, Flags.BUILD);
     }
 
-    public boolean blockForm(@NotNull UUID world, double x, double y, double z) {
+    public boolean blockForm(@NotNull UUID world, int x, int y, int z) {
         return handleProtection(world, x, y, z, Flags.BLOCK_FORM);
     }
 
-    public boolean blockSpread(@NotNull UUID world, double x, double y, double z, double fromX, double fromY, double fromZ, @NotNull M material) {
+    public boolean blockSpread(@NotNull UUID world, int x, int y, int z, int fromX, int fromY, int fromZ, @NotNull M material) {
         return handleBlockFromTo(world, x, y, z, fromX, fromY, fromZ, isFire(material) ? Flags.FIRE_SPREAD : Flags.BLOCK_SPREAD, Flags.BUILD);
     }
 
-    public boolean blockBurn(@NotNull UUID world, double x, double y, double z) {
+    public boolean blockBurn(@NotNull UUID world, int x, int y, int z) {
         return handleProtection(world, x, y, z, Flags.FIRE_DAMAGE);
     }
 
-    public boolean blockBurn(@NotNull UUID world, double x, double y, double z, double fromX, double fromY, double fromZ) {
+    public boolean blockBurn(@NotNull UUID world, int x, int y, int z, int fromX, int fromY, int fromZ) {
         return handleBlockFromTo(world, x, y, z, fromX, fromY, fromZ, Flags.FIRE_DAMAGE, Flags.BUILD);
     }
 
     // Prevent block break if BUILD is false. If it's a container, prevent if BUILD or CONTAINERS is false.
-    public boolean blockBreak(@NotNull UUID world, double x, double y, double z, @NotNull P player, @NotNull M material) {
+    public boolean blockBreak(@NotNull UUID world, int x, int y, int z, @NotNull P player, @NotNull M material) {
         if (isContainer(material)) {
             return handleProtection(player, world, x, y, z, Flags.BUILD, Flags.CONTAINERS);
         } else {
@@ -551,7 +532,7 @@ public abstract class Protections<P extends R, R, M, B, E> {
         }
     }
 
-    public boolean blockPlace(@NotNull UUID world, double x, double y, double z, @NotNull P player, @NotNull M material) {
+    public boolean blockPlace(@NotNull UUID world, int x, int y, int z, @NotNull P player, @NotNull M material) {
         if (isFire(material)) {
             return handleProtection(player, world, x, y, z, Flags.BUILD, Flags.LIGHTERS);
         } else {
@@ -559,7 +540,7 @@ public abstract class Protections<P extends R, R, M, B, E> {
         }
     }
 
-    public boolean pistonRetract(@NotNull UUID world, double x, double y, double z, @NotNull List<B> movedBlocks) {
+    public boolean pistonRetract(@NotNull UUID world, int x, int y, int z, @NotNull List<B> movedBlocks) {
         return handleOutsideBlockProtection(world, x, y, z, movedBlocks, false, Flags.PISTONS, Flags.OUTSIDE_PISTONS);
     }
 
@@ -574,7 +555,7 @@ public abstract class Protections<P extends R, R, M, B, E> {
         return true;
     }
 
-    public boolean rightClickInteract(@NotNull UUID world, double x, double y, double z, @NotNull P player, @NotNull M material, @Nullable M hand) {
+    public boolean rightClickInteract(@NotNull UUID world, int x, int y, int z, @NotNull P player, @NotNull M material, @Nullable M hand) {
         Flag<Boolean> flag;
         boolean message = true;
 
@@ -596,7 +577,7 @@ public abstract class Protections<P extends R, R, M, B, E> {
         return handleProtection(player, world, x, y, z, flag, message);
     }
 
-    public boolean startFlight(@NotNull UUID world, double x, double y, double z, @NotNull P player) {
+    public boolean startFlight(@NotNull UUID world, int x, int y, int z, @NotNull P player) {
         if (!handleProtection(player, world, x, y, z, Flags.FLY, true)) {
             if (playerUtil.canFly(player)) {
                 // Setting tag on player to return flight when leaving the terrain.
@@ -608,9 +589,9 @@ public abstract class Protections<P extends R, R, M, B, E> {
         return true;
     }
 
-    public boolean command(@NotNull UUID world, double x, double y, double z, @NotNull P player, @NotNull String command) {
+    public boolean command(@NotNull UUID world, int x, int y, int z, @NotNull P player, @NotNull String command) {
         if (playerUtil.hasPermission(player, Flags.COMMAND_BLACKLIST.bypassPermission())) return true;
-        List<Terrain> terrains = TerrainManager.terrains(world);
+        List<Terrain> terrains = TerrainManager.terrainsAt(world, x, y, z);
 
         Integer priorityFound = null;
         Set<String> blockedCommands = null;
@@ -618,7 +599,6 @@ public abstract class Protections<P extends R, R, M, B, E> {
         // Getting list of blacklisted commands in location in terrains with same priority.
         for (Terrain terrain : terrains) {
             if (priorityFound != null && priorityFound != terrain.priority()) break;
-            if (!terrain.isWithin(x, y, z)) continue;
             if (playerUtil.hasAnyRelations(player, terrain)) return true;
 
             Set<String> commands = terrain.flags().getData(Flags.COMMAND_BLACKLIST);

@@ -298,8 +298,7 @@ public final class EnterLeaveListener extends ToggleableListener {
         LinkedList<Terrain> callEnterEvents = null;
         boolean enterChecked = false;
 
-        for (Terrain terrain : TerrainManager.terrains(world)) {
-            if (!terrain.isWithin(x, y, z)) continue;
+        for (Terrain terrain : TerrainManager.terrainsAt(world, x, y, z)) {
             if (callEnterEvents == null) callEnterEvents = new LinkedList<>();
             callEnterEvents.add(terrain);
             if (enterChecked) continue;
@@ -333,8 +332,7 @@ public final class EnterLeaveListener extends ToggleableListener {
         int x = loc.getBlockX(), y = loc.getBlockY(), z = loc.getBlockZ();
         UUID world = player.getWorld().getUID();
 
-        for (Terrain terrain : TerrainManager.terrains(world)) {
-            if (!terrain.isWithin(x, y, z)) continue;
+        for (Terrain terrain : TerrainManager.terrainsAt(world, x, y, z)) {
             var leave = new TerrainLeaveEvent(loc, loc, player, terrain, TerrainEvent.EnterLeaveReason.LEAVE_SERVER);
             Bukkit.getPluginManager().callEvent(leave);
         }
