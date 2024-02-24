@@ -266,6 +266,10 @@ public final class Configurations {
                   Material: MINECART
                 Buttons:
                   Material: OAK_BUTTON
+                Cauldrons:
+                  Material: CAULDRON
+                Cauldrons Change Level Naturally:
+                  Material: CAULDRON
                 Command Blacklist:
                   Material: BARRIER
                 Containers:
@@ -441,6 +445,7 @@ public final class Configurations {
               Build Boats: '<cooldown=2000> &4You''re not allowed to break or place boats here.'
               Build Minecarts: '<cooldown=2000> &4You''re not allowed to break or place minecarts here.'
               Buttons: '<cooldown=2000> &4You''re not allowed to use buttons and levers here.'
+              Cauldrons: '<cooldown=2000> &4You''re not allowed to use cauldrons here.'
               Command Blacklist: '<cooldown=2000> &4You''re not allowed to use this command here.'
               Containers: '<cooldown=2000> &4You''re not allowed to open containers here.'
               Doors: '<cooldown=2000> &4You''re not allowed to open doors or gates here.'
@@ -808,6 +813,20 @@ public final class Configurations {
                     &7Value: &f<var0>
                     
                     &7Whether everyone can use buttons and levers.
+                Cauldrons:
+                  Display Name: '&x&5&B&5&B&5&B&lCauldrons'
+                  Lore: |-
+                    &7Value: &f<var0>
+                    
+                    &7Whether everyone can use cauldrons.
+                Cauldrons Change Level Naturally:
+                  Display Name: '&x&5&B&5&B&5&B&lCauldrons Change Level Naturally'
+                  Lore: |-
+                    &7Value: &f<var0>
+                    
+                    &7Whether cauldrons can fill or empty naturally.
+                    &7Possible causes: rain, dripstone, entities
+                    &7extinguishing fire.
                 Command Blacklist:
                   Display Name: '&c&lCommand Blacklist'
                   Lore: |-
