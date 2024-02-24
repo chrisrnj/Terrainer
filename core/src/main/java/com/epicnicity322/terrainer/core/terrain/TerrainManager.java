@@ -36,7 +36,6 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.IOException;
-import java.io.Serial;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
@@ -52,16 +51,16 @@ public final class TerrainManager {
     /**
      * A comparator that sorts terrains by {@link Terrain#priority}, from higher priority to lower.
      */
-    public static final @NotNull Comparator<Terrain> PRIORITY_COMPARATOR = Comparator.comparingInt(Terrain::priority).reversed();
+    public static final @NotNull Comparator<Terrain> PRIORITY_COMPARATOR = Comparator.comparingInt(Terrain::priority).reversed().thenComparing(Terrain::id);
 
     /**
      * A map with the World's ID as key and a list of terrains in this world as value. This list is sorted based on the terrain's priority.
      */
-    private static final @NotNull Map<UUID, List<Terrain>> registeredTerrains = new ConcurrentHashMap<>();
+    private static final @NotNull Map<UUID, TreeSet<Terrain>> registeredTerrains = new ConcurrentHashMap<>();
     /**
      * A map of chunks that have terrains in it.
      */
-    private static final @NotNull Map<WorldChunk, List<Terrain>> chunks = new ConcurrentHashMap<>();
+    private static final @NotNull Map<WorldChunk, TreeSet<Terrain>> chunks = new ConcurrentHashMap<>();
     /**
      * A dummy chunk used in chunks map as the one that holds global/huge terrains.
      */
@@ -112,8 +111,8 @@ public final class TerrainManager {
      * @param terrain The terrain to add.
      * @return Whether the terrain was added and {@link #loadAutoSave()} should be called.
      */
-    private static boolean addWithoutAutoSave(@NotNull Terrain terrain) {
-        List<Terrain> worldTerrains = registeredTerrains.get(terrain.world);
+    private static synchronized boolean addWithoutAutoSave(@NotNull Terrain terrain) {
+        Set<Terrain> worldTerrains = registeredTerrains.get(terrain.world);
 
         if (worldTerrains != null && worldTerrains.contains(terrain)) return false;
         // Calling add event. If it's cancelled, then the terrain should not be added, and false is returned.
@@ -125,13 +124,13 @@ public final class TerrainManager {
         remove(terrain.id, false);
 
         // Adding new instance of terrain.
-        registeredTerrains.computeIfAbsent(terrain.world, k -> Collections.synchronizedList(new SortedList<>(PRIORITY_COMPARATOR))).add(terrain);
+        registeredTerrains.computeIfAbsent(terrain.world, k -> new TreeSet<>(PRIORITY_COMPARATOR)).add(terrain);
 
         // Adding the instance to chunks map, so it can be found with #terrainsAt map.
         if (terrain.chunks.isEmpty()) { // Chunks are empty when the terrain is global/huge.
-            chunks.computeIfAbsent(new WorldChunk(terrain.world, globalChunk), k -> Collections.synchronizedList(new SortedList<>(8, PRIORITY_COMPARATOR))).add(terrain);
+            chunks.computeIfAbsent(new WorldChunk(terrain.world, globalChunk), k -> new TreeSet<>(PRIORITY_COMPARATOR)).add(terrain);
         } else {
-            terrain.chunks.forEach(chunk -> chunks.computeIfAbsent(new WorldChunk(terrain.world, chunk), k -> Collections.synchronizedList(new SortedList<>(1, PRIORITY_COMPARATOR))).add(terrain));
+            terrain.chunks.forEach(chunk -> chunks.computeIfAbsent(new WorldChunk(terrain.world, chunk), k -> new TreeSet<>(PRIORITY_COMPARATOR)).add(terrain));
         }
 
         // Setting Terrain #save to true, so it's saved automatically.
@@ -187,21 +186,21 @@ public final class TerrainManager {
 
         // Removing from registered terrains.
         UUID world = found.world;
-        List<Terrain> worldTerrains = registeredTerrains.get(world);
+        Set<Terrain> worldTerrains = registeredTerrains.get(world);
         worldTerrains.remove(found);
         if (worldTerrains.isEmpty()) registeredTerrains.remove(world);
 
         // Removing from chunk map.
         found.chunks.forEach(chunk -> {
             var worldChunk = new WorldChunk(found.world, chunk);
-            List<Terrain> chunkTerrains = chunks.get(worldChunk);
+            Set<Terrain> chunkTerrains = chunks.get(worldChunk);
             chunkTerrains.remove(found);
             if (chunkTerrains.isEmpty()) chunks.remove(worldChunk);
         });
 
         // Removing from global terrains list.
         var globalWorldChunk = new WorldChunk(found.world, globalChunk);
-        List<Terrain> globalTerrains = chunks.get(globalWorldChunk);
+        Set<Terrain> globalTerrains = chunks.get(globalWorldChunk);
         if (globalTerrains != null) {
             globalTerrains.remove(found);
             if (globalTerrains.isEmpty()) chunks.remove(globalWorldChunk);
@@ -223,18 +222,18 @@ public final class TerrainManager {
      * @param terrain The terrain to update in the terrains list.
      */
     static void priorityUpdate(@NotNull Terrain terrain) {
-        List<Terrain> worldTerrains = registeredTerrains.get(terrain.world);
+        Set<Terrain> worldTerrains = registeredTerrains.get(terrain.world);
         if (worldTerrains == null) return;
         // If the list of world terrains contained the terrain, then add it again at sorted index.
         if (worldTerrains.remove(terrain)) worldTerrains.add(terrain);
 
         // Update in each chunk.
         if (terrain.chunks.isEmpty()) {
-            List<Terrain> globalTerrains = chunks.get(new WorldChunk(terrain.world, globalChunk));
+            Set<Terrain> globalTerrains = chunks.get(new WorldChunk(terrain.world, globalChunk));
             if (globalTerrains.remove(terrain)) globalTerrains.add(terrain);
         } else {
             terrain.chunks.forEach(chunk -> {
-                List<Terrain> chunkTerrains = chunks.get(new WorldChunk(terrain.world, chunk));
+                Set<Terrain> chunkTerrains = chunks.get(new WorldChunk(terrain.world, chunk));
                 if (chunkTerrains.remove(terrain)) chunkTerrains.add(terrain);
             });
         }
@@ -251,13 +250,13 @@ public final class TerrainManager {
         // Removing from previous chunks.
         if (previousChunks.isEmpty()) {
             var globalWorldChunk = new WorldChunk(terrain.world, globalChunk);
-            List<Terrain> globalTerrains = chunks.get(globalWorldChunk);
+            Set<Terrain> globalTerrains = chunks.get(globalWorldChunk);
             globalTerrains.remove(terrain);
             if (globalTerrains.isEmpty()) chunks.remove(globalWorldChunk);
         } else {
             previousChunks.forEach(chunk -> {
                 var worldChunk = new WorldChunk(terrain.world, chunk);
-                List<Terrain> chunkTerrains = chunks.get(worldChunk);
+                Set<Terrain> chunkTerrains = chunks.get(worldChunk);
                 chunkTerrains.remove(terrain);
                 if (chunkTerrains.isEmpty()) chunks.remove(worldChunk);
             });
@@ -265,9 +264,9 @@ public final class TerrainManager {
 
         // Adding it again.
         if (terrain.chunks.isEmpty()) { // Chunks are empty when the terrain is global/huge.
-            chunks.computeIfAbsent(new WorldChunk(terrain.world, globalChunk), k -> Collections.synchronizedList(new SortedList<>(8, PRIORITY_COMPARATOR))).add(terrain);
+            chunks.computeIfAbsent(new WorldChunk(terrain.world, globalChunk), k -> new TreeSet<>(PRIORITY_COMPARATOR)).add(terrain);
         } else {
-            terrain.chunks.forEach(chunk -> chunks.computeIfAbsent(new WorldChunk(terrain.world, chunk), k -> Collections.synchronizedList(new SortedList<>(PRIORITY_COMPARATOR))).add(terrain));
+            terrain.chunks.forEach(chunk -> chunks.computeIfAbsent(new WorldChunk(terrain.world, chunk), k -> new TreeSet<>(PRIORITY_COMPARATOR)).add(terrain));
         }
     }
 
@@ -282,15 +281,22 @@ public final class TerrainManager {
     }
 
     /**
+     * @return The amount of terrains that are currently registered.
+     */
+    public static long terrainsAmount() {
+        return registeredTerrains.values().stream().mapToLong(TreeSet::size).sum();
+    }
+
+    /**
      * Gets the terrains of a specific world. The provided list has the terrains sorted based on {@link Terrain#priority}.
      *
      * @param world The world of the terrains.
      * @return An unmodifiable list with the terrains located in this world.
      */
-    public static @NotNull List<Terrain> terrains(@NotNull UUID world) {
-        List<Terrain> worldTerrains = registeredTerrains.get(world);
-        if (worldTerrains == null) return Collections.emptyList();
-        return Collections.unmodifiableList(worldTerrains);
+    public static @NotNull Set<Terrain> terrains(@NotNull UUID world) {
+        Set<Terrain> worldTerrains = registeredTerrains.get(world);
+        if (worldTerrains == null) return Collections.emptySet();
+        return Collections.unmodifiableSet(worldTerrains);
     }
 
     /**
@@ -304,8 +310,8 @@ public final class TerrainManager {
         if (id == null) return null;
 
         // Looking for matching ID through all worlds.
-        for (Terrain terrain : allTerrains()) {
-            if (id.equals(terrain.id)) return terrain;
+        for (Set<Terrain> terrainList : registeredTerrains.values()) {
+            for (Terrain terrain : terrainList) if (id.equals(terrain.id)) return terrain;
         }
 
         return null;
@@ -319,7 +325,7 @@ public final class TerrainManager {
      * @param worldCoordinate The coordinate to get the terrains at.
      * @return A {@link Collections#emptyList()} if there are no terrains, or a mutable list with the terrains containing the location.
      */
-    public static @NotNull List<Terrain> terrainsAt(@NotNull WorldCoordinate worldCoordinate) {
+    public static @NotNull Set<Terrain> terrainsAt(@NotNull WorldCoordinate worldCoordinate) {
         return terrainsAt(worldCoordinate.world(), (int) worldCoordinate.coordinate().x(), (int) worldCoordinate.coordinate().y(), (int) worldCoordinate.coordinate().z());
     }
 
@@ -334,28 +340,28 @@ public final class TerrainManager {
      * @param z     The Z coordinate of the block.
      * @return A {@link Collections#emptyList()} if there are no terrains, or a mutable list with the terrains containing the location.
      */
-    public static @NotNull List<Terrain> terrainsAt(@NotNull UUID world, int x, int y, int z) {
-        List<Terrain> chunkTerrains = chunks.get(new WorldChunk(world, Chunk.fromBlockCoordinates(x, z)));
-        List<Terrain> globalTerrains = chunks.get(new WorldChunk(world, globalChunk));
+    public static @NotNull Set<Terrain> terrainsAt(@NotNull UUID world, int x, int y, int z) {
+        Set<Terrain> chunkTerrains = chunks.get(new WorldChunk(world, Chunk.fromBlockCoordinates(x, z)));
+        Set<Terrain> globalTerrains = chunks.get(new WorldChunk(world, globalChunk));
 
-        List<Terrain> terrainsAt = null; // The result of the search.
+        Set<Terrain> terrainsAt = null; // The result of the search.
 
         if (chunkTerrains != null) {
             for (Terrain terrain : chunkTerrains)
                 if (terrain.isWithin(x, y, z)) {
-                    if (terrainsAt == null) terrainsAt = new SortedList<>(4, PRIORITY_COMPARATOR);
+                    if (terrainsAt == null) terrainsAt = new TreeSet<>(PRIORITY_COMPARATOR);
                     terrainsAt.add(terrain);
                 }
         }
         if (globalTerrains != null) {
             for (Terrain terrain : globalTerrains)
                 if (terrain.isWithin(x, y, z)) {
-                    if (terrainsAt == null) terrainsAt = new SortedList<>(4, PRIORITY_COMPARATOR);
+                    if (terrainsAt == null) terrainsAt = new TreeSet<>(PRIORITY_COMPARATOR);
                     terrainsAt.add(terrain);
                 }
         }
 
-        return terrainsAt == null ? Collections.emptyList() : terrainsAt;
+        return terrainsAt == null ? Collections.emptySet() : terrainsAt;
     }
 
     /**
@@ -379,8 +385,10 @@ public final class TerrainManager {
      * @return An unmodifiable iterable with all terrains that are in the chunk.
      */
     public static @NotNull Iterable<Terrain> terrainsAtChunk(@NotNull WorldChunk worldChunk) {
-        List<Terrain> chunkTerrains = chunks.getOrDefault(worldChunk, Collections.emptyList());
-        List<Terrain> globalTerrains = chunks.getOrDefault(new WorldChunk(worldChunk.world(), globalChunk), Collections.emptyList());
+        Set<Terrain> chunkTerrains = chunks.get(worldChunk);
+        if (chunkTerrains == null) chunkTerrains = Collections.emptySet();
+        Set<Terrain> globalTerrains = chunks.get(new WorldChunk(worldChunk.world(), globalChunk));
+        if (globalTerrains == null) globalTerrains = Collections.emptySet();
         return Iterables.unmodifiableIterable(Iterables.concat(chunkTerrains, globalTerrains));
     }
 
@@ -392,8 +400,8 @@ public final class TerrainManager {
      */
     public static @NotNull List<Terrain> terrainsOf(@Nullable UUID owner) {
         ArrayList<Terrain> terrainsOf = new ArrayList<>();
-        for (Terrain terrain : allTerrains()) {
-            if (Objects.equals(terrain.owner, owner)) terrainsOf.add(terrain);
+        for (Set<Terrain> terrainList : registeredTerrains.values()) {
+            for (Terrain terrain : terrainList) if (Objects.equals(terrain.owner, owner)) terrainsOf.add(terrain);
         }
         return terrainsOf;
     }
@@ -782,36 +790,5 @@ public final class TerrainManager {
     }
 
     record FlagSetResult<T>(boolean cancel, T newData) {
-    }
-
-    private static final class SortedList<E> extends ArrayList<E> {
-        @Serial
-        private static final long serialVersionUID = 7327855282782201365L;
-
-        private final @NotNull Comparator<E> comparator;
-
-        public SortedList(@NotNull Comparator<E> comparator) {
-            this.comparator = comparator;
-        }
-
-        public SortedList(int initialCapacity, @NotNull Comparator<E> comparator) {
-            super(initialCapacity);
-            this.comparator = comparator;
-        }
-
-        @Override
-        public boolean add(E e) {
-            int index = Collections.binarySearch(this, e, comparator);
-            if (index < 0) index = -index - 1;
-            add(index, e);
-            return true;
-        }
-
-        @Override
-        public boolean addAll(Collection<? extends E> c) {
-            if (c.isEmpty()) return false;
-            for (E element : c) add(element);
-            return true;
-        }
     }
 }
