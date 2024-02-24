@@ -20,6 +20,7 @@ package com.epicnicity322.terrainer.bukkit.event.terrain;
 
 import com.epicnicity322.terrainer.core.event.terrain.ITerrainCanEnterEvent;
 import com.epicnicity322.terrainer.core.terrain.Terrain;
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Cancellable;
@@ -37,6 +38,7 @@ public class TerrainCanEnterEvent extends Event implements ITerrainCanEnterEvent
     private @NotNull CanEnterLeave canEnterLeave = CanEnterLeave.DEFAULT;
 
     public TerrainCanEnterEvent(@NotNull Location from, @NotNull Location to, @NotNull Player player, @NotNull Terrain terrain, @NotNull EnterLeaveReason reason) {
+        super(!Bukkit.isPrimaryThread());
         this.from = from;
         this.to = to;
         this.player = player;

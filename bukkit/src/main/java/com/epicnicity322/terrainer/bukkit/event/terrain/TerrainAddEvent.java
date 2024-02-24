@@ -21,6 +21,7 @@ package com.epicnicity322.terrainer.bukkit.event.terrain;
 import com.epicnicity322.terrainer.core.event.terrain.ITerrainAddEvent;
 import com.epicnicity322.terrainer.core.terrain.Terrain;
 import com.epicnicity322.terrainer.core.terrain.TerrainManager;
+import org.bukkit.Bukkit;
 import org.bukkit.event.Cancellable;
 import org.bukkit.event.Event;
 import org.bukkit.event.HandlerList;
@@ -35,6 +36,7 @@ public class TerrainAddEvent extends Event implements ITerrainAddEvent, Cancella
     private boolean cancelled = false;
 
     public TerrainAddEvent(@NotNull Terrain terrain) {
+        super(!Bukkit.isPrimaryThread());
         this.terrain = terrain;
     }
 
