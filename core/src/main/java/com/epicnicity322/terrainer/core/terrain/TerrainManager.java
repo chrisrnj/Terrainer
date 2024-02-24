@@ -20,8 +20,9 @@ package com.epicnicity322.terrainer.core.terrain;
 
 import com.epicnicity322.epicpluginlib.core.logger.ConsoleLogger;
 import com.epicnicity322.epicpluginlib.core.util.PathUtils;
-import com.epicnicity322.terrainer.core.Coordinate;
+import com.epicnicity322.terrainer.core.Chunk;
 import com.epicnicity322.terrainer.core.Terrainer;
+import com.epicnicity322.terrainer.core.WorldChunk;
 import com.epicnicity322.terrainer.core.WorldCoordinate;
 import com.epicnicity322.terrainer.core.config.Configurations;
 import com.epicnicity322.terrainer.core.event.flag.IFlagSetEvent;
@@ -49,26 +50,22 @@ public final class TerrainManager {
      */
     public static final @NotNull Path TERRAINS_FOLDER = Configurations.DATA_FOLDER.resolve("Terrains");
     /**
-     * A comparator that sorts terrains based on the {@link Terrain#minDiagonal} then the {@link Terrain#maxDiagonal}.
-     */
-    public static final @NotNull Comparator<Terrain> MIN_DIAGONALS_COMPARATOR = Comparator.comparingDouble((Terrain t) -> t.minDiagonal.x()).thenComparingDouble(t -> t.minDiagonal.y()).thenComparingDouble(t -> t.minDiagonal.z()).thenComparingDouble(t -> t.maxDiagonal.x()).thenComparingDouble(t -> t.maxDiagonal.y()).thenComparingDouble(t -> t.maxDiagonal.z());
-    /**
-     * A comparator that sorts terrains based on the {@link Terrain#maxDiagonal} then the {@link Terrain#minDiagonal}.
-     */
-    public static final @NotNull Comparator<Terrain> MAX_DIAGONALS_COMPARATOR = Comparator.comparingDouble((Terrain t) -> t.maxDiagonal.x()).thenComparingDouble(t -> t.maxDiagonal.y()).thenComparingDouble(t -> t.maxDiagonal.z()).thenComparingDouble(t -> t.minDiagonal.x()).thenComparingDouble(t -> t.minDiagonal.y()).thenComparingDouble(t -> t.minDiagonal.z());
-    /**
      * A comparator that sorts terrains by {@link Terrain#priority}, from higher priority to lower.
      */
     public static final @NotNull Comparator<Terrain> PRIORITY_COMPARATOR = Comparator.comparingInt(Terrain::priority).reversed();
 
     /**
-     * A map with the World's ID as key and a list of terrains in this world as value. This list is sorted based on the terrain's minDiagonal.
+     * A map with the World's ID as key and a list of terrains in this world as value. This list is sorted based on the terrain's priority.
      */
-    private static final @NotNull Map<UUID, List<Terrain>> terrains = new ConcurrentHashMap<>();
+    private static final @NotNull Map<UUID, List<Terrain>> registeredTerrains = new ConcurrentHashMap<>();
     /**
-     * A copy of the terrains map, but sorted by maxDiagonal instead of minDiagonal. Used when searching for terrains.
+     * A map of chunks that have terrains in it.
      */
-    private static final @NotNull Map<UUID, List<Terrain>> terrainsMax = new ConcurrentHashMap<>();
+    private static final @NotNull Map<WorldChunk, List<Terrain>> chunks = new ConcurrentHashMap<>();
+    /**
+     * A dummy chunk used in chunks map as the one that holds global/huge terrains.
+     */
+    private static final @NotNull Chunk globalChunk = new Chunk(Integer.MAX_VALUE, Integer.MAX_VALUE);
     /**
      * A set with all the terrains to be deleted by the auto-saver.
      * Initial capacity of 4 because there usually isn't a ton of players deleting their terrains at the same time.
@@ -116,7 +113,7 @@ public final class TerrainManager {
      * @return Whether the terrain was added and {@link #loadAutoSave()} should be called.
      */
     private static boolean addWithoutAutoSave(@NotNull Terrain terrain) {
-        List<Terrain> worldTerrains = terrains.get(terrain.world);
+        List<Terrain> worldTerrains = registeredTerrains.get(terrain.world);
 
         if (worldTerrains != null && worldTerrains.contains(terrain)) return false;
         // Calling add event. If it's cancelled, then the terrain should not be added, and false is returned.
@@ -127,9 +124,17 @@ public final class TerrainManager {
         // Removing instance with the same ID if found.
         remove(terrain.id, false);
 
-        // Adding new instance of terrain and setting Terrain#save to true, so it's saved automatically.
-        terrains.computeIfAbsent(terrain.world, k -> Collections.synchronizedList(new SortedList<>(MIN_DIAGONALS_COMPARATOR))).add(terrain);
-        terrainsMax.computeIfAbsent(terrain.world, k -> Collections.synchronizedList(new SortedList<>(MAX_DIAGONALS_COMPARATOR))).add(terrain);
+        // Adding new instance of terrain.
+        registeredTerrains.computeIfAbsent(terrain.world, k -> Collections.synchronizedList(new SortedList<>(PRIORITY_COMPARATOR))).add(terrain);
+
+        // Adding the instance to chunks map, so it can be found with #terrainsAt map.
+        if (terrain.chunks.isEmpty()) { // Chunks are empty when the terrain is global/huge.
+            chunks.computeIfAbsent(new WorldChunk(terrain.world, globalChunk), k -> Collections.synchronizedList(new SortedList<>(8, PRIORITY_COMPARATOR))).add(terrain);
+        } else {
+            terrain.chunks.forEach(chunk -> chunks.computeIfAbsent(new WorldChunk(terrain.world, chunk), k -> Collections.synchronizedList(new SortedList<>(1, PRIORITY_COMPARATOR))).add(terrain));
+        }
+
+        // Setting Terrain #save to true, so it's saved automatically.
         terrain.save = true;
         return true;
     }
@@ -182,14 +187,25 @@ public final class TerrainManager {
 
         // Removing from registered terrains.
         UUID world = found.world;
-        List<Terrain> worldTerrains = terrains.get(world);
+        List<Terrain> worldTerrains = registeredTerrains.get(world);
         worldTerrains.remove(found);
-        if (worldTerrains.isEmpty()) terrains.remove(world);
+        if (worldTerrains.isEmpty()) registeredTerrains.remove(world);
 
-        // Removing from terrainsMax list.
-        List<Terrain> worldTerrainsMax = terrainsMax.get(world);
-        worldTerrainsMax.remove(found);
-        if (worldTerrainsMax.isEmpty()) terrainsMax.remove(world);
+        // Removing from chunk map.
+        found.chunks.forEach(chunk -> {
+            var worldChunk = new WorldChunk(found.world, chunk);
+            List<Terrain> chunkTerrains = chunks.get(worldChunk);
+            chunkTerrains.remove(found);
+            if (chunkTerrains.isEmpty()) chunks.remove(worldChunk);
+        });
+
+        // Removing from global terrains list.
+        var globalWorldChunk = new WorldChunk(found.world, globalChunk);
+        List<Terrain> globalTerrains = chunks.get(globalWorldChunk);
+        if (globalTerrains != null) {
+            globalTerrains.remove(found);
+            if (globalTerrains.isEmpty()) chunks.remove(globalWorldChunk);
+        }
 
         if (callEvents) {
             // Adding this terrain's ID to be removed and loading the auto saver.
@@ -201,21 +217,58 @@ public final class TerrainManager {
     }
 
     /**
-     * Removes the terrain from terrains list and adds it again at the proper index, so the list of terrains is always
-     * sorted based on {@link Terrain#minDiagonal} and {@link Terrain#maxDiagonal}.
+     * Removes the terrain from registered terrains and chunks list and adds it again at the proper index, so the list
+     * of terrains is always sorted based on {@link Terrain#priority}.
      *
      * @param terrain The terrain to update in the terrains list.
      */
-    static void update(@NotNull Terrain terrain) {
-        List<Terrain> worldTerrains = terrains.get(terrain.world);
+    static void priorityUpdate(@NotNull Terrain terrain) {
+        List<Terrain> worldTerrains = registeredTerrains.get(terrain.world);
         if (worldTerrains == null) return;
-
         // If the list of world terrains contained the terrain, then add it again at sorted index.
         if (worldTerrains.remove(terrain)) worldTerrains.add(terrain);
 
-        List<Terrain> worldTerrainsMax = terrainsMax.get(terrain.world);
-        // If the list of world terrains contained the terrain, then add it again at sorted index.
-        if (worldTerrainsMax.remove(terrain)) worldTerrainsMax.add(terrain);
+        // Update in each chunk.
+        if (terrain.chunks.isEmpty()) {
+            List<Terrain> globalTerrains = chunks.get(new WorldChunk(terrain.world, globalChunk));
+            if (globalTerrains.remove(terrain)) globalTerrains.add(terrain);
+        } else {
+            terrain.chunks.forEach(chunk -> {
+                List<Terrain> chunkTerrains = chunks.get(new WorldChunk(terrain.world, chunk));
+                if (chunkTerrains.remove(terrain)) chunkTerrains.add(terrain);
+            });
+        }
+    }
+
+    /**
+     * Removes the terrain from the chunks it was registered in, then adds the terrain again in the new chunks it's
+     * currently in.
+     *
+     * @param terrain        The terrain to update in the chunks map.
+     * @param previousChunks The previous chunks this terrain was in.
+     */
+    static void chunkUpdate(@NotNull Terrain terrain, @NotNull Set<Chunk> previousChunks) {
+        // Removing from previous chunks.
+        if (previousChunks.isEmpty()) {
+            var globalWorldChunk = new WorldChunk(terrain.world, globalChunk);
+            List<Terrain> globalTerrains = chunks.get(globalWorldChunk);
+            globalTerrains.remove(terrain);
+            if (globalTerrains.isEmpty()) chunks.remove(globalWorldChunk);
+        } else {
+            previousChunks.forEach(chunk -> {
+                var worldChunk = new WorldChunk(terrain.world, chunk);
+                List<Terrain> chunkTerrains = chunks.get(worldChunk);
+                chunkTerrains.remove(terrain);
+                if (chunkTerrains.isEmpty()) chunks.remove(worldChunk);
+            });
+        }
+
+        // Adding it again.
+        if (terrain.chunks.isEmpty()) { // Chunks are empty when the terrain is global/huge.
+            chunks.computeIfAbsent(new WorldChunk(terrain.world, globalChunk), k -> Collections.synchronizedList(new SortedList<>(8, PRIORITY_COMPARATOR))).add(terrain);
+        } else {
+            terrain.chunks.forEach(chunk -> chunks.computeIfAbsent(new WorldChunk(terrain.world, chunk), k -> Collections.synchronizedList(new SortedList<>(PRIORITY_COMPARATOR))).add(terrain));
+        }
     }
 
     /**
@@ -225,23 +278,23 @@ public final class TerrainManager {
      * @see #terrains(UUID) It is recommended to get terrains by world, for better performance.
      */
     public static @NotNull Iterable<Terrain> allTerrains() {
-        return Iterables.unmodifiableIterable(Iterables.concat(terrains.values()));
+        return Iterables.unmodifiableIterable(Iterables.concat(registeredTerrains.values()));
     }
 
     /**
-     * Gets the terrains of a specific world. The provided list has the terrains sorted based on {@link Terrain#minDiagonal}.
+     * Gets the terrains of a specific world. The provided list has the terrains sorted based on {@link Terrain#priority}.
      *
      * @param world The world of the terrains.
      * @return An unmodifiable list with the terrains located in this world.
      */
     public static @NotNull List<Terrain> terrains(@NotNull UUID world) {
-        List<Terrain> worldTerrains = terrains.get(world);
+        List<Terrain> worldTerrains = registeredTerrains.get(world);
         if (worldTerrains == null) return Collections.emptyList();
         return Collections.unmodifiableList(worldTerrains);
     }
 
     /**
-     * Gets the terrain with matching ID from the list of registered terrains.
+     * Gets the terrain with matching ID from the list of registered terrains. The provided list has the terrains sorted based on {@link Terrain#priority}.
      *
      * @param id The ID of the terrain.
      * @return The terrain with matching ID or null if not found.
@@ -263,14 +316,11 @@ public final class TerrainManager {
      * <p>
      * The provided list has the terrains sorted based on {@link #PRIORITY_COMPARATOR}.
      *
-     * @param world The UUID of the world where the location resides.
-     * @param x     The X coordinate of the block.
-     * @param y     The Y coordinate of the block.
-     * @param z     The Z coordinate of the block.
+     * @param worldCoordinate The coordinate to get the terrains at.
      * @return A {@link Collections#emptyList()} if there are no terrains, or a mutable list with the terrains containing the location.
      */
-    public static @NotNull Collection<Terrain> terrainsAt(@NotNull UUID world, int x, int y, int z) {
-        return terrainsAt(world, new Coordinate(x, y, z), true);
+    public static @NotNull List<Terrain> terrainsAt(@NotNull WorldCoordinate worldCoordinate) {
+        return terrainsAt(worldCoordinate.world(), (int) worldCoordinate.coordinate().x(), (int) worldCoordinate.coordinate().y(), (int) worldCoordinate.coordinate().z());
     }
 
     /**
@@ -278,49 +328,60 @@ public final class TerrainManager {
      * <p>
      * The provided list has the terrains sorted based on {@link #PRIORITY_COMPARATOR}.
      *
-     * @param worldCoordinate The coordinate to get the terrains at.
+     * @param world The UUID of the world where the location resides.
+     * @param x     The X coordinate of the block.
+     * @param y     The Y coordinate of the block.
+     * @param z     The Z coordinate of the block.
      * @return A {@link Collections#emptyList()} if there are no terrains, or a mutable list with the terrains containing the location.
      */
-    public static @NotNull Collection<Terrain> terrainsAt(@NotNull WorldCoordinate worldCoordinate) {
-        return terrainsAt(worldCoordinate.world(), worldCoordinate.coordinate(), true);
+    public static @NotNull List<Terrain> terrainsAt(@NotNull UUID world, int x, int y, int z) {
+        List<Terrain> chunkTerrains = chunks.get(new WorldChunk(world, Chunk.fromBlockCoordinates(x, z)));
+        List<Terrain> globalTerrains = chunks.get(new WorldChunk(world, globalChunk));
+
+        List<Terrain> terrainsAt = null; // The result of the search.
+
+        if (chunkTerrains != null) {
+            for (Terrain terrain : chunkTerrains)
+                if (terrain.isWithin(x, y, z)) {
+                    if (terrainsAt == null) terrainsAt = new SortedList<>(4, PRIORITY_COMPARATOR);
+                    terrainsAt.add(terrain);
+                }
+        }
+        if (globalTerrains != null) {
+            for (Terrain terrain : globalTerrains)
+                if (terrain.isWithin(x, y, z)) {
+                    if (terrainsAt == null) terrainsAt = new SortedList<>(4, PRIORITY_COMPARATOR);
+                    terrainsAt.add(terrain);
+                }
+        }
+
+        return terrainsAt == null ? Collections.emptyList() : terrainsAt;
     }
 
     /**
-     * Searches for terrains that have the provided coordinate within.
+     * Gets all terrains within the specified chunk. Some terrains might be so huge they are considered global, they are
+     * included in the iterable as well.
      *
-     * @param world      The UUID of the world where the location resides.
-     * @param coordinate The coordinates to get terrains within.
-     * @param sort       Whether to sort the collection based on terrain priority ({@link #PRIORITY_COMPARATOR}) before returning.
-     * @return A {@link Collections#emptyList()} if there are no terrains, or a mutable list with the terrains containing the location.
+     * @param world  The UUID of the world where the chunk resides.
+     * @param chunkX The X coordinate of the chunk.
+     * @param chunkZ The Z coordinate of the chunk.
+     * @return An unmodifiable iterable with all terrains that are in the chunk.
      */
-    public static @NotNull Collection<Terrain> terrainsAt(@NotNull UUID world, @NotNull Coordinate coordinate, boolean sort) {
-        List<Terrain> terrainsMin = terrains.get(world);
-        if (terrainsMin == null) return Collections.emptyList();
-        List<Terrain> terrainsMax = TerrainManager.terrainsMax.get(world);
+    public static @NotNull Iterable<Terrain> terrainsAtChunk(@NotNull UUID world, int chunkX, int chunkZ) {
+        return terrainsAtChunk(new WorldChunk(world, new Chunk(chunkX, chunkZ)));
+    }
 
-        HashSet<Terrain> terrainsAt = new HashSet<>(8);
-        // Getting index of terrain with the greatest min diagonals possible from the minDiagonals terrain list.
-        int finalIndex = Math.abs(Collections.binarySearch(terrainsMax, new Terrain(coordinate, WorldTerrain.max), MIN_DIAGONALS_COMPARATOR) + 1);
-        // Getting index of terrain with the lowest max diagonals possible from the maxDiagonals terrain list.
-        int startIndex = Math.abs(Collections.binarySearch(terrainsMin, new Terrain(WorldTerrain.min, coordinate), MAX_DIAGONALS_COMPARATOR) + 1);
-
-        if (finalIndex == terrainsMin.size()) finalIndex--;
-
-        // Looping only through the range of terrains where the coordinate could be within.
-        for (int i = startIndex; i <= finalIndex; i++) {
-            var terrainMin = terrainsMin.get(i);
-            var terrainMax = terrainsMax.get(i);
-
-            if (terrainMax.isWithin(coordinate.x(), coordinate.y(), coordinate.z())) terrainsAt.add(terrainMax);
-            if (terrainMax != terrainMin && terrainMin.isWithin(coordinate.x(), coordinate.y(), coordinate.z()))
-                terrainsAt.add(terrainMin);
-        }
-
-        if (sort && terrainsAt.size() > 1) {
-            return new SortedList<>(terrainsAt, PRIORITY_COMPARATOR);
-        } else {
-            return terrainsAt;
-        }
+    /**
+     * Gets all terrains within the specified chunk. Some terrains might be so huge they are considered global, they are
+     * included in the iterable as well.
+     *
+     * @param worldChunk The chunk to get terrains at.
+     * @return An unmodifiable iterable with all terrains that are in the chunk.
+     */
+    public static @NotNull Iterable<Terrain> terrainsAtChunk(@NotNull WorldChunk worldChunk) {
+        List<Terrain> chunkTerrains = chunks.getOrDefault(worldChunk, Collections.emptyList());
+        List<Terrain> globalTerrains = chunks.getOrDefault(new WorldChunk(worldChunk.world(), globalChunk), Collections.emptyList());
+        return Iterables.unmodifiableIterable(Iterables.concat(chunkTerrains, globalTerrains));
     }
 
     /**
@@ -349,7 +410,7 @@ public final class TerrainManager {
      * @return The terrain in the location that has this flag, null if not found.
      */
     public static @Nullable Terrain highestPriorityTerrainWithFlagAt(@NotNull Flag<?> flag, @NotNull WorldCoordinate worldCoordinate) {
-        return highestPriorityTerrainWithFlagAt(flag, worldCoordinate.world(), worldCoordinate.coordinate());
+        return highestPriorityTerrainWithFlagAt(flag, worldCoordinate.world(), (int) worldCoordinate.coordinate().x(), (int) worldCoordinate.coordinate().y(), (int) worldCoordinate.coordinate().z());
     }
 
     /**
@@ -367,26 +428,8 @@ public final class TerrainManager {
      * @return The terrain in the location that has this flag, null if not found.
      */
     public static @Nullable Terrain highestPriorityTerrainWithFlagAt(@NotNull Flag<?> flag, @NotNull UUID world, int x, int y, int z) {
-        return highestPriorityTerrainWithFlagAt(flag, world, new Coordinate(x, y, z));
-    }
-
-    /**
-     * Gets the highest priority terrain at the specified location that has the specified flag set with a value that's
-     * not null.
-     * <p>
-     * There can be two terrains with same priority at the location with diverging flag data, this method returns the
-     * first one found.
-     *
-     * @param flag       The flag to look for in the location.
-     * @param world      The UUID of the world where the location resides.
-     * @param coordinate The coordinates to get the flag at.
-     * @return The terrain in the location that has this flag, null if not found.
-     */
-    public static @Nullable Terrain highestPriorityTerrainWithFlagAt(@NotNull Flag<?> flag, @NotNull UUID world, @NotNull Coordinate coordinate) {
         // Terrain list is sorted by priority.
-        for (Terrain terrain : terrainsAt(world, coordinate, true)) {
-            if (terrain.flags().getData(flag) != null) return terrain;
-        }
+        for (Terrain terrain : terrainsAt(world, x, y, z)) if (terrain.flags().getData(flag) != null) return terrain;
         return null;
     }
 
@@ -410,7 +453,7 @@ public final class TerrainManager {
      * @throws UnsupportedOperationException If terrainer is not loaded yet or {@link Terrainer#playerUtil()} is not set.
      */
     public static boolean isFlagAllowedAt(@NotNull Flag<Boolean> flag, @NotNull UUID player, @NotNull WorldCoordinate worldCoordinate) {
-        return isFlagAllowedAt(flag, player, worldCoordinate.world(), worldCoordinate.coordinate());
+        return isFlagAllowedAt(flag, player, worldCoordinate.world(), (int) worldCoordinate.coordinate().x(), (int) worldCoordinate.coordinate().y(), (int) worldCoordinate.coordinate().z());
     }
 
     /**
@@ -436,37 +479,13 @@ public final class TerrainManager {
      * @throws UnsupportedOperationException If terrainer is not loaded yet or {@link Terrainer#playerUtil()} is not set.
      */
     public static boolean isFlagAllowedAt(@NotNull Flag<Boolean> flag, @NotNull UUID player, @NotNull UUID world, int x, int y, int z) {
-        return isFlagAllowedAt(flag, player, world, new Coordinate(x, y, z));
-    }
-
-    /**
-     * Determines whether a specific flag is allowed at a given location based on various conditions.
-     * <p>
-     * Conditions for flag allowance:
-     * <ul>
-     *     <li>Returns true if the location has no terrains with the specified flag.</li>
-     *     <li>Returns true if the flag is explicitly allowed for the terrain with the highest priority at the location.</li>
-     *     <li>Returns false if the flag is explicitly denied and the player lacks any relations to terrains with the same or higher priority as the terrain where the flag was denied.</li>
-     * </ul>
-     * <p>
-     * A permission check for {@link Flag#bypassPermission()} should be made before calling this method to ensure the
-     * player should have the flag tested.
-     *
-     * @param flag       The flag to be tested at the location.
-     * @param player     The UUID of the player.
-     * @param world      The UUID of the world where the location resides.
-     * @param coordinate The coordinates to get terrains within.
-     * @return {@code true} if the flag is allowed at the specified location; {@code false} otherwise.
-     * @throws UnsupportedOperationException If terrainer is not loaded yet or {@link Terrainer#playerUtil()} is not set.
-     */
-    public static boolean isFlagAllowedAt(@NotNull Flag<Boolean> flag, @NotNull UUID player, @NotNull UUID world, @NotNull Coordinate coordinate) {
         if (Terrainer.playerUtil() == null) {
             throw new UnsupportedOperationException("Terrainer is not loaded yet, player util could not be found.");
         }
         Integer foundPriority = null;
 
         // Terrain list is sorted by priority.
-        for (Terrain terrain : terrainsAt(world, coordinate, true)) {
+        for (Terrain terrain : terrainsAt(world, x, y, z)) {
             // If the flag was already found, check if the player has relations to terrains in the location which have the same priority.
             if (foundPriority != null && terrain.priority != foundPriority) return false;
             // If the player has any relations to terrains found at the location, return true.
@@ -767,7 +786,7 @@ public final class TerrainManager {
 
     private static final class SortedList<E> extends ArrayList<E> {
         @Serial
-        private static final long serialVersionUID = 8937529829490780372L;
+        private static final long serialVersionUID = 7327855282782201365L;
 
         private final @NotNull Comparator<E> comparator;
 
@@ -775,10 +794,9 @@ public final class TerrainManager {
             this.comparator = comparator;
         }
 
-        public SortedList(@NotNull Collection<E> collection, @NotNull Comparator<E> comparator) {
-            super(collection.size() + 1);
+        public SortedList(int initialCapacity, @NotNull Comparator<E> comparator) {
+            super(initialCapacity);
             this.comparator = comparator;
-            this.addAll(collection);
         }
 
         @Override

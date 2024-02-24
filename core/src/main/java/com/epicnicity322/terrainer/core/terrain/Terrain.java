@@ -20,6 +20,7 @@ package com.epicnicity322.terrainer.core.terrain;
 
 import com.epicnicity322.epicpluginlib.core.logger.ConsoleLogger;
 import com.epicnicity322.epicpluginlib.core.util.PathUtils;
+import com.epicnicity322.terrainer.core.Chunk;
 import com.epicnicity322.terrainer.core.Coordinate;
 import com.epicnicity322.terrainer.core.Terrainer;
 import com.epicnicity322.terrainer.core.WorldCoordinate;
@@ -42,9 +43,13 @@ import java.util.stream.Collectors;
  * saved, loaded and have its flags enforced if they are added to a {@link TerrainManager}.
  */
 public class Terrain implements Serializable {
+    /**
+     * The maximum amount of chunks a single terrain can have.
+     */
+    public static final int MAX_CHUNK_AMOUNT = 8398404;
     private static final @NotNull YamlConfigurationLoader loader = new YamlConfigurationLoader();
     @Serial
-    private static final long serialVersionUID = 3372758595551124968L;
+    private static final long serialVersionUID = -8633858088891865529L;
     final @NotNull UUID world;
     final @NotNull UUID id;
     final @NotNull ZonedDateTime creationDate;
@@ -55,6 +60,7 @@ public class Terrain implements Serializable {
     @NotNull Coordinate minDiagonal;
     @NotNull Coordinate maxDiagonal;
     @NotNull Set<Coordinate> borders;
+    @NotNull Set<Chunk> chunks;
     @NotNull String name;
     @Nullable String description;
     int priority;
@@ -93,6 +99,7 @@ public class Terrain implements Serializable {
         this.minDiagonal = findMinMax(first, second, true);
         this.maxDiagonal = findMinMax(first, second, false);
         this.borders = findBorders(minDiagonal, maxDiagonal);
+        this.chunks = findChunks(minDiagonal, maxDiagonal);
         this.name = name;
         this.id = id;
         this.world = world;
@@ -103,31 +110,6 @@ public class Terrain implements Serializable {
         this.description = description;
         this.creationDate = creationDate;
         this.flags = new FlagMap(flags);
-    }
-
-
-    /**
-     * Dummy constructor for terrains that uses default values. This is useful only when searching in a list of terrains.
-     *
-     * @param min The minimum diagonal of this terrain.
-     * @param max The maximum diagonal of this terrain.
-     */
-    // Dummy terrain object will never use these variables
-    @SuppressWarnings("DataFlowIssue")
-    Terrain(@NotNull Coordinate min, @NotNull Coordinate max) {
-        this.minDiagonal = min;
-        this.maxDiagonal = max;
-        this.borders = null;
-        this.name = null;
-        this.id = null;
-        this.world = null;
-        this.owner = null;
-        this.priority = 0;
-        this.moderators = null;
-        this.members = null;
-        this.description = null;
-        this.creationDate = null;
-        this.flags = null;
     }
 
     /**
@@ -272,9 +254,9 @@ public class Terrain implements Serializable {
      *
      * @param minDiagonal The min edge of the terrain.
      * @param maxDiagonal The max edge of the terrain.
-     * @return The coordinates of where border particles should spawn.
+     * @return An unmodifiable set with the coordinates of where border particles should spawn.
      */
-    private static @NotNull Set<Coordinate> findBorders(@NotNull Coordinate minDiagonal, @NotNull Coordinate maxDiagonal) {
+    protected @NotNull Set<Coordinate> findBorders(@NotNull Coordinate minDiagonal, @NotNull Coordinate maxDiagonal) {
         Configuration config = Configurations.CONFIG.getConfiguration();
         double area = (maxDiagonal.x() - (minDiagonal.x() - 1)) * (maxDiagonal.z() - (minDiagonal.z() - 1));
 
@@ -282,12 +264,13 @@ public class Terrain implements Serializable {
             return Collections.emptySet();
         }
 
-        var border = new HashSet<Coordinate>();
-
         double startX = minDiagonal.x();
         double endX = maxDiagonal.x() + 1d;
         double startZ = minDiagonal.z();
         double endZ = maxDiagonal.z() + 1d;
+
+        double borderAmount = ((endX - startX) + (endZ - startZ)) * 2;
+        var border = new HashSet<Coordinate>((int) (borderAmount / .75f) + 1);
 
         for (double x = startX; x <= endX; ++x) {
             border.add(new Coordinate(x, 0, startZ));
@@ -300,6 +283,58 @@ public class Terrain implements Serializable {
         }
 
         return Collections.unmodifiableSet(border);
+    }
+
+    /**
+     * Finds the chunks of this terrain, used for finding where the terrain is located.
+     * <p>
+     * This will be called on instantiation and when the methods {@link #setMinDiagonal(Coordinate)} and {@link #setMaxDiagonal(Coordinate)} are called.
+     *
+     * @param minDiagonal The min edge of the terrain.
+     * @param maxDiagonal The max edge of the terrain.
+     * @return An unmodifiable set with all chunks where this terrain resides.
+     * @implNote These chunks will be used for finding the terrain, so this should take into account terrains that are not rectangle shaped.
+     * @implSpec When the amount of chunks is greater than {@link #MAX_CHUNK_AMOUNT}, an empty set should be returned.
+     */
+    protected @NotNull Set<Chunk> findChunks(@NotNull Coordinate minDiagonal, @NotNull Coordinate maxDiagonal) {
+        // Converting block coordinates to chunk coordinates.
+        int maxX = (int) maxDiagonal.x() >> 4;
+        int minX = (int) minDiagonal.x() >> 4;
+        int maxZ = (int) maxDiagonal.z() >> 4;
+        int minZ = (int) minDiagonal.z() >> 4;
+
+        long chunkAmount = ((maxX - minX + 1L) * (maxZ - minZ + 1L));
+
+        if (chunkAmount > MAX_CHUNK_AMOUNT) return Collections.emptySet();
+
+        var chunks = new HashSet<Chunk>((int) (chunkAmount / .75f) + 1);
+
+        for (int x = minX; x <= maxX; x++) {
+            for (int z = minZ; z <= maxZ; z++) {
+                chunks.add(new Chunk(x, z));
+            }
+        }
+
+        return Collections.unmodifiableSet(chunks);
+    }
+
+    /**
+     * Updates this terrain in the list of terrain chunks, removing the instance from the previous chunks and adding in the new ones.
+     *
+     * @param previousChunks The chunks that this terrain had before being updated.
+     */
+    protected void chunkUpdate(@NotNull Set<Chunk> previousChunks) {
+        // If this terrain is registered to save, then update in registered terrain chunks map.
+        if (save && !previousChunks.equals(chunks)) TerrainManager.chunkUpdate(this, previousChunks);
+    }
+
+    /**
+     * Updates this terrain in the list of registered terrains and chunks, removing this instance and adding it again,
+     * in order to keep the list sorted by terrain priority.
+     */
+    protected void priorityUpdate() {
+        // If this terrain is registered to save, then update the index in terrains list, so it remains sorted.
+        if (save) TerrainManager.priorityUpdate(this);
     }
 
     /**
@@ -326,11 +361,6 @@ public class Terrain implements Serializable {
      * <p>
      * Both min and max diagonals are updated by calling this method. This is to make sure both diagonals are truly
      * minimum and maximum.
-     * <p>
-     * If this terrain is registered, this method will update the terrain's index in the list of terrains by removing and
-     * adding it again, in order to keep the list sorted by priority. So to avoid {@link ConcurrentModificationException},
-     * it is not recommended to use this method while iterating through terrains using {@link TerrainManager#allTerrains()}
-     * or {@link TerrainManager#terrains(UUID)}.
      *
      * @param first The first diagonal this terrain should be.
      */
@@ -340,8 +370,11 @@ public class Terrain implements Serializable {
         minDiagonal = findMinMax(first, maxDiagonal, true);
         maxDiagonal = findMinMax(first, maxDiagonal, false);
         borders = findBorders(minDiagonal, maxDiagonal);
-        // If this terrain is registered to save, then update the index in terrains list, so it remains sorted.
-        if (save) TerrainManager.update(this);
+
+        Set<Chunk> previousChunks = chunks;
+        chunks = findChunks(minDiagonal, maxDiagonal);
+        chunkUpdate(previousChunks);
+
         markAsChanged();
     }
 
@@ -357,11 +390,6 @@ public class Terrain implements Serializable {
      * <p>
      * Both min and max diagonals are updated by calling this method. This is to make sure both diagonals are truly
      * minimum and maximum.
-     * <p>
-     * If this terrain is registered, this method will update the terrain's index in the list of terrains by removing and
-     * adding it again, in order to keep the list sorted by priority. So to avoid {@link ConcurrentModificationException},
-     * it is not recommended to use this method while iterating through terrains using {@link TerrainManager#allTerrains()}
-     * or {@link TerrainManager#terrains(UUID)}.
      *
      * @param second The second diagonal this terrain should be.
      */
@@ -371,8 +399,11 @@ public class Terrain implements Serializable {
         minDiagonal = findMinMax(minDiagonal, second, true);
         maxDiagonal = findMinMax(minDiagonal, second, false);
         borders = findBorders(minDiagonal, maxDiagonal);
-        // If this terrain is registered to save, then update the index in terrains list, so it remains sorted.
-        if (save) TerrainManager.update(this);
+
+        Set<Chunk> previousChunks = chunks;
+        chunks = findChunks(minDiagonal, maxDiagonal);
+        chunkUpdate(previousChunks);
+
         markAsChanged();
     }
 
@@ -384,6 +415,15 @@ public class Terrain implements Serializable {
      */
     public @NotNull Set<Coordinate> borders() {
         return borders;
+    }
+
+    /**
+     * Gets the chunks where this terrain resides.
+     *
+     * @return A set with the exact chunks of this terrain. Empty if this is a {@link WorldTerrain}.
+     */
+    public @NotNull Set<Chunk> chunks() {
+        return chunks;
     }
 
     /**
@@ -460,12 +500,18 @@ public class Terrain implements Serializable {
 
     /**
      * Sets this terrain's priority. The priority will be used when enforcing flags for multiple terrains.
+     * <p>
+     * If this terrain is registered, this method will update the terrain's index in the list of terrains by removing and
+     * adding it again, in order to keep the list sorted by priority. So to avoid {@link ConcurrentModificationException},
+     * it is not recommended to use this method while iterating through terrains using {@link TerrainManager#allTerrains()}
+     * or {@link TerrainManager#terrains(UUID)}.
      *
      * @param priority The new priority of this terrain.
      */
     public void setPriority(int priority) {
         if (this.priority == priority) return;
         this.priority = priority;
+        priorityUpdate();
         markAsChanged();
     }
 

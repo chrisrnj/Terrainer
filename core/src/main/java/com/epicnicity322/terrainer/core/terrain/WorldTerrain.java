@@ -18,6 +18,7 @@
 
 package com.epicnicity322.terrainer.core.terrain;
 
+import com.epicnicity322.terrainer.core.Chunk;
 import com.epicnicity322.terrainer.core.Coordinate;
 import com.epicnicity322.terrainer.core.Terrainer;
 import com.epicnicity322.terrainer.core.WorldCoordinate;
@@ -26,12 +27,14 @@ import org.jetbrains.annotations.Nullable;
 
 import java.io.Serial;
 import java.time.ZonedDateTime;
+import java.util.Collections;
 import java.util.Objects;
+import java.util.Set;
 import java.util.UUID;
 
 public final class WorldTerrain extends Terrain {
-    static final @NotNull Coordinate min = new Coordinate(Double.MIN_VALUE, Double.MIN_VALUE, Double.MIN_VALUE);
-    static final @NotNull Coordinate max = new Coordinate(Double.MAX_VALUE, Double.MAX_VALUE, Double.MAX_VALUE);
+    static final @NotNull Coordinate min = new Coordinate(Integer.MIN_VALUE, Integer.MIN_VALUE, Integer.MIN_VALUE);
+    static final @NotNull Coordinate max = new Coordinate(Integer.MAX_VALUE, Integer.MAX_VALUE, Integer.MAX_VALUE);
     @Serial
     private static final long serialVersionUID = 4143636588732215131L;
 
@@ -43,6 +46,11 @@ public final class WorldTerrain extends Terrain {
     WorldTerrain(@NotNull Terrain terrain, @NotNull String name) {
         // The ID of the terrain is the same as of the world's.
         super(min, max, terrain.world, terrain.world, name, terrain.description, terrain.creationDate, null, terrain.priority, terrain.moderators.set, terrain.members.set, terrain.flags.map);
+    }
+
+    @Override
+    protected @NotNull Set<Chunk> findChunks(@NotNull Coordinate minDiagonal, @NotNull Coordinate maxDiagonal) {
+        return Collections.emptySet();
     }
 
     /**
