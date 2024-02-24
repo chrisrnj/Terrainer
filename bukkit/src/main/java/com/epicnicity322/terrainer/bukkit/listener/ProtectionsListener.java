@@ -684,7 +684,9 @@ public final class ProtectionsListener extends Protections<Player, CommandSender
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
     public void onBlockIgnite(BlockIgniteEvent event) {
         Player player = event.getPlayer();
+        Entity ignitingEntity = event.getIgnitingEntity();
         Block block = event.getBlock();
+        if (player == null && ignitingEntity != null) player = entityOrShooterToPlayer(ignitingEntity);
 
         if (player != null) {
             if (!playerBlockIgnite(block.getWorld().getUID(), block.getX(), block.getY(), block.getZ(), player)) {
@@ -701,7 +703,6 @@ public final class ProtectionsListener extends Protections<Player, CommandSender
             return;
         }
 
-        Entity ignitingEntity = event.getIgnitingEntity();
         if (ignitingEntity != null) {
             Location loc = origin(ignitingEntity);
             if (!blockIgnite(block.getWorld().getUID(), block.getX(), block.getY(), block.getZ(), loc.getBlockX(), loc.getBlockY(), loc.getBlockZ())) {
