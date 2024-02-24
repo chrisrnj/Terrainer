@@ -226,6 +226,7 @@ public final class ProtectionsListener extends Protections<Player, CommandSender
                     hand == Material.FLINT_AND_STEEL || hand == Material.FIRE_CHARGE ? Flags.LIGHTERS : Flags.EAT;
             case "ANVIL" -> Flags.ANVILS;
             case "CANDLE", "CAMPFIRE" -> Flags.LIGHTERS;
+            case "CAULDRON" -> Flags.CAULDRONS;
             default -> Flags.INTERACTIONS;
         };
     }
@@ -647,6 +648,66 @@ public final class ProtectionsListener extends Protections<Player, CommandSender
         Block frontBlock = block.getRelative(((Directional) block.getBlockData()).getFacing());
         if (!dispenserDispense(block.getWorld().getUID(), frontBlock.getX(), frontBlock.getY(), frontBlock.getZ(), block.getX(), block.getY(), block.getZ()))
             event.setCancelled(true);
+    }
+
+    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
+    public void onCauldronLevelChange(CauldronLevelChangeEvent event) {
+        Block block = event.getBlock();
+
+        switch (event.getReason()) {
+            case UNKNOWN, EVAPORATE, NATURAL_FILL -> {
+                if (!cauldronNaturallyChangeLevel(block.getWorld().getUID(), block.getX(), block.getY(), block.getZ())) {
+                    event.setCancelled(true);
+                }
+            }
+            case EXTINGUISH -> {
+                Location from = origin(Objects.requireNonNull(event.getEntity()));
+                if (!cauldronExtinguishEntity(block.getWorld().getUID(), block.getX(), block.getY(), block.getZ(), from.getBlockX(), from.getBlockY(), from.getBlockZ(), event.getEntity())) {
+                    event.setCancelled(true);
+                }
+            }
+            // Let interact event handle other cases.
+        }
+    }
+
+    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
+    public void onEntityCombustByEntity(EntityCombustByEntityEvent event) {
+        Entity entity = event.getEntity();
+        Location loc = entity.getLocation();
+        Location from = origin(event.getCombuster());
+
+        if (!entityCombustByEntity(entity.getWorld().getUID(), loc.getBlockX(), loc.getBlockY(), loc.getBlockZ(), from.getBlockX(), from.getBlockY(), from.getBlockZ(), entity, event.getCombuster())) {
+            event.setCancelled(true);
+        }
+    }
+
+    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
+    public void onBlockIgnite(BlockIgniteEvent event) {
+        Player player = event.getPlayer();
+        Block block = event.getBlock();
+
+        if (player != null) {
+            if (!playerBlockIgnite(block.getWorld().getUID(), block.getX(), block.getY(), block.getZ(), player)) {
+                event.setCancelled(true);
+            }
+            return;
+        }
+
+        Block ignitingBlock = event.getIgnitingBlock();
+        if (ignitingBlock != null) {
+            if (!blockIgnite(block.getWorld().getUID(), block.getX(), block.getY(), block.getZ(), ignitingBlock.getX(), ignitingBlock.getY(), ignitingBlock.getZ())) {
+                event.setCancelled(true);
+            }
+            return;
+        }
+
+        Entity ignitingEntity = event.getIgnitingEntity();
+        if (ignitingEntity != null) {
+            Location loc = origin(ignitingEntity);
+            if (!blockIgnite(block.getWorld().getUID(), block.getX(), block.getY(), block.getZ(), loc.getBlockX(), loc.getBlockY(), loc.getBlockZ())) {
+                event.setCancelled(true);
+            }
+        }
     }
 
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
