@@ -40,12 +40,12 @@ public final class WorldTerrain extends Terrain {
 
     public WorldTerrain(@NotNull UUID world, @NotNull String name) {
         // The ID of the terrain is the same as of the world's.
-        super(min, max, world, world, name, null, ZonedDateTime.now(), null, Integer.MAX_VALUE, null, null, null);
+        super(min, max, world, world, name, null, ZonedDateTime.now(), null, Integer.MAX_VALUE, null, null, null, null);
     }
 
     WorldTerrain(@NotNull Terrain terrain, @NotNull String name) {
         // The ID of the terrain is the same as of the world's.
-        super(min, max, terrain.world, terrain.world, name, terrain.description, terrain.creationDate, null, terrain.priority, terrain.moderators.set, terrain.members.set, terrain.flags.map);
+        super(min, max, terrain.world, terrain.world, name, terrain.description, null, terrain.creationDate, terrain.priority, terrain.moderators, terrain.members, terrain.flags, terrain.memberFlags);
     }
 
     @Override
@@ -120,7 +120,7 @@ public final class WorldTerrain extends Terrain {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         WorldTerrain terrain = (WorldTerrain) o;
-        return id.equals(terrain.id) && world.equals(terrain.world) && creationDate.equals(terrain.creationDate) && name.equals(terrain.name) && Objects.equals(description, terrain.description) && priority == terrain.priority && moderators.equals(terrain.moderators) && members.equals(terrain.members) && flags.equals(terrain.flags);
+        return id.equals(terrain.id) && world.equals(terrain.world) && creationDate.equals(terrain.creationDate) && name.equals(terrain.name) && Objects.equals(description, terrain.description) && priority == terrain.priority && moderators.equals(terrain.moderators) && members.equals(terrain.members) && flags.equals(terrain.flags) && memberFlags.equals(terrain.memberFlags);
     }
 
     @Override
@@ -130,6 +130,6 @@ public final class WorldTerrain extends Terrain {
 
     @Override
     public @NotNull String toString() {
-        return "WorldTerrain{" + "id=" + id + ", world=" + world + ", creationDate=" + creationDate + ", name='" + name + "', description='" + description + "', priority=" + priority + ", moderators=" + moderators + ", members=" + members + ", flags=" + flags + '}';
+        return "WorldTerrain{" + "id=" + id + ", world=" + world + ", creationDate=" + creationDate + ", name='" + name + "', description='" + description + "', priority=" + priority + ", moderators=" + moderators + ", members=" + members + ", flags=" + flags + ", memberFlags=" + memberFlags + '}';
     }
 }

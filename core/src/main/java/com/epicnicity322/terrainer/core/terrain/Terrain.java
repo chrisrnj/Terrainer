@@ -28,6 +28,7 @@ import com.epicnicity322.terrainer.core.config.Configurations;
 import com.epicnicity322.yamlhandler.Configuration;
 import com.epicnicity322.yamlhandler.ConfigurationSection;
 import com.epicnicity322.yamlhandler.YamlConfigurationLoader;
+import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -48,13 +49,14 @@ public class Terrain implements Serializable {
      */
     public static final int MAX_CHUNK_AMOUNT = 8398404;
     @Serial
-    private static final long serialVersionUID = 1811409380543049901L;
+    private static final long serialVersionUID = -2582900539602283179L;
     final @NotNull UUID world;
     final @NotNull UUID id;
     final @NotNull ZonedDateTime creationDate;
     final @NotNull PrivateSet<UUID> moderators;
     final @NotNull PrivateSet<UUID> members;
     final @NotNull FlagMap flags;
+    final @NotNull MemberFlagMap memberFlags;
     @Nullable UUID owner;
     @NotNull Coordinate minDiagonal;
     @NotNull Coordinate maxDiagonal;
@@ -93,8 +95,9 @@ public class Terrain implements Serializable {
      * @param moderators   The set of moderators of this terrain.
      * @param members      The set of members of this terrain.
      * @param flags        The set of active flags in this terrain.
+     * @param memberFlags  The map of flags each specific player can have.
      */
-    public Terrain(@NotNull Coordinate first, @NotNull Coordinate second, @NotNull UUID world, @NotNull UUID id, @NotNull String name, @Nullable String description, @NotNull ZonedDateTime creationDate, @Nullable UUID owner, int priority, @Nullable Collection<UUID> moderators, @Nullable Collection<UUID> members, @Nullable HashMap<String, Object> flags) {
+    public Terrain(@NotNull Coordinate first, @NotNull Coordinate second, @NotNull UUID world, @NotNull UUID id, @NotNull String name, @Nullable String description, @NotNull ZonedDateTime creationDate, @Nullable UUID owner, int priority, @Nullable Collection<UUID> moderators, @Nullable Collection<UUID> members, @Nullable HashMap<String, Object> flags, @Nullable HashMap<UUID, HashMap<String, Object>> memberFlags) {
         this.minDiagonal = findMinMax(first, second, true);
         this.maxDiagonal = findMinMax(first, second, false);
         this.borders = findBorders(minDiagonal, maxDiagonal);
@@ -109,6 +112,48 @@ public class Terrain implements Serializable {
         this.description = description;
         this.creationDate = creationDate;
         this.flags = new FlagMap(flags);
+        this.memberFlags = new MemberFlagMap(memberFlags);
+    }
+
+    /**
+     * Constructor for creating a terrain object. Terrain objects are only saved, loaded and have its flags enforced if
+     * they are added to a {@link TerrainManager}.
+     * <p>
+     * Diagonal coordinates have their min and max automatically calculated.
+     * <p>
+     * Moderators, members and flag collections are copied to avoid unsafe changes.
+     * <p>
+     * Flags with non {@link Serializable} objects are removed.
+     *
+     * @param first        The first diagonal of this terrain.
+     * @param second       The second diagonal of this terrain.
+     * @param world        The world this terrain is located.
+     * @param id           The id of this terrain.
+     * @param name         The color-code-formatted name of this terrain.
+     * @param description  The description of this terrain, null to use the default description.
+     * @param owner        The current owner of this terrain, null for CONSOLE.
+     * @param creationDate The date this terrain was created.
+     * @param moderators   The set of moderators of this terrain.
+     * @param members      The set of members of this terrain.
+     * @param flags        The set of active flags in this terrain.
+     * @param memberFlags  The map of flags each specific player can have.
+     */
+    public Terrain(@NotNull Coordinate first, @NotNull Coordinate second, @NotNull UUID world, @NotNull UUID id, @NotNull String name, @Nullable String description, @Nullable UUID owner, @NotNull ZonedDateTime creationDate, int priority, @Nullable PrivateSet<UUID> moderators, @Nullable PrivateSet<UUID> members, @Nullable FlagMap flags, @Nullable MemberFlagMap memberFlags) {
+        this.minDiagonal = findMinMax(first, second, true);
+        this.maxDiagonal = findMinMax(first, second, false);
+        this.borders = findBorders(minDiagonal, maxDiagonal);
+        this.chunks = findChunks(minDiagonal, maxDiagonal);
+        this.name = name;
+        this.id = id;
+        this.world = world;
+        this.owner = owner;
+        this.priority = priority;
+        this.moderators = new PrivateSet<>(moderators == null ? null : moderators.set);
+        this.members = new PrivateSet<>(members == null ? null : members.set);
+        this.description = description;
+        this.creationDate = creationDate;
+        this.flags = new FlagMap(flags == null ? null : flags.map);
+        this.memberFlags = new MemberFlagMap(memberFlags == null ? null : memberFlags.map, null);
     }
 
     /**
@@ -119,7 +164,7 @@ public class Terrain implements Serializable {
      * @param world  The world this terrain is located.
      */
     public Terrain(@NotNull Coordinate first, @NotNull Coordinate second, @NotNull UUID world) {
-        this(first, second, world, UUID.randomUUID(), "", null, ZonedDateTime.now(), null, 0, null, null, null);
+        this(first, second, world, UUID.randomUUID(), "", null, ZonedDateTime.now(), null, 0, null, null, null, null);
         this.name = id.toString().substring(0, id.toString().indexOf('-'));
     }
 
@@ -130,7 +175,7 @@ public class Terrain implements Serializable {
      * @param terrain The terrain to make an unregistered copy of.
      */
     public Terrain(@NotNull Terrain terrain) {
-        this(terrain.minDiagonal, terrain.maxDiagonal, terrain.world, terrain.id, terrain.name, terrain.description, terrain.creationDate, terrain.owner, terrain.priority, terrain.moderators.set, terrain.members.set, terrain.flags.map);
+        this(terrain.minDiagonal, terrain.maxDiagonal, terrain.world, terrain.id, terrain.name, terrain.description, terrain.owner, terrain.creationDate, terrain.priority, terrain.moderators, terrain.members, terrain.flags, terrain.memberFlags);
     }
 
     /**
@@ -159,19 +204,14 @@ public class Terrain implements Serializable {
         config.set("owner", terrain.owner == null ? null : terrain.owner.toString());
         config.set("moderators", terrain.moderators.view().stream().map(Objects::toString).collect(Collectors.toList()));
         config.set("members", terrain.members.view().stream().map(Objects::toString).collect(Collectors.toList()));
-        int count = 0;
-        for (Map.Entry<String, Object> entry : terrain.flags.view().entrySet()) {
-            Object data = entry.getValue();
-            if (data == null) continue;
-            try (ByteArrayOutputStream baos = new ByteArrayOutputStream(); ObjectOutputStream out = new ObjectOutputStream(baos)) {
-                out.writeObject(data);
-                config.set("flags." + count + ".id", entry.getKey());
-                config.set("flags." + count + ".data", baos.toByteArray());
-                count++;
-            } catch (Exception e) {
-                Terrainer.logger().log("Unable to serialize flag with id '" + entry.getKey() + "':", ConsoleLogger.Level.ERROR);
-                e.printStackTrace();
-            }
+        serializeFlags(terrain.flags, config);
+        if (terrain.memberFlags.map != null) {
+            ConfigurationSection memberFlagsSection = config.createSection("member-flags");
+
+            terrain.memberFlags.map.forEach((member, flagMap) -> {
+                ConfigurationSection memberSection = memberFlagsSection.createSection(member.toString());
+                serializeFlags(flagMap, memberSection);
+            });
         }
         config.save(path);
     }
@@ -191,45 +231,94 @@ public class Terrain implements Serializable {
             Coordinate min = new Coordinate(terrain.getNumber("diagonals.min-x").orElseThrow().doubleValue(), terrain.getNumber("diagonals.min-y").orElseThrow().doubleValue(), terrain.getNumber("diagonals.min-z").orElseThrow().doubleValue());
             Coordinate max = new Coordinate(terrain.getNumber("diagonals.max-x").orElseThrow().doubleValue(), terrain.getNumber("diagonals.max-y").orElseThrow().doubleValue(), terrain.getNumber("diagonals.max-z").orElseThrow().doubleValue());
             String owner = terrain.getString("owner").orElse(null);
-            Collection<?> moderatorNames = terrain.getCollection("moderators");
-            ArrayList<UUID> moderators = new ArrayList<>(moderatorNames.size());
-            for (Object moderator : moderatorNames) {
+
+            ArrayList<UUID> moderators = terrain.getCollection("moderators", obj -> {
                 try {
-                    moderators.add(UUID.fromString(moderator.toString()));
+                    return UUID.fromString(obj.toString());
                 } catch (IllegalArgumentException ignored) {
+                    return null;
                 }
-            }
-            Collection<?> memberNames = terrain.getCollection("members");
-            ArrayList<UUID> members = new ArrayList<>(memberNames.size());
-            for (Object member : memberNames) {
+            });
+            moderators.removeIf(Objects::isNull);
+
+            ArrayList<UUID> members = terrain.getCollection("members", obj -> {
                 try {
-                    members.add(UUID.fromString(member.toString()));
+                    return UUID.fromString(obj.toString());
                 } catch (IllegalArgumentException ignored) {
+                    return null;
                 }
-            }
-            ConfigurationSection flagsSection = terrain.getConfigurationSection("flags");
-            HashMap<String, Object> flagMap = null;
-            if (flagsSection != null) {
-                Set<Map.Entry<String, Object>> nodes = flagsSection.getNodes().entrySet();
-                flagMap = new HashMap<>((int) (nodes.size() / 0.75) + 1);
+            });
+            members.removeIf(Objects::isNull);
+
+            HashMap<String, Object> flagMap = deserializeFlagSection(terrain.getConfigurationSection("flags"), terrainId);
+
+            ConfigurationSection memberFlagsSection = terrain.getConfigurationSection("member-flags");
+            HashMap<UUID, HashMap<String, Object>> memberFlags = null;
+
+            if (memberFlagsSection != null) {
+                Set<Map.Entry<String, Object>> nodes = memberFlagsSection.getNodes().entrySet();
+                memberFlags = new HashMap<>((int) (nodes.size() / .75f) + 1);
+
                 for (Map.Entry<String, Object> node : nodes) {
-                    if (!(node.getValue() instanceof ConfigurationSection flag)) continue;
-                    Optional<String> id = flag.getString("id");
-                    if (id.isEmpty()) continue;
-                    Optional<Object> data = flag.getObject("data");
-                    if (data.isEmpty()) continue;
-                    if (!(data.get() instanceof byte[])) continue;
-                    try (ByteArrayInputStream bais = new ByteArrayInputStream((byte[]) data.get()); ObjectInputStream in = new ObjectInputStream(bais)) {
-                        flagMap.put(id.get(), in.readObject());
-                    } catch (Exception e) {
-                        Terrainer.logger().log("Flag with id '" + id.get() + "' could not be added to terrain '" + terrainId + "' because an issue happened while loading the data. (Maybe because of a removed plugin?)", ConsoleLogger.Level.ERROR);
+                    UUID memberID;
+                    try {
+                        memberID = UUID.fromString(node.getKey());
+                    } catch (IllegalArgumentException ignored) {
+                        continue;
                     }
+
+                    if (!(node.getValue() instanceof ConfigurationSection flagsSection)) continue;
+                    memberFlags.put(memberID, deserializeFlagSection(flagsSection, terrainId));
                 }
             }
-            return new Terrain(min, max, UUID.fromString(terrain.getString("world").orElseThrow()), terrainId, terrain.getString("name").orElseThrow(), terrain.getString("description").orElse(null), terrain.getString("creation-date").map(ZonedDateTime::parse).orElseThrow(), owner == null ? null : UUID.fromString(owner), terrain.getNumber("priority").orElse(0).intValue(), moderators, members, flagMap);
+
+            return new Terrain(min, max, UUID.fromString(terrain.getString("world").orElseThrow()), terrainId, terrain.getString("name").orElseThrow(), terrain.getString("description").orElse(null), terrain.getString("creation-date").map(ZonedDateTime::parse).orElseThrow(), owner == null ? null : UUID.fromString(owner), terrain.getNumber("priority").orElse(0).intValue(), moderators, members, flagMap, memberFlags);
         } catch (Exception e) {
             throw new IllegalArgumentException("The provided file is not a valid terrain file:", e);
         }
+    }
+
+    private static void serializeFlags(@NotNull FlagMap map, @NotNull ConfigurationSection section) {
+        int count = 0;
+        for (Map.Entry<String, Object> entry : map.view().entrySet()) {
+            Object data = entry.getValue();
+            if (data == null) continue;
+
+            try (ByteArrayOutputStream baos = new ByteArrayOutputStream(); ObjectOutputStream out = new ObjectOutputStream(baos)) {
+                out.writeObject(data);
+                section.set("flags." + count + ".id", entry.getKey());
+                section.set("flags." + count + ".data", baos.toByteArray());
+                count++;
+            } catch (Exception e) {
+                Terrainer.logger().log("Unable to serialize flag with id '" + entry.getKey() + "':", ConsoleLogger.Level.ERROR);
+                e.printStackTrace();
+            }
+        }
+    }
+
+    @Contract("null,_ -> null")
+    private static @Nullable HashMap<String, Object> deserializeFlagSection(@Nullable ConfigurationSection flagsSection, @NotNull UUID terrainId) {
+        if (flagsSection == null) return null;
+
+        Set<Map.Entry<String, Object>> nodes = flagsSection.getNodes().entrySet();
+        HashMap<String, Object> flagMap = new HashMap<>((int) (nodes.size() / .75f) + 1);
+
+        for (Map.Entry<String, Object> node : nodes) {
+            if (!(node.getValue() instanceof ConfigurationSection flag)) continue;
+            Optional<String> id = flag.getString("id");
+            if (id.isEmpty()) continue;
+            Optional<Object> data = flag.getObject("data");
+            if (data.isEmpty()) continue;
+            if (!(data.get() instanceof byte[])) continue;
+
+            try (ByteArrayInputStream bais = new ByteArrayInputStream((byte[]) data.get()); ObjectInputStream in = new ObjectInputStream(bais)) {
+                flagMap.put(id.get(), in.readObject());
+            } catch (Exception e) {
+                Terrainer.logger().log("Flag with id '" + id.get() + "' could not be added to terrain '" + terrainId + "' because an issue happened while loading the data. (Maybe because of a removed plugin?)", ConsoleLogger.Level.ERROR);
+            }
+        }
+
+        return flagMap;
     }
 
     /**
@@ -529,8 +618,11 @@ public class Terrain implements Serializable {
      * The members of the terrain.
      * <p>
      * Members can only build and interact with blocks on the terrain.
+     * <p>
+     * If you'd like to give members permission for just certain actions, check out {@link #memberFlags()}.
      *
      * @return The current members of the terrain.
+     * @see #memberFlags()
      */
     public @NotNull PrivateSet<UUID> members() {
         return members;
@@ -573,6 +665,17 @@ public class Terrain implements Serializable {
      */
     public @NotNull FlagMap flags() {
         return flags;
+    }
+
+    /**
+     * Gets the map for setting flags to specific members.
+     * <p>
+     * This map allows granting specific flags for members, rather than giving full build control using {@link #members()}.
+     *
+     * @return The per member flag map of this terrain.
+     */
+    public @NotNull MemberFlagMap memberFlags() {
+        return memberFlags;
     }
 
     /**
@@ -648,17 +751,17 @@ public class Terrain implements Serializable {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         Terrain terrain = (Terrain) o;
-        return id.equals(terrain.id) && world.equals(terrain.world) && minDiagonal.equals(terrain.minDiagonal) && maxDiagonal.equals(terrain.maxDiagonal) && Objects.equals(owner, terrain.owner) && creationDate.equals(terrain.creationDate) && name.equals(terrain.name) && Objects.equals(description, terrain.description) && priority == terrain.priority && moderators.equals(terrain.moderators) && members.equals(terrain.members) && flags.equals(terrain.flags);
+        return id.equals(terrain.id) && world.equals(terrain.world) && minDiagonal.equals(terrain.minDiagonal) && maxDiagonal.equals(terrain.maxDiagonal) && Objects.equals(owner, terrain.owner) && creationDate.equals(terrain.creationDate) && name.equals(terrain.name) && Objects.equals(description, terrain.description) && priority == terrain.priority && moderators.equals(terrain.moderators) && members.equals(terrain.members) && flags.equals(terrain.flags) && memberFlags.equals(terrain.memberFlags);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(id, world, moderators, members, creationDate, flags, minDiagonal, maxDiagonal, name, owner, description, priority);
+        return Objects.hash(id, world, minDiagonal, maxDiagonal, owner, creationDate, priority, name, description, moderators, members, flags, memberFlags);
     }
 
     @Override
     public @NotNull String toString() {
-        return "Terrain{" + "id=" + id + ", world=" + world + ", minDiagonal=" + minDiagonal + ", maxDiagonal=" + maxDiagonal + ", owner=" + owner + ", creationDate=" + creationDate + ", name='" + name + "', description='" + description + "', priority=" + priority + ", moderators=" + moderators + ", members=" + members + ", flags=" + flags + '}';
+        return "Terrain{" + "id=" + id + ", world=" + world + ", minDiagonal=" + minDiagonal + ", maxDiagonal=" + maxDiagonal + ", owner=" + owner + ", creationDate=" + creationDate + ", name='" + name + "', description='" + description + "', priority=" + priority + ", moderators=" + moderators + ", members=" + members + ", flags=" + flags + ", memberFlags=" + memberFlags + '}';
     }
 
     /**
@@ -669,8 +772,8 @@ public class Terrain implements Serializable {
      */
     public final class PrivateSet<E> implements Serializable {
         // Usually there aren't many moderators or members in a terrain. Since this is all what PrivateSet is used for,
-        // creating a HashSet that resizes only when there are 6 entries.
-        private static final int INITIAL_CAPACITY = 8;
+        // creating a HashSet that resizes only when there are 3 entries.
+        private static final int INITIAL_CAPACITY = 4;
         @Serial
         private static final long serialVersionUID = -6990197981631016570L;
 
@@ -806,12 +909,18 @@ public class Terrain implements Serializable {
          * @throws IllegalArgumentException If the data object does not implement {@link Serializable}.
          */
         public <T> @Nullable Object putFlag(@NotNull Flag<T> flag, @NotNull T data) {
+            return putFlag(flag, data, true);
+        }
+
+        private <T> @Nullable Object putFlag(@NotNull Flag<T> flag, @NotNull T data, boolean callEvents) {
             if (!(data instanceof Serializable))
                 throw new IllegalArgumentException("Flags must only hold Serializable data.");
-            TerrainManager.FlagSetResult<T> result = TerrainManager.callOnFlagSet(Terrain.this, flag, data);
 
-            if (result.cancel()) return null;
-            data = result.newData();
+            if (callEvents) {
+                TerrainManager.FlagSetResult<T> result = TerrainManager.callOnFlagSet(Terrain.this, flag, data);
+                if (result.cancel()) return null;
+                data = result.newData();
+            }
 
             if (map == null) {
                 map = new HashMap<>(INITIAL_CAPACITY);
@@ -855,8 +964,12 @@ public class Terrain implements Serializable {
          * @see #getAndRemoveFlag(Flag)
          */
         public @Nullable Object removeFlag(@NotNull Flag<?> flag) {
+            return removeFlag(flag, true);
+        }
+
+        private @Nullable Object removeFlag(@NotNull Flag<?> flag, boolean callEvents) {
             if (map == null) return null;
-            if (TerrainManager.callOnFlagUnset(Terrain.this, flag)) return null;
+            if (callEvents && TerrainManager.callOnFlagUnset(Terrain.this, flag)) return null;
             try {
                 return map.remove(flag.id());
             } finally {
@@ -908,6 +1021,156 @@ public class Terrain implements Serializable {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
             FlagMap that = (FlagMap) o;
+            return Objects.equals(map, that.map);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(map);
+        }
+
+        @Override
+        public @NotNull String toString() {
+            if (map == null) return "{}";
+            return map.toString();
+        }
+    }
+
+    public final class MemberFlagMap implements Serializable {
+        private static final int INITIAL_CAPACITY = 4;
+        @Serial
+        private static final long serialVersionUID = -6314163403738853033L;
+
+        private @Nullable HashMap<UUID, FlagMap> map;
+
+        private MemberFlagMap(@Nullable HashMap<UUID, HashMap<String, Object>> map) {
+            if (map != null && !map.isEmpty()) {
+                HashMap<UUID, FlagMap> thisMap = this.map = new HashMap<>((int) (map.size() / .75f) + 1);
+                map.forEach(((member, flags) -> thisMap.put(member, new FlagMap(flags))));
+            }
+        }
+
+        private MemberFlagMap(@Nullable HashMap<UUID, FlagMap> map, @Nullable Object ignoredDummy) {
+            if (map != null && !map.isEmpty()) {
+                HashMap<UUID, FlagMap> thisMap = this.map = new HashMap<>((int) (map.size() / .75f) + 1);
+                map.forEach(((member, flags) -> thisMap.put(member, new FlagMap(flags.map))));
+            }
+        }
+
+        /**
+         * Maps a flag data to the specified member.
+         *
+         * @param member The member to set the flags of.
+         * @param flag   The flag to map the data to.
+         * @param data   The data to set to the flag.
+         * @param <T>    The data type of the flag.
+         * @return The previous value associated with the flag.
+         * @throws IllegalArgumentException If the data object does not implement {@link Serializable}.
+         */
+        public <T> Object putFlag(@NotNull UUID member, @NotNull Flag<T> flag, T data) {
+            if (!(data instanceof Serializable))
+                throw new IllegalArgumentException("Flags must only hold Serializable data.");
+
+            if (map == null) map = new HashMap<>(INITIAL_CAPACITY);
+            return map.computeIfAbsent(member, k -> new FlagMap(null)).putFlag(flag, data, false);
+        }
+
+        /**
+         * Gets the associated data to the flag of the specified member.
+         * <p>
+         * This will return the {@link Flag#defaultValue()} if the terrain has {@link Terrain#usesDefaultFlagValues()} set to true.
+         *
+         * @param member The member to get the flag's data from.
+         * @param flag   The flag to get data from.
+         * @param <T>    The data type of the flag.
+         * @return The data of this flag, null if this member was not in the map, the flag was not set for this member, or the flag had a different {@link Flag#defaultValue()}
+         */
+        public <T> @Nullable T getData(@NotNull UUID member, @NotNull Flag<T> flag) {
+            if (map == null) return null;
+            FlagMap flagMap = map.get(member);
+            if (flagMap == null) return null;
+            return flagMap.getData(flag);
+        }
+
+        /**
+         * Removes a member and all their flags from the map.
+         *
+         * @param member The member to remove from this map.
+         * @return The previous flags of this member, null if the member was not in the member map.
+         */
+        public @Nullable Map<String, Object> removeMember(@NotNull UUID member) {
+            if (map == null) return null;
+            FlagMap removed = map.remove(member);
+            if (removed == null) return null;
+            markAsChanged();
+            return removed.view();
+        }
+
+        /**
+         * Removes a flag mapped to the specified member.
+         *
+         * @param member The member to remove the flag.
+         * @param flag   The flag to remove from the member.
+         * @return The previous data associated to the flag before removal, null if the member didn't have the flag or was not in the member map.
+         */
+        public @Nullable Object removeFlag(@NotNull UUID member, @NotNull Flag<?> flag) {
+            if (map == null) return null;
+            FlagMap flagMap = map.get(member);
+            if (flagMap == null) return null;
+            try {
+                return flagMap.removeFlag(flag, false);
+            } finally {
+                if (flagMap.view().isEmpty()) {
+                    map.remove(member);
+                    markAsChanged();
+                }
+            }
+        }
+
+        /**
+         * @param member The member to check if is in the map.
+         * @return Whether this member has any flags set to them.
+         */
+        public boolean containsMember(@NotNull UUID member) {
+            if (map == null) return false;
+            return map.containsKey(member);
+        }
+
+        /**
+         * Tests whether the specified member has data for the specified flag, and this data has the same {@link Flag#dataType()} as the specified flag.
+         * <p>
+         * This ignores whether the terrain has {@link Terrain#usesDefaultFlagValues()} true or false.
+         *
+         * @param member The member to check if it has the flag.
+         * @param flag   The flag to check if it's in this members map.
+         * @return Whether the member has the flag set.
+         */
+        public boolean containsFlag(@NotNull UUID member, @NotNull Flag<?> flag) {
+            if (map == null) return false;
+            FlagMap flagMap = map.get(member);
+            if (flagMap == null) return false;
+            Object data = flagMap.view().get(flag.id());
+            if (data == null) return false;
+            return flag.dataType().isAssignableFrom(data.getClass());
+        }
+
+        /**
+         * Converts the internal {@link FlagMap} values to a map of flags represented by {@link String} and {@link Object}.
+         *
+         * @return An empty map if there are no member flags, or a clone of the member map with immutable flag values.
+         */
+        public @NotNull Map<UUID, Map<String, Object>> view() {
+            if (map == null) return Collections.emptyMap();
+            HashMap<UUID, Map<String, Object>> view = new HashMap<>((int) (map.size() / .75f) + 1);
+            map.forEach((uuid, flagMap) -> view.put(uuid, flagMap.view()));
+            return view;
+        }
+
+        @Override
+        public boolean equals(@Nullable Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            MemberFlagMap that = (MemberFlagMap) o;
             return Objects.equals(map, that.map);
         }
 
