@@ -48,6 +48,8 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.HandlerList;
 import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.bukkit.scoreboard.Scoreboard;
+import org.bukkit.scoreboard.Team;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -63,8 +65,8 @@ public final class TerrainerPlugin extends JavaPlugin {
     private static @Nullable EconomyHandler economyHandler;
     private static @NotNull NMSHandler nmsHandler = new NMSHandler() {
         @Override
-        public int spawnMarkerEntity(@NotNull Player player, int x, int y, int z) {
-            return 0;
+        public @NotNull PlayerUtil.SpawnedMarker spawnMarkerEntity(@NotNull Player player, int x, int y, int z) {
+            return new PlayerUtil.SpawnedMarker(0, new UUID(0, 0));
         }
 
         @Override
@@ -298,6 +300,14 @@ public final class TerrainerPlugin extends JavaPlugin {
     @Override
     public void onDisable() {
         TerrainManager.save();
+
+        Scoreboard mainScoreboard = getServer().getScoreboardManager().getMainScoreboard();
+
+        Team selectionTeam = mainScoreboard.getTeam("TRselectionTeam");
+        if (selectionTeam != null) selectionTeam.unregister();
+        Team createdTeam = mainScoreboard.getTeam("TRcreatedTeam");
+        if (createdTeam != null) createdTeam.unregister();
+
         boolean kickPlayers = Configurations.CONFIG.getConfiguration().getBoolean("Kick Players On Disable").orElse(false) && (ReflectionUtil.getClass("io.papermc.paper.threadedregions.RegionizedServer") == null);
         if (kickPlayers) {
             var players = Bukkit.getOnlinePlayers();

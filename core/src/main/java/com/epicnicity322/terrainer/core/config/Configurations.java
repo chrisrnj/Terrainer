@@ -515,6 +515,10 @@ public final class Configurations {
                 &7check information about any existing terrains
                 &7in the location.
                         
+            Markers:
+              Selection Color: 'e'
+              Created Color: 'a'
+                        
             Info:
               Error:
                 No Terrains: '<cooldown=1000> &7No terrains could be found.'

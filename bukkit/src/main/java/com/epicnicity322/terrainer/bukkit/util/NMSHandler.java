@@ -18,6 +18,7 @@
 
 package com.epicnicity322.terrainer.bukkit.util;
 
+import com.epicnicity322.terrainer.core.util.PlayerUtil;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
@@ -29,9 +30,9 @@ public interface NMSHandler {
      * @param x      X coordinate.
      * @param y      Y coordinate.
      * @param z      Z coordinate.
-     * @return The entity's ID.
+     * @return The entity's IDs.
      */
-    int spawnMarkerEntity(@NotNull Player player, int x, int y, int z) throws Throwable;
+    @NotNull PlayerUtil.SpawnedMarker spawnMarkerEntity(@NotNull Player player, int x, int y, int z) throws Throwable;
 
     /**
      * Kills an entity with the ID.

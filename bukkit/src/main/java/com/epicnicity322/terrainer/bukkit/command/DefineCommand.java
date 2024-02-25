@@ -58,6 +58,7 @@ public final class DefineCommand extends Command {
         return CommandUtil.noPermissionRunnable();
     }
 
+    @SuppressWarnings("deprecation")
     @Override
     public void run(@NotNull String label, @NotNull CommandSender sender, @NotNull String[] args) {
         MessageSender lang = TerrainerPlugin.getLanguage();
@@ -83,10 +84,6 @@ public final class DefineCommand extends Command {
             if (length == 0) name = null;
         } else name = null;
 
-        // Clearing selections.
-        selection[0] = null;
-        selection[1] = null;
-        if (sender instanceof Player player) TerrainerPlugin.getPlayerUtil().removeMarkers(player);
 
         var terrain = new Terrain(first, second, world);
         if (name != null) terrain.setName(name);
@@ -111,6 +108,15 @@ public final class DefineCommand extends Command {
             lang.send(sender, lang.get("Create.Define").replace("<name>", terrain.name()));
             var create = new UserCreateTerrainEvent(terrain, sender, true);
             Bukkit.getPluginManager().callEvent(create);
+
+            if (sender instanceof Player player)
+                TerrainerPlugin.getPlayerUtil().colorizeSelectionMarkers(player, false);
+        } else {
+            if (sender instanceof Player player) TerrainerPlugin.getPlayerUtil().removeMarkers(player);
         }
+
+        // Clearing selections.
+        selection[0] = null;
+        selection[1] = null;
     }
 }

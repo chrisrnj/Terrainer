@@ -56,6 +56,7 @@ public final class ClaimCommand extends Command {
         return CommandUtil.noPermissionRunnable();
     }
 
+    @SuppressWarnings("deprecation")
     @Override
     public void run(@NotNull String label, @NotNull CommandSender sender, @NotNull String[] args) {
         MessageSender lang = TerrainerPlugin.getLanguage();
@@ -99,16 +100,19 @@ public final class ClaimCommand extends Command {
 
         BukkitPlayerUtil util = TerrainerPlugin.getPlayerUtil();
 
-        // Clearing selections.
-        selection[0] = null;
-        selection[1] = null;
-        if (player != null) util.removeMarkers(player);
-
         var terrain = new Terrain(first, second, world.getUID());
         if (name != null) terrain.setName(name);
+
         if (util.claimTerrain(player, terrain)) {
             var create = new UserCreateTerrainEvent(terrain, sender, false);
             Bukkit.getPluginManager().callEvent(create);
+            if (player != null) util.colorizeSelectionMarkers(player, false);
+        } else {
+            if (player != null) util.removeMarkers(player);
         }
+
+        // Clearing selections.
+        selection[0] = null;
+        selection[1] = null;
     }
 }

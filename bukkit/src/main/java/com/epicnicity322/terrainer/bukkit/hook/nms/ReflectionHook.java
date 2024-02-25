@@ -21,6 +21,7 @@ package com.epicnicity322.terrainer.bukkit.hook.nms;
 import com.epicnicity322.epicpluginlib.bukkit.reflection.ReflectionUtil;
 import com.epicnicity322.epicpluginlib.bukkit.reflection.type.PackageType;
 import com.epicnicity322.terrainer.bukkit.util.NMSHandler;
+import com.epicnicity322.terrainer.core.util.PlayerUtil;
 import net.minecraft.network.protocol.game.PacketPlayOutEntityDestroy;
 import net.minecraft.network.protocol.game.PacketPlayOutEntityMetadata;
 import net.minecraft.network.protocol.game.PacketPlayOutSpawnEntity;
@@ -80,7 +81,7 @@ public final class ReflectionHook implements NMSHandler {
     }
 
     @Override
-    public int spawnMarkerEntity(@NotNull Player player, int x, int y, int z) throws Throwable {
+    public @NotNull PlayerUtil.SpawnedMarker spawnMarkerEntity(@NotNull Player player, int x, int y, int z) throws Throwable {
         assert method_CraftWorld_getHandle != null;
         assert slimeEntityType != null;
         EntitySlime slime = new EntitySlime((EntityTypes<? extends EntitySlime>) slimeEntityType, (World) method_CraftWorld_getHandle.invoke(player.getWorld()));
@@ -104,7 +105,7 @@ public final class ReflectionHook implements NMSHandler {
             assert constructor_PacketPlayOutEntityMetadata != null;
             ReflectionUtil.sendPacket(player, constructor_PacketPlayOutEntityMetadata.newInstance(id, dataWatcher, false));
         }
-        return id;
+        return new PlayerUtil.SpawnedMarker(id, bukkitSlime.getUniqueId());
     }
 
     @Override
