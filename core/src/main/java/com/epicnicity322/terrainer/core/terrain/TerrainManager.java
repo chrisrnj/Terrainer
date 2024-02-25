@@ -484,12 +484,8 @@ public final class TerrainManager {
      * @param y      The Y coordinate of the block.
      * @param z      The Z coordinate of the block.
      * @return {@code true} if the flag is allowed at the specified location; {@code false} otherwise.
-     * @throws UnsupportedOperationException If terrainer is not loaded yet or {@link Terrainer#playerUtil()} is not set.
      */
     public static boolean isFlagAllowedAt(@NotNull Flag<Boolean> flag, @NotNull UUID player, @NotNull UUID world, int x, int y, int z) {
-        if (Terrainer.playerUtil() == null) {
-            throw new UnsupportedOperationException("Terrainer is not loaded yet, player util could not be found.");
-        }
         Integer foundPriority = null;
 
         // Terrain list is sorted by priority.
@@ -497,10 +493,12 @@ public final class TerrainManager {
             // If the flag was already found, check if the player has relations to terrains in the location which have the same priority.
             if (foundPriority != null && terrain.priority != foundPriority) return false;
             // If the player has any relations to terrains found at the location, return true.
-            if (Terrainer.playerUtil().hasAnyRelations(player, terrain)) return true;
+            if (hasAnyRelations(player, terrain)) return true;
             if (foundPriority != null) continue;
 
-            Boolean state = terrain.flags().getData(flag);
+            // Check member specific flag first.
+            Boolean state = terrain.memberFlags.getData(player, flag);
+            if (state == null) state = terrain.flags.getData(flag);
 
             if (state != null) {
                 // State found as false. Continue loop to check for relations with terrains with same priority.
@@ -512,6 +510,10 @@ public final class TerrainManager {
             }
         }
         return foundPriority == null;
+    }
+
+    private static boolean hasAnyRelations(@NotNull UUID player, @NotNull Terrain terrain) {
+        return player.equals(terrain.owner()) || terrain.members().view().contains(player) || terrain.moderators().view().contains(player);
     }
 
     /**

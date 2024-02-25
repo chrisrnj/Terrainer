@@ -139,7 +139,8 @@ public abstract class Protections<P extends R, R, M, B, E> {
             // player has relations for the priority, then return immediately.
 
             if (!state1Found) {
-                Boolean state1 = terrain.flags().getData(flag1);
+                Boolean state1 = terrain.memberFlags().getData(playerUtil.getUniqueId(player), flag1);
+                if (state1 == null) state1 = terrain.flags().getData(flag1);
 
                 if (state1 != null) {
                     if (!state1) {
@@ -151,7 +152,8 @@ public abstract class Protections<P extends R, R, M, B, E> {
                 }
             }
             if (!state2Found) {
-                Boolean state2 = terrain.flags().getData(flag2);
+                Boolean state2 = terrain.memberFlags().getData(playerUtil.getUniqueId(player), flag2);
+                if (state2 == null) state2 = terrain.flags().getData(flag2);
 
                 if (state2 != null) {
                     if (!state2) {
@@ -601,7 +603,9 @@ public abstract class Protections<P extends R, R, M, B, E> {
             if (priorityFound != null && priorityFound != terrain.priority()) break;
             if (playerUtil.hasAnyRelations(player, terrain)) return true;
 
-            Set<String> commands = terrain.flags().getData(Flags.COMMAND_BLACKLIST);
+            // Get member specific flag first.
+            Set<String> commands = terrain.memberFlags().getData(playerUtil.getUniqueId(player), Flags.COMMAND_BLACKLIST);
+            if (commands == null) commands = terrain.flags().getData(Flags.COMMAND_BLACKLIST);
 
             if (commands == null) continue;
             if (priorityFound == null) priorityFound = terrain.priority();
