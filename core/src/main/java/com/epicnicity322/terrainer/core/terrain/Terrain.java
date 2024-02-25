@@ -944,15 +944,19 @@ public class Terrain implements Serializable {
          * @param <T>  The data type of the flag.
          * @return The associated data to this flag. <code>null</code> (Or the default) if the terrain does not contain the flag.
          */
-        @SuppressWarnings("unchecked")
         public <T> @Nullable T getData(@NotNull Flag<T> flag) {
-            if (map == null) return usesDefaultFlagValues() ? flag.defaultValue() : null;
+            return getData(flag, usesDefaultFlagValues());
+        }
+
+        @SuppressWarnings("unchecked")
+        private <T> @Nullable T getData(@NotNull Flag<T> flag, boolean useDefault) {
+            if (map == null) return useDefault ? flag.defaultValue() : null;
             Object data = map.get(flag.id());
-            if (data == null) return usesDefaultFlagValues() ? flag.defaultValue() : null;
+            if (data == null) return useDefault ? flag.defaultValue() : null;
             if (flag.dataType().isAssignableFrom(data.getClass())) {
                 return (T) data;
             } else {
-                return usesDefaultFlagValues() ? flag.defaultValue() : null;
+                return useDefault ? flag.defaultValue() : null;
             }
         }
 
@@ -1077,19 +1081,17 @@ public class Terrain implements Serializable {
 
         /**
          * Gets the associated data to the flag of the specified member.
-         * <p>
-         * This will return the {@link Flag#defaultValue()} if the terrain has {@link Terrain#usesDefaultFlagValues()} set to true.
          *
          * @param member The member to get the flag's data from.
          * @param flag   The flag to get data from.
          * @param <T>    The data type of the flag.
-         * @return The data of this flag, null if this member was not in the map, the flag was not set for this member, or the flag had a different {@link Flag#defaultValue()}
+         * @return The data of this flag, null if this member was not in the map, the flag was not set for this member, or the flag had a different {@link Flag#dataType()}
          */
         public <T> @Nullable T getData(@NotNull UUID member, @NotNull Flag<T> flag) {
             if (map == null) return null;
             FlagMap flagMap = map.get(member);
             if (flagMap == null) return null;
-            return flagMap.getData(flag);
+            return flagMap.getData(flag, false);
         }
 
         /**
