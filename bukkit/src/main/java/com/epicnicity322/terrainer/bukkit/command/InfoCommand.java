@@ -63,11 +63,13 @@ public final class InfoCommand extends Command {
         return CommandUtil.noPermissionRunnable();
     }
 
+    @SuppressWarnings("deprecation")
     @Override
     public void run(@NotNull String label, @NotNull CommandSender sender, @NotNull String[] args) {
         MessageSender lang = TerrainerPlugin.getLanguage();
         Collection<Terrain> terrains;
 
+        // TODO: Remove world terrain unless it's only one on list and player has permission.
         if (args.length > 1) {
             UUID id = null;
 

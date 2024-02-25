@@ -1074,7 +1074,7 @@ public class Terrain implements Serializable {
         public <T> Object putFlag(@NotNull UUID member, @NotNull Flag<T> flag, T data) {
             if (!(data instanceof Serializable))
                 throw new IllegalArgumentException("Flags must only hold Serializable data.");
-
+            // TODO: Member flag set event
             if (map == null) map = new HashMap<>(INITIAL_CAPACITY);
             return map.computeIfAbsent(member, k -> new FlagMap(null)).putFlag(flag, data, false);
         }
@@ -1104,6 +1104,7 @@ public class Terrain implements Serializable {
             if (map == null) return null;
             FlagMap removed = map.remove(member);
             if (removed == null) return null;
+            // TODO: Member flag unset event
             markAsChanged();
             return removed.view();
         }
@@ -1120,6 +1121,7 @@ public class Terrain implements Serializable {
             FlagMap flagMap = map.get(member);
             if (flagMap == null) return null;
             try {
+                // TODO: Member flag unset event
                 return flagMap.removeFlag(flag, false);
             } finally {
                 if (flagMap.view().isEmpty()) {

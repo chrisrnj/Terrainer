@@ -88,6 +88,7 @@ public final class ClaimCommand extends Command {
 
         String name;
 
+        // TODO: Call name event
         if (args.length > 1) {
             name = ChatColor.translateAlternateColorCodes('&', CommandUtil.join(args, 1)).trim();
             String stripped = ChatColor.stripColor(name);

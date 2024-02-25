@@ -759,6 +759,7 @@ public final class ProtectionsListener extends Protections<Player, CommandSender
         return state != null && !state;
     }
 
+    // TODO: Take member specific flags into account.
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
     public void canEnter(TerrainCanEnterEvent event) {
         // Checking if canEnter was already set by a listener called before this one.
@@ -776,6 +777,7 @@ public final class ProtectionsListener extends Protections<Player, CommandSender
         lang.send(player, lang.get("Protections." + Flags.ENTER.id()));
     }
 
+    // TODO: Take member specific flags into account.
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
     public void canLeave(TerrainCanLeaveEvent event) {
         // Checking if canLeave was already set by a listener called before this one.
@@ -793,6 +795,7 @@ public final class ProtectionsListener extends Protections<Player, CommandSender
         lang.send(player, lang.get("Protections." + Flags.LEAVE.id()));
     }
 
+    // TODO: Take member specific flags into account.
     @SuppressWarnings("deprecation")
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void monitorOnEnter(TerrainEnterEvent event) {
@@ -850,6 +853,7 @@ public final class ProtectionsListener extends Protections<Player, CommandSender
         }
     }
 
+    // TODO: Take member specific flags into account.
     @SuppressWarnings("deprecation")
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void monitorOnLeave(TerrainLeaveEvent event) {

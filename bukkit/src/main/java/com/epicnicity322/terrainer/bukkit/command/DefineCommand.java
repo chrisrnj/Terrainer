@@ -78,6 +78,7 @@ public final class DefineCommand extends Command {
         UUID world = selection[0].world();
         String name;
 
+        // TODO: Call name event
         if (args.length > 1) {
             name = ChatColor.translateAlternateColorCodes('&', args[1]);
             int length = ChatColor.stripColor(name).length();
@@ -88,6 +89,7 @@ public final class DefineCommand extends Command {
         var terrain = new Terrain(first, second, world);
         if (name != null) terrain.setName(name);
 
+        // TODO: Add missing flags that should be here on define, also make this configurable.
         // Setting spawn protection flags.
         Terrain.FlagMap flagMap = terrain.flags();
         flagMap.putFlag(Flags.BLOCK_FORM, false);

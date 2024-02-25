@@ -90,6 +90,7 @@ public final class FlagListener implements Listener {
         // Applying new effects to players within the terrain.
         Map<String, Integer> newEffects = (Map<String, Integer>) event.data();
 
+        // TODO: Take member specific flags into account.
         for (Player player : world.getPlayers()) {
             Location loc = player.getLocation();
             if (!terrain.isWithin(loc.getBlockX(), loc.getBlockY(), loc.getBlockZ())) continue;

@@ -108,8 +108,6 @@ public abstract class PlayerUtil<P extends R, R> {
 
     protected abstract @NotNull R getConsoleRecipient();
 
-    // TODO: Check if terrain is intersecting another and remove intersection area from used blocks. Switch ON/OFF in config.
-
     /**
      * Attempts to claim a terrain with the player as owner.
      * <p>
@@ -137,6 +135,7 @@ public abstract class PlayerUtil<P extends R, R> {
                 return false;
             }
             if (!hasPermission(player, "terrainer.bypass.limit.blocks")) {
+                // TODO: Check if terrain is intersecting another and remove intersection area from used blocks. Switch ON/OFF in config.
                 double area = terrain.area();
                 double minArea = Configurations.CONFIG.getConfiguration().getNumber("Min Area").orElse(25.0).doubleValue();
                 double minDimensions = Configurations.CONFIG.getConfiguration().getNumber("Min Dimensions").orElse(5.0).doubleValue();
@@ -172,6 +171,8 @@ public abstract class PlayerUtil<P extends R, R> {
             receiver = getConsoleRecipient();
         }
 
+        // TODO: Add flags set on config on claim.
+
         terrain.setOwner(player == null ? null : getUniqueId(player));
         if (TerrainManager.add(terrain)) {
             lang.send(receiver, lang.get("Create.Success").replace("<name>", terrain.name()).replace("<used>", Long.toString(usedBlocks)).replace("<max>", Long.toString(maxBlocks)));
@@ -180,7 +181,6 @@ public abstract class PlayerUtil<P extends R, R> {
         return false;
     }
 
-    // TODO: Check if terrain is intersecting another and remove intersection area from used blocks. Switch ON/OFF in config.
 
     /**
      * Gets the sum of the areas of all terrains owned by the specified player.
@@ -189,6 +189,7 @@ public abstract class PlayerUtil<P extends R, R> {
      * @return The amount of blocks this player has claimed.
      */
     public long getUsedBlockLimit(@Nullable UUID player) {
+        // TODO: Check if terrain is intersecting another and remove intersection area from used blocks. Switch ON/OFF in config.
         long usedBlocks = 0;
         for (Terrain terrain : TerrainManager.allTerrains()) {
             if (!Objects.equals(terrain.owner(), player)) continue;

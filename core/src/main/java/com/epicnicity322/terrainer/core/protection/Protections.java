@@ -293,7 +293,6 @@ public abstract class Protections<P extends R, R, M, B, E> {
         return true;
     }
 
-
     private boolean checkPlayerRelationToRestOfTerrainsWithSamePriority(@NotNull P player, @NotNull Iterator<Terrain> terrains, int priority) {
         // Continue looping through terrains with same priority to see if player has relations to any of them.
         while (terrains.hasNext()) {
@@ -634,4 +633,6 @@ public abstract class Protections<P extends R, R, M, B, E> {
             return true;
         }
     }
+
+    // TODO: protection against hoppers/hopper minecarts
 }
