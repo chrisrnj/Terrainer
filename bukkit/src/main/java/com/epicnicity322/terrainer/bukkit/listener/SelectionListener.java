@@ -21,17 +21,14 @@ package com.epicnicity322.terrainer.bukkit.listener;
 import com.epicnicity322.epicpluginlib.bukkit.lang.MessageSender;
 import com.epicnicity322.epicpluginlib.bukkit.util.InventoryUtils;
 import com.epicnicity322.terrainer.bukkit.TerrainerPlugin;
-import com.epicnicity322.terrainer.bukkit.command.BordersCommand;
+import com.epicnicity322.terrainer.bukkit.command.InfoCommand;
 import com.epicnicity322.terrainer.bukkit.util.BukkitPlayerUtil;
 import com.epicnicity322.terrainer.core.Coordinate;
 import com.epicnicity322.terrainer.core.WorldCoordinate;
 import com.epicnicity322.terrainer.core.config.Configurations;
-import com.epicnicity322.terrainer.core.terrain.Terrain;
 import com.epicnicity322.terrainer.core.terrain.TerrainManager;
 import com.epicnicity322.terrainer.core.util.PlayerUtil;
-import com.epicnicity322.terrainer.core.util.TerrainerUtil;
 import com.epicnicity322.yamlhandler.Configuration;
-import org.bukkit.Bukkit;
 import org.bukkit.FluidCollisionMode;
 import org.bukkit.NamespacedKey;
 import org.bukkit.World;
@@ -49,10 +46,7 @@ import org.bukkit.persistence.PersistentDataType;
 import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
 
-import java.time.format.DateTimeFormatter;
-import java.util.Collection;
 import java.util.Locale;
-import java.util.UUID;
 
 public final class SelectionListener implements Listener {
     private static @NotNull ItemStack selector = InventoryUtils.getItemStack("Selector Wand", Configurations.CONFIG.getConfiguration(), TerrainerPlugin.getLanguage());
@@ -66,12 +60,12 @@ public final class SelectionListener implements Listener {
     private static int farSelectionDistance = 20;
     private final @NotNull NamespacedKey selectorWandKey;
     private final @NotNull NamespacedKey infoWandKey;
-    private final @NotNull BordersCommand bordersCommand;
+    private final @NotNull InfoCommand infoCommand;
 
-    public SelectionListener(@NotNull NamespacedKey selectorWandKey, @NotNull NamespacedKey infoWandKey, @NotNull BordersCommand bordersCommand) {
+    public SelectionListener(@NotNull NamespacedKey selectorWandKey, @NotNull NamespacedKey infoWandKey, @NotNull InfoCommand infoCommand) {
         this.selectorWandKey = selectorWandKey;
         this.infoWandKey = infoWandKey;
-        this.bordersCommand = bordersCommand;
+        this.infoCommand = infoCommand;
     }
 
     /**
@@ -162,7 +156,7 @@ public final class SelectionListener implements Listener {
                 selections[first ? 0 : 1] = new WorldCoordinate(world.getUID(), new Coordinate(x, y, z));
 
                 // Showing markers.
-                util.showMarkers(player, block.getY());
+                util.showMarkers(player, block.getY(), null);
 
                 lang.send(player, lang.get("Select.Success." + (first ? "First" : "Second")).replace("<world>", block.getWorld().getName()).replace("<coord>", "X: " + x + ", Z: " + z));
 
@@ -176,7 +170,7 @@ public final class SelectionListener implements Listener {
 
         if (isWand(hand, info, infoUnique, infoWandKey) && player.hasPermission("terrainer.info.wand")) {
             if (cancelInfoInteraction) event.setCancelled(true);
-            sendInfo(player, block);
+            infoCommand.sendInfo(player, TerrainManager.terrainsAt(block.getWorld().getUID(), block.getX(), block.getY(), block.getZ()), block.getLocation());
         }
     }
 
@@ -199,41 +193,5 @@ public final class SelectionListener implements Listener {
         } else {
             return hand.getType() == item.getType();
         }
-    }
-
-    private void sendInfo(@NotNull Player player, @NotNull Block block) {
-        MessageSender lang = TerrainerPlugin.getLanguage();
-        Collection<Terrain> terrains = TerrainManager.terrainsAt(block.getWorld().getUID(), block.getX(), block.getY(), block.getZ());
-
-        if (terrains.isEmpty()) {
-            lang.send(player, lang.get("Info.Error.No Terrains"));
-            return;
-        }
-        if (!player.hasPermission("terrainer.info.console")) {
-            terrains.removeIf(t -> t.owner() == null);
-        }
-        if (!player.hasPermission("terrainer.info.others")) {
-            UUID playerId = player.getUniqueId();
-            terrains.removeIf(t -> !TerrainerPlugin.getPlayerUtil().hasAnyRelations(playerId, t));
-        }
-        if (terrains.isEmpty()) {
-            lang.send(player, lang.get("Info.Error.No Relating Terrains"));
-            return;
-        }
-
-        boolean showBorders = false;
-        BukkitPlayerUtil util = TerrainerPlugin.getPlayerUtil();
-
-        for (Terrain t : terrains) {
-            World w = Bukkit.getWorld(t.world());
-            String worldName = w == null ? t.world().toString() : w.getName();
-            Coordinate min = t.minDiagonal();
-            Coordinate max = t.maxDiagonal();
-            if (!t.borders().isEmpty()) showBorders = true;
-
-            lang.send(player, lang.get("Info.Text").replace("<name>", t.name()).replace("<id>", t.id().toString()).replace("<owner>", util.getOwnerName(t.owner())).replace("<desc>", t.description()).replace("<date>", t.creationDate().format(DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm:ss"))).replace("<area>", Double.toString(t.area())).replace("<world>", worldName).replace("<x1>", Double.toString(min.x())).replace("<y1>", Double.toString(min.y())).replace("<z1>", Double.toString(min.z())).replace("<x2>", Double.toString(max.x())).replace("<y2>", Double.toString(max.y())).replace("<z2>", Double.toString(max.z())).replace("<mods>", TerrainerUtil.listToString(t.moderators().view(), util::getOwnerName)).replace("<members>", TerrainerUtil.listToString(t.members().view(), util::getOwnerName)).replace("<flags>", TerrainerUtil.listToString(t.flags().view().keySet(), id -> id)).replace("<priority>", Integer.toString(t.priority())));
-        }
-
-        if (showBorders) bordersCommand.showBorders(player, terrains);
     }
 }

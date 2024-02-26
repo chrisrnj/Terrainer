@@ -123,14 +123,14 @@ public final class BukkitPlayerUtil extends PlayerUtil<Player, CommandSender> {
     }
 
     @Override
-    protected @NotNull WorldCoordinate location(@NotNull Player player) {
+    public @NotNull WorldCoordinate location(@NotNull Player player) {
         Location loc = player.getLocation();
         return new WorldCoordinate(player.getWorld().getUID(), new Coordinate(loc.getBlockX(), loc.getBlockY(), loc.getBlockZ()));
     }
 
     @Override
-    public void showMarkers(@NotNull Player player, int y) {
-        super.showMarkers(player, y);
+    public void showMarkers(@NotNull Player player, int y, @Nullable Coordinate location) {
+        super.showMarkers(player, y, location);
         long showTime = Configurations.CONFIG.getConfiguration().getNumber("Markers.Show Time").orElse(1200).longValue();
 
         if (showTime != 0) {

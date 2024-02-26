@@ -22,6 +22,7 @@ import com.epicnicity322.epicpluginlib.core.lang.LanguageHolder;
 import com.epicnicity322.epicpluginlib.core.logger.ConsoleLogger;
 import com.epicnicity322.terrainer.core.Coordinate;
 import com.epicnicity322.terrainer.core.Terrainer;
+import com.epicnicity322.terrainer.core.WorldChunk;
 import com.epicnicity322.terrainer.core.WorldCoordinate;
 import com.epicnicity322.terrainer.core.config.Configurations;
 import com.epicnicity322.terrainer.core.event.terrain.ITerrainAddEvent;
@@ -357,23 +358,7 @@ public abstract class PlayerUtil<P extends R, R> {
         return true;
     }
 
-    protected abstract @NotNull WorldCoordinate location(@NotNull P player);
-
-    private void addOverlapping(@NotNull Collection<Terrain> terrains, @NotNull P player) {
-        if (terrains.isEmpty()) return;
-
-        boolean overlapPermission = hasPermission(player, "terrainer.bypass.overlap");
-        UUID uuid = getUniqueId(player);
-
-        for (Terrain terrain : new ArrayList<>(terrains)) {
-            if (!Objects.equals(terrain.owner(), uuid) && !overlapPermission) continue;
-            for (Terrain t1 : TerrainManager.terrains(terrain.world())) {
-                if (t1 != terrain && terrain.isOverlapping(t1) && (Objects.equals(t1.owner(), uuid) || overlapPermission)) {
-                    terrains.add(t1);
-                }
-            }
-        }
-    }
+    public abstract @NotNull WorldCoordinate location(@NotNull P player);
 
     private void spawnAtY(@NotNull Coordinate min, @NotNull Coordinate max, @NotNull P player, int y, @NotNull HashMap<SpawnedMarker, Boolean> ids, boolean fromSelection) throws Throwable {
         // Left Bottom Corner
@@ -444,28 +429,59 @@ public abstract class PlayerUtil<P extends R, R> {
     }
 
     public final void showMarkers(@NotNull P player) {
-        showMarkers(player, (int) location(player).coordinate().y() - 1);
+        showMarkers(player, (int) location(player).coordinate().y() - 1, null);
     }
 
-    public void showMarkers(@NotNull P player, int y) {
+    public void showMarkers(@NotNull P player, int y, @Nullable Coordinate location) {
         removeMarkers(player);
-        WorldCoordinate location = location(player);
-        var terrains = TerrainManager.terrainsAt(location);
-        terrains.removeIf(t -> t instanceof WorldTerrain);
-        addOverlapping(terrains, player);
 
-        for (Terrain terrain : terrains) {
+        var terrains = getTerrainsToShowBorders(player, location == null ? location(player).coordinate() : location);
+        terrains.removeIf(t -> t.chunks().isEmpty()); // Removing global terrains.
+
+        for (Terrain terrain : terrains) { // Terrains to show borders.
             int terrainY = y;
 
-            if (terrain.maxDiagonal().y() < y) terrainY = (int) terrain.maxDiagonal().y();
+            if (terrain.maxDiagonal().y() + 1 < y) terrainY = (int) terrain.maxDiagonal().y() + 1;
             else if (terrain.minDiagonal().y() > y) terrainY = (int) terrain.minDiagonal().y();
 
             spawnMarkersAtBorders(terrain.minDiagonal(), terrain.maxDiagonal(), player, terrainY, false);
         }
 
-        WorldCoordinate[] selections = selections(getUniqueId(player));
+        WorldCoordinate[] selections = selections(getUniqueId(player)); // Showing borders to selections.
         spawnMarkersAtBorders(selections[0] == null ? null : selections[0].coordinate(), selections[1] == null ? null : selections[1].coordinate(), player, y, true);
         colorizeSelectionMarkers(player, true);
+    }
+
+    public @NotNull Set<Terrain> getTerrainsToShowBorders(@NotNull P player, @Nullable Coordinate location) {
+        Set<Terrain> terrains;
+
+        if (location != null) {
+            terrains = TerrainManager.terrainsAt(location(player).world(), (int) location.x(), (int) location.y(), (int) location.z());
+        } else {
+            terrains = TerrainManager.terrainsAt(location(player));
+        }
+
+        if (terrains.isEmpty()) return terrains;
+
+        for (Terrain terrain : new ArrayList<>(terrains)) {
+            if (!hasInfoPermission(player, terrain)) terrains.remove(terrain); // Show only allowed terrains.
+
+            terrain.chunks().forEach(chunk -> TerrainManager.terrainsAtChunk(new WorldChunk(terrain.world(), chunk)).forEach(t1 -> {
+                if (terrain != t1 && terrain.isOverlapping(t1) && hasInfoPermission(player, t1)) terrains.add(t1);
+            }));
+        }
+
+        return terrains;
+    }
+
+    public boolean hasInfoPermission(@NotNull P player, @NotNull Terrain terrain) {
+        if (terrain instanceof WorldTerrain) {
+            return hasPermission(player, "terrainer.info.world");
+        } else if (terrain.owner() == null) {
+            return hasPermission(player, "terrainer.info.console");
+        } else if (!getUniqueId(player).equals(terrain.owner()) && !hasAnyRelations(player, terrain)) {
+            return hasPermission(player, "terrainer.info.others");
+        } else return true;
     }
 
     public void removeMarkers(@NotNull P player) {

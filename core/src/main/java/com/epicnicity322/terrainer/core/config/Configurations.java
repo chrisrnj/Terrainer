@@ -523,6 +523,7 @@ public final class Configurations {
               Error:
                 No Terrains: '<cooldown=1000> &7No terrains could be found.'
                 No Relating Terrains: '<cooldown=1000> &7No terrains that you have relations could be found.'
+              Global Terrain: '&7No terrains found in location, showing info of global world terrain.'
               Text: |-
                 &8Information of &f<name>&8:
                 &7ID: &f<id>

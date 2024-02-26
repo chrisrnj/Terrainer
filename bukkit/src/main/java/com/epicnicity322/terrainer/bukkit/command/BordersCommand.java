@@ -73,43 +73,45 @@ public final class BordersCommand extends Command {
         if (!player.hasPermission("terrainer.borders.show")) return;
         Configuration config = Configurations.CONFIG.getConfiguration();
         if (!config.getBoolean("Borders.Enabled").orElse(false)) return;
-        if (viewers.size() >= config.getNumber("Borders.Max Viewing").orElse(20).intValue()) return;
 
-        UUID world = player.getWorld().getUID();
-        long startTime = System.currentTimeMillis();
+        synchronized (viewers) {
+            if (viewers.size() >= config.getNumber("Borders.Max Viewing").orElse(20).intValue()) return;
 
-        Runnable particleRunnable = () -> {
-            long time = config.getNumber("Borders.Time").orElse(200).longValue() * 50; // A tick has 50ms.
+            UUID world = player.getWorld().getUID();
+            long startTime = System.currentTimeMillis();
 
-            if (System.currentTimeMillis() - startTime >= time || !player.isOnline() || !world.equals(player.getWorld().getUID())) {
-                stopShowingBorders(playerID);
-                return;
-            }
+            Runnable particleRunnable = () -> {
+                long time = config.getNumber("Borders.Time").orElse(200).longValue() * 50; // A tick has 50ms.
 
-            double yOffSet = config.getNumber("Borders.Y OffSet").orElse(0.5).doubleValue();
-            double y = player.getLocation().getY() + yOffSet;
-
-            for (Terrain t : terrains) {
-                double finalY = y;
-                if (finalY > t.maxDiagonal().y() + 1) finalY = t.maxDiagonal().y() + 1;
-                else if (finalY < t.minDiagonal().y()) finalY = t.minDiagonal().y();
-
-                for (Coordinate coordinate : t.borders()) {
-                    player.spawnParticle(particle, coordinate.x(), finalY, coordinate.z(), 0);
+                if (System.currentTimeMillis() - startTime >= time || !player.isOnline() || !world.equals(player.getWorld().getUID())) {
+                    stopShowingBorders(playerID);
+                    return;
                 }
-            }
-        };
 
-        long frequency = config.getNumber("Borders.Frequency").orElse(5).longValue();
-        TaskFactory.CancellableTask particleTask = plugin.getTaskFactory().runAtFixedRate(player, frequency, config.getBoolean("Borders.Async").orElse(false), particleRunnable, () -> stopShowingBorders(playerID));
-        if (particleTask == null) return;
-        viewers.put(playerID, particleTask);
+                double yOffSet = config.getNumber("Borders.Y OffSet").orElse(0.5).doubleValue();
+                double y = player.getLocation().getY() + yOffSet;
+
+                for (Terrain t : terrains) {
+                    double finalY = y;
+                    if (finalY > t.maxDiagonal().y() + 1) finalY = t.maxDiagonal().y() + 1;
+                    else if (finalY < t.minDiagonal().y()) finalY = t.minDiagonal().y();
+
+                    for (Coordinate coordinate : t.borders()) {
+                        player.spawnParticle(particle, coordinate.x(), finalY, coordinate.z(), 0);
+                    }
+                }
+            };
+
+            long frequency = config.getNumber("Borders.Frequency").orElse(5).longValue();
+            TaskFactory.CancellableTask particleTask = plugin.getTaskFactory().runAtFixedRate(player, frequency, config.getBoolean("Borders.Async").orElse(false), particleRunnable, () -> stopShowingBorders(playerID));
+            if (particleTask == null) return;
+            viewers.put(playerID, particleTask);
+        }
     }
 
     public void stopShowingBorders(@NotNull UUID player) {
         TaskFactory.CancellableTask particleTask = viewers.remove(player);
-        if (particleTask == null) return;
-        particleTask.cancel();
+        if (particleTask != null) particleTask.cancel();
     }
 
     @Override
