@@ -591,46 +591,52 @@ public final class TerrainManager {
         Terrainer.logger().log("Saving terrain changes.");
 
         // Make sure autoSave is shutdown, so when this method is called on disable, the autoSave stops running.
-        ScheduledFuture<?> autoSave1 = autoSave;
-        if (autoSave1 != null) {
-            autoSave1.cancel(true);
-            autoSave = null;
-        }
-
-        for (UUID uuid : terrainsToRemove) {
-            try {
-                Files.deleteIfExists(TERRAINS_FOLDER.resolve(uuid + ".terrain"));
-            } catch (IOException e) {
-                Terrainer.logger().log("Unable to remove '" + uuid + "' terrain from " + TERRAINS_FOLDER.getFileName() + " folder:", ConsoleLogger.Level.ERROR);
-                e.printStackTrace();
-                Terrainer.logger().log("The terrain will still exist when the server restarts!", ConsoleLogger.Level.ERROR);
+        synchronized (TerrainManager.class) {
+            ScheduledFuture<?> autoSave1 = autoSave;
+            if (autoSave1 != null) {
+                autoSave1.cancel(true);
+                autoSave = null;
             }
         }
-        terrainsToRemove.clear();
 
-        // Saving changed terrains.
-        for (Terrain terrain : allTerrains()) {
-            if (!terrain.changed) continue;
-
-            terrain.changed = false;
-
-            Path path = TERRAINS_FOLDER.resolve(terrain.id + ".terrain");
-
-            try {
-                Files.deleteIfExists(path);
-            } catch (Exception e) {
-                Terrainer.logger().log("Error while deleting old terrain file '" + path.getFileName() + "':", ConsoleLogger.Level.ERROR);
-                e.printStackTrace();
-                Terrainer.logger().log("Changes were not saved for terrain '" + terrain.id + "' (" + terrain.name + ") and it will be reset when the server restarts.", ConsoleLogger.Level.ERROR);
-                continue;
+        synchronized (terrainsToRemove) {
+            for (UUID uuid : terrainsToRemove) {
+                try {
+                    Files.deleteIfExists(TERRAINS_FOLDER.resolve(uuid + ".terrain"));
+                } catch (IOException e) {
+                    Terrainer.logger().log("Unable to remove '" + uuid + "' terrain from " + TERRAINS_FOLDER.getFileName() + " folder:", ConsoleLogger.Level.ERROR);
+                    e.printStackTrace();
+                    Terrainer.logger().log("The terrain will still exist when the server restarts!", ConsoleLogger.Level.ERROR);
+                }
             }
+            terrainsToRemove.clear();
+        }
 
-            try {
-                Terrain.toFile(path, terrain);
-            } catch (Exception e) {
-                Terrainer.logger().log("Error while saving terrain '" + terrain.id + "':", ConsoleLogger.Level.ERROR);
-                e.printStackTrace();
-                Terrainer.logger().log("The terrain '" + terrain.id + "' (" + terrain.name + ") was deleted, but could not be saved again. The terrain will not exist when the server restarts.", ConsoleLogger.Level.ERROR);
+        synchronized (registeredTerrains) {
+            // Saving changed terrains.
+            for (Terrain terrain : allTerrains()) {
+                if (!terrain.changed) continue;
+
+                terrain.changed = false;
+
+                Path path = TERRAINS_FOLDER.resolve(terrain.id + ".terrain");
+
+                try {
+                    Files.deleteIfExists(path);
+                } catch (Exception e) {
+                    Terrainer.logger().log("Error while deleting old terrain file '" + path.getFileName() + "':", ConsoleLogger.Level.ERROR);
+                    e.printStackTrace();
+                    Terrainer.logger().log("Changes were not saved for terrain '" + terrain.id + "' (" + terrain.name + ") and it will be reset when the server restarts.", ConsoleLogger.Level.ERROR);
+                    continue;
+                }
+
+                try {
+                    Terrain.toFile(path, terrain);
+                } catch (Exception e) {
+                    Terrainer.logger().log("Error while saving terrain '" + terrain.id + "':", ConsoleLogger.Level.ERROR);
+                    e.printStackTrace();
+                    Terrainer.logger().log("The terrain '" + terrain.id + "' (" + terrain.name + ") was deleted, but could not be saved again. The terrain will not exist when the server restarts.", ConsoleLogger.Level.ERROR);
+                }
             }
         }
     }
@@ -639,7 +645,7 @@ public final class TerrainManager {
      * In order to not make calls to IO all the time, the terrains are only saved after 10 minutes. This allows players
      * to edit the terrain as much as they want, and save all changes at once only after 10 minutes the first change was made.
      */
-    static void loadAutoSave() {
+    static synchronized void loadAutoSave() {
         if (autoSave != null) return;
         autoSave = autoSaveExecutor.schedule(TerrainManager::save, 10, TimeUnit.MINUTES);
     }

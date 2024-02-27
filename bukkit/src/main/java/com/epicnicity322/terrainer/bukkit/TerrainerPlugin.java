@@ -282,6 +282,7 @@ public final class TerrainerPlugin extends JavaPlugin {
         // Terrains might hold data of other plugins, so they only load after the server is done loading.
         taskFactory.runGlobalAsyncTask(() -> {
             try {
+                logger.log("Loading terrains...");
                 TerrainManager.load();
 
                 // Loading worlds and world load listener.
@@ -294,6 +295,8 @@ public final class TerrainerPlugin extends JavaPlugin {
                 e.printStackTrace();
             }
             HandlerList.unregisterAll(preLoginListener);
+
+            Terrainer.loadDailyTimer();
         });
     }
 
@@ -312,13 +315,13 @@ public final class TerrainerPlugin extends JavaPlugin {
         boolean kickPlayers = Configurations.CONFIG.getConfiguration().getBoolean("Kick Players On Disable").orElse(false) && (ReflectionUtil.getClass("io.papermc.paper.threadedregions.RegionizedServer") == null);
         if (kickPlayers) {
             var players = Bukkit.getOnlinePlayers();
-            if (!players.isEmpty()) {
-                logger.log("Terrainer will kick all players to prevent damage to terrains.");
-            }
+            if (!players.isEmpty()) logger.log("Terrainer will kick all players to prevent damage to terrains.");
             for (Player p : players) {
                 p.kickPlayer(lang.getColored("Protections.Kick Message").replace("<default>", Objects.requireNonNullElse(getServer().getShutdownMessage(), "Server stopped")));
             }
         }
+
+        Terrainer.stopDailyTimer();
     }
 
     public @NotNull TaskFactory getTaskFactory() {
