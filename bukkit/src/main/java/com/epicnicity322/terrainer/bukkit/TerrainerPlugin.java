@@ -158,7 +158,7 @@ public final class TerrainerPlugin extends JavaPlugin {
         ConfigurationSection blockLimits = config.getConfigurationSection("Block Limits");
         if (blockLimits != null) {
             Map<String, Object> nodes = blockLimits.getNodes();
-            defaultBlockLimits = new HashMap<>((int) (nodes.size() / 0.75) + 1);
+            defaultBlockLimits = new HashMap<>((int) (nodes.size() / .75f) + 1);
             for (Map.Entry<String, Object> node : nodes.entrySet()) {
                 try {
                     defaultBlockLimits.put(node.getKey(), Long.parseLong(node.getValue().toString()));
@@ -173,7 +173,7 @@ public final class TerrainerPlugin extends JavaPlugin {
         ConfigurationSection claimLimits = config.getConfigurationSection("Claim Limits");
         if (claimLimits != null) {
             Map<String, Object> nodes = claimLimits.getNodes();
-            defaultClaimLimits = new HashMap<>((int) (nodes.size() / 0.75) + 1);
+            defaultClaimLimits = new HashMap<>((int) (nodes.size() / .75f) + 1);
             for (Map.Entry<String, Object> node : nodes.entrySet()) {
                 try {
                     defaultClaimLimits.put(node.getKey(), Integer.parseInt(node.getValue().toString()));
