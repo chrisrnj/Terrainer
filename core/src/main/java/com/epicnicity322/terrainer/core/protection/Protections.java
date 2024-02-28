@@ -416,6 +416,10 @@ public abstract class Protections<P extends R, R, M, B, E> {
         return handleProtection(world, x, y, z, Flags.VULNERABILITY);
     }
 
+    public boolean playerFoodLeaveDecrease(@NotNull UUID world, int x, int y, int z) {
+        return handleProtection(world, x, y, z, Flags.VULNERABILITY);
+    }
+
     public boolean playerBlockIgnite(@NotNull UUID world, int x, int y, int z, @NotNull P player) {
         return handleProtection(player, world, x, y, z, Flags.LIGHTERS, true);
     }
