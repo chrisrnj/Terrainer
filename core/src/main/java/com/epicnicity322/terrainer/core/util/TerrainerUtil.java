@@ -34,7 +34,9 @@ public final class TerrainerUtil {
         int size = list.size();
         int i = 1;
         for (T t : list) {
-            formatted.append(name.apply(t));
+            String applied = name.apply(t);
+            if (applied.isBlank()) continue;
+            formatted.append(applied);
             if (i + 1 == size) {
                 formatted.append(", ").append(Terrainer.lang().get("Target.And")).append(" ");
             } else if (i != size) {
@@ -42,6 +44,7 @@ public final class TerrainerUtil {
             }
             i++;
         }
+        if (formatted.isEmpty()) return Terrainer.lang().get("Target.None");
         return formatted.toString();
     }
 }
