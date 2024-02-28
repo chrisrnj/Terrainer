@@ -29,7 +29,6 @@ import org.jetbrains.annotations.NotNull;
  *
  * @see #isBlackListed(String)
  */
-// TODO: Call event
 public interface IUserNameTerrainEvent<T> extends TerrainEvent, SenderEvent<T> {
     /**
      * Tests whether the provided name is part of a list of black listed terrain names in config. The name must be already
@@ -41,7 +40,7 @@ public interface IUserNameTerrainEvent<T> extends TerrainEvent, SenderEvent<T> {
     static boolean isBlackListed(@NotNull String nameColorStripped) {
         // Replacing all non word characters, for a better matching.
         String nameToTest = nameColorStripped.replaceAll("[^\\p{L}]", "");
-        return Configurations.CONFIG.getConfiguration().getCollection("Black Listed Names", Object::toString).stream().anyMatch(nameToTest::contains);
+        return Configurations.CONFIG.getConfiguration().getCollection("Blacklisted Names", Object::toString).stream().anyMatch(nameToTest::contains);
     }
 
     /**

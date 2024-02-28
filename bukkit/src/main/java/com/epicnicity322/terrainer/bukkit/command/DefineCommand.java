@@ -23,9 +23,11 @@ import com.epicnicity322.epicpluginlib.bukkit.command.CommandRunnable;
 import com.epicnicity322.epicpluginlib.bukkit.lang.MessageSender;
 import com.epicnicity322.terrainer.bukkit.TerrainerPlugin;
 import com.epicnicity322.terrainer.bukkit.event.terrain.UserCreateTerrainEvent;
+import com.epicnicity322.terrainer.bukkit.event.terrain.UserNameTerrainEvent;
 import com.epicnicity322.terrainer.bukkit.util.CommandUtil;
 import com.epicnicity322.terrainer.core.Coordinate;
 import com.epicnicity322.terrainer.core.WorldCoordinate;
+import com.epicnicity322.terrainer.core.event.terrain.IUserNameTerrainEvent;
 import com.epicnicity322.terrainer.core.terrain.Flags;
 import com.epicnicity322.terrainer.core.terrain.Terrain;
 import com.epicnicity322.terrainer.core.terrain.TerrainManager;
@@ -78,22 +80,28 @@ public final class DefineCommand extends Command {
         UUID world = selection[0].world();
         String name;
 
-        // TODO: Call name event
         if (args.length > 1) {
             name = ChatColor.translateAlternateColorCodes('&', args[1]);
-            int length = ChatColor.stripColor(name).length();
-            if (length == 0) name = null;
+            String stripped = ChatColor.stripColor(name);
+            if (stripped.isBlank()) name = null;
         } else name = null;
 
-
         var terrain = new Terrain(first, second, world);
-        if (name != null) terrain.setName(name);
+
+        if (name != null) {
+            String originalName = terrain.name();
+            var event = new UserNameTerrainEvent(terrain, sender, originalName, name, IUserNameTerrainEvent.NameReason.CREATION);
+            Bukkit.getPluginManager().callEvent(event);
+            if (!event.isCancelled()) terrain.setName(event.newName());
+        }
 
         // TODO: Add missing flags that should be here on define, also make this configurable.
         // Setting spawn protection flags.
         Terrain.FlagMap flagMap = terrain.flags();
         flagMap.putFlag(Flags.BLOCK_FORM, false);
         flagMap.putFlag(Flags.BLOCK_SPREAD, false);
+        flagMap.putFlag(Flags.CAULDRONS_CHANGE_LEVEL_NATURALLY, false);
+        flagMap.putFlag(Flags.EAT, false);
         flagMap.putFlag(Flags.ENEMY_HARM, false);
         flagMap.putFlag(Flags.EXPLOSION_DAMAGE, false);
         flagMap.putFlag(Flags.FIRE_DAMAGE, false);

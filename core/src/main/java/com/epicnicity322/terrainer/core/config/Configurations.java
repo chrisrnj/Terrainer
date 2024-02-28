@@ -45,6 +45,7 @@ public final class Configurations {
             Max Description Length: 100
                         
             # The maximum length a terrain's name can be.
+            # Bypass permission: 'terrainer.bypass.name-length'
             Max Name Length: 26
                         
             # Protect against potential actions when the server reloads.
@@ -54,6 +55,11 @@ public final class Configurations {
             # When flying players enter terrains that have the flag FLY denied, they will have their ability to fly removed.
             # Players who have this permission will have their ability to fly granted back when they leave the terrain.
             Fly Permission: 'essentials.fly'
+                        
+            # List of prohibited terrain names.
+            # Bypass permission: 'terrainer.bypass.name-blacklist'
+            Blacklisted Names:
+            - ''
                         
             # You can set a group's default block limits through this setting.
             # You can add you own limits and use them in groups through the permission 'terrainer.limit.blocks.<group>'
@@ -484,6 +490,7 @@ public final class Configurations {
                         
             Rename:
               Error:
+                Blacklisted: '&4You can''t name the terrain that.'
                 Name Length: '&4Terrain names must have at least 1 character and &7<max>&4 characters max!'
                 Same: '&7Nothing changed. Terrain was already named &f<name>&7.'
                 World Terrain: '&4Global world terrains can not be renamed!'

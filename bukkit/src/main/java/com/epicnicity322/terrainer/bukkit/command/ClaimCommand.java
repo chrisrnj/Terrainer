@@ -23,11 +23,13 @@ import com.epicnicity322.epicpluginlib.bukkit.command.CommandRunnable;
 import com.epicnicity322.epicpluginlib.bukkit.lang.MessageSender;
 import com.epicnicity322.terrainer.bukkit.TerrainerPlugin;
 import com.epicnicity322.terrainer.bukkit.event.terrain.UserCreateTerrainEvent;
+import com.epicnicity322.terrainer.bukkit.event.terrain.UserNameTerrainEvent;
 import com.epicnicity322.terrainer.bukkit.util.BukkitPlayerUtil;
 import com.epicnicity322.terrainer.bukkit.util.CommandUtil;
 import com.epicnicity322.terrainer.core.Coordinate;
 import com.epicnicity322.terrainer.core.WorldCoordinate;
 import com.epicnicity322.terrainer.core.config.Configurations;
+import com.epicnicity322.terrainer.core.event.terrain.IUserNameTerrainEvent;
 import com.epicnicity322.terrainer.core.terrain.Terrain;
 import com.epicnicity322.terrainer.core.util.PlayerUtil;
 import org.bukkit.Bukkit;
@@ -88,29 +90,36 @@ public final class ClaimCommand extends Command {
 
         String name;
 
-        // TODO: Call name event
         if (args.length > 1) {
             name = ChatColor.translateAlternateColorCodes('&', CommandUtil.join(args, 1)).trim();
             String stripped = ChatColor.stripColor(name);
             int maxNameLength = Configurations.CONFIG.getConfiguration().getNumber("Max Name Length").orElse(26).intValue();
-            if (stripped.isBlank() || stripped.length() > maxNameLength) {
+
+            if (stripped.isBlank() || (stripped.length() > maxNameLength && !sender.hasPermission("terrainer.bypass.name-length"))) {
                 lang.send(sender, lang.get("Rename.Error.Name Length").replace("<max>", Integer.toString(maxNameLength)));
+                return;
+            }
+            if (!sender.hasPermission("terrainer.bypass.name-blacklist") && IUserNameTerrainEvent.isBlackListed(stripped)) {
+                lang.send(sender, lang.get("Rename.Error.Blacklisted"));
                 return;
             }
         } else name = null;
 
         BukkitPlayerUtil util = TerrainerPlugin.getPlayerUtil();
-
         var terrain = new Terrain(first, second, world.getUID());
-        if (name != null) terrain.setName(name);
+
+        if (name != null) {
+            String originalName = terrain.name();
+            var event = new UserNameTerrainEvent(terrain, sender, originalName, name, IUserNameTerrainEvent.NameReason.CREATION);
+            Bukkit.getPluginManager().callEvent(event);
+            if (!event.isCancelled()) terrain.setName(event.newName());
+        }
 
         if (util.claimTerrain(player, terrain)) {
             var create = new UserCreateTerrainEvent(terrain, sender, false);
             Bukkit.getPluginManager().callEvent(create);
             if (player != null) util.colorizeSelectionMarkers(player, false);
-        } else {
-            if (player != null) util.removeMarkers(player);
-        }
+        } else if (player != null) util.removeMarkers(player);
 
         // Clearing selections.
         selection[0] = null;

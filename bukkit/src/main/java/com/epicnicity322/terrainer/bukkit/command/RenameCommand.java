@@ -22,10 +22,13 @@ import com.epicnicity322.epicpluginlib.bukkit.command.Command;
 import com.epicnicity322.epicpluginlib.bukkit.command.CommandRunnable;
 import com.epicnicity322.epicpluginlib.bukkit.lang.MessageSender;
 import com.epicnicity322.terrainer.bukkit.TerrainerPlugin;
+import com.epicnicity322.terrainer.bukkit.event.terrain.UserNameTerrainEvent;
 import com.epicnicity322.terrainer.bukkit.util.CommandUtil;
 import com.epicnicity322.terrainer.core.config.Configurations;
+import com.epicnicity322.terrainer.core.event.terrain.IUserNameTerrainEvent;
 import com.epicnicity322.terrainer.core.terrain.Terrain;
 import com.epicnicity322.terrainer.core.terrain.WorldTerrain;
+import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
 import org.jetbrains.annotations.NotNull;
@@ -58,30 +61,43 @@ public final class RenameCommand extends Command {
                 return;
             }
 
+            String previousName = terrain.name();
             String newName = ChatColor.translateAlternateColorCodes('&', CommandUtil.join(arguments.preceding(), 0)).trim();
+            String stripped = ChatColor.stripColor(newName);
+            boolean reset;
 
-            if (newName.isBlank()) {
+            if (stripped.isBlank()) {
                 newName = terrain.id().toString().substring(0, terrain.id().toString().indexOf('-'));
-                if (terrain.name().equals(newName)) {
-                    lang.send(sender, lang.get("Rename.Error.Same").replace("<name>", terrain.name()));
+                if (previousName.equals(newName)) {
+                    lang.send(sender, lang.get("Rename.Error.Same").replace("<name>", newName));
                     return;
                 }
-                lang.send(sender, lang.get("Rename.Reset").replace("<new>", newName).replace("<old>", terrain.name()));
+                reset = true;
             } else {
-                String stripped = ChatColor.stripColor(newName);
+                if (previousName.equals(newName)) {
+                    lang.send(sender, lang.get("Rename.Error.Same").replace("<name>", newName));
+                    return;
+                }
                 int maxNameLength = Configurations.CONFIG.getConfiguration().getNumber("Max Name Length").orElse(26).intValue();
-                if (stripped.isBlank() || stripped.length() > maxNameLength) {
+
+                if (stripped.isBlank() || (stripped.length() > maxNameLength && !sender.hasPermission("terrainer.bypass.name-length"))) {
                     lang.send(sender, lang.get("Rename.Error.Name Length").replace("<max>", Integer.toString(maxNameLength)));
                     return;
                 }
-                if (terrain.name().equals(newName)) {
-                    lang.send(sender, lang.get("Rename.Error.Same").replace("<name>", terrain.name()));
+                if (!sender.hasPermission("terrainer.bypass.name-blacklist") && IUserNameTerrainEvent.isBlackListed(stripped)) {
+                    lang.send(sender, lang.get("Rename.Error.Blacklisted"));
                     return;
                 }
-                lang.send(sender, lang.get("Rename.Renamed").replace("<new>", newName).replace("<old>", terrain.name()));
+                reset = false;
             }
 
-            terrain.setName(newName);
+            var event = new UserNameTerrainEvent(terrain, sender, previousName, newName, IUserNameTerrainEvent.NameReason.RENAME);
+            Bukkit.getPluginManager().callEvent(event);
+
+            if (!event.isCancelled()) {
+                terrain.setName(event.newName());
+                lang.send(sender, lang.get("Rename.Re" + (reset ? "set" : "named")).replace("<new>", newName).replace("<old>", previousName));
+            }
         });
     }
 }
