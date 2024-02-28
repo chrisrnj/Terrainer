@@ -48,7 +48,7 @@ public final class Terrainer {
     private static @NotNull LanguageHolder<?, ?> lang = LanguageHolder.simpleLanguage(() -> "", Configurations.LANG_EN_US.getDefaultConfiguration());
     private static @UnknownNullability PlayerUtil<?, ?> playerUtil = null;
     private static volatile @Nullable ScheduledFuture<?> dailyTimer;
-    private static volatile @Nullable LocalDateTime timeBeforeStartingDailyTimer;
+    private static volatile @Nullable LocalDate timeBeforeStartingDailyTimer;
 
     private Terrainer() {
     }
@@ -107,12 +107,11 @@ public final class Terrainer {
         return LocalDateTime.now().until(LocalDateTime.of(LocalDate.now().plusDays(1), LocalTime.MIDNIGHT).plusMinutes(1), ChronoUnit.MINUTES);
     }
 
-
     private static @NotNull Runnable dailyRunnable() {
         return () -> {
             // Checking if a day has really passed. If not, run the scheduler again.
-            LocalDateTime timeBeforeStartingDailyTimer1 = timeBeforeStartingDailyTimer;
-            if (timeBeforeStartingDailyTimer1 != null && timeBeforeStartingDailyTimer1.until(LocalDateTime.now(), ChronoUnit.DAYS) <= 0) {
+            LocalDate timeBeforeStartingDailyTimer1 = timeBeforeStartingDailyTimer;
+            if (timeBeforeStartingDailyTimer1 != null && timeBeforeStartingDailyTimer1.until(LocalDate.now(), ChronoUnit.DAYS) <= 0) {
                 logger.log("Timer ran before a day has really passed. Re-scheduling.", ConsoleLogger.Level.WARN);
                 scheduleDailyRunnable();
                 return;
@@ -131,7 +130,7 @@ public final class Terrainer {
         ScheduledFuture<?> dailyTimer1 = dailyTimer;
         if (dailyTimer1 != null) dailyTimer1.cancel(true);
 
-        timeBeforeStartingDailyTimer = LocalDateTime.now();
+        timeBeforeStartingDailyTimer = LocalDate.now();
         dailyTimer = dailyTimerExecutor.schedule(dailyRunnable(), minutesUntilNextDay(), TimeUnit.MINUTES);
     }
 
