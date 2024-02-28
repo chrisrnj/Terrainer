@@ -740,10 +740,10 @@ public final class ProtectionsListener extends Protections<Player, CommandSender
     // Priority LOW to allow other plugins to change the food level in LOWEST.
     @EventHandler(priority = EventPriority.LOW, ignoreCancelled = true)
     public void onFoodLevelChange(FoodLevelChangeEvent event) {
-        if (event.getFoodLevel() > event.getEntity().getFoodLevel()) return;
-        if (!(event.getEntity() instanceof Player player)) return;
-        Location loc = player.getLocation();
-        if (!playerFoodLeaveDecrease(player.getWorld().getUID(), loc.getBlockX(), loc.getBlockY(), loc.getBlockZ()))
+        HumanEntity human = event.getEntity();
+        if (event.getFoodLevel() > human.getFoodLevel()) return;
+        Location loc = human.getLocation();
+        if (!playerFoodLeaveDecrease(human.getWorld().getUID(), loc.getBlockX(), loc.getBlockY(), loc.getBlockZ()))
             event.setCancelled(true);
     }
 
