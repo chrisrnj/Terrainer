@@ -131,12 +131,38 @@ public abstract class PlayerUtil<P extends R, R> {
         if (player != null) {
             UUID playerID = getUniqueId(player);
             int maxClaims;
+
             if (!hasPermission(player, "terrainer.bypass.limit.claims") && getUsedClaimLimit(playerID) >= (maxClaims = getMaxClaimLimit(player))) {
                 lang.send(player, lang.get("Create.Error.No Claim Limit").replace("<max>", Integer.toString(maxClaims)));
                 return false;
             }
+
+            Set<Terrain> overlapping = null;
+
+            if (!hasPermission(player, "terrainer.bypass.overlap") && !(overlapping = getOverlapping(terrain)).isEmpty()) {
+                if (!hasPermission(player, "terrainer.bypass.overlap.self")) {
+                    if (overlapping.stream().anyMatch(t -> !hasInfoPermission(player, t))) {
+                        lang.send(player, lang.get("Create.Error.Overlap Several"));
+                    } else {
+                        lang.send(player, lang.get("Create.Error.Overlap").replace("<other>", TerrainerUtil.listToString(overlapping, Terrain::name)));
+                    }
+                    return false;
+                } else {
+                    for (Terrain t1 : overlapping) {
+                        // Terrains can overlap if they are owned by the same person.
+                        if (playerID.equals(t1.owner())) continue;
+
+                        if (!hasInfoPermission(player, t1)) {
+                            lang.send(player, lang.get("Create.Error.Overlap Several"));
+                        } else {
+                            lang.send(player, lang.get("Create.Error.Overlap").replace("<other>", t1.name()));
+                        }
+                        return false;
+                    }
+                }
+            }
+
             if (!hasPermission(player, "terrainer.bypass.limit.blocks")) {
-                // TODO: Check if terrain is intersecting another and remove intersection area from used blocks. Switch ON/OFF in config.
                 double area = terrain.area();
                 double minArea = Configurations.CONFIG.getConfiguration().getNumber("Min Area").orElse(25.0).doubleValue();
                 double minDimensions = Configurations.CONFIG.getConfiguration().getNumber("Min Dimensions").orElse(5.0).doubleValue();
@@ -151,22 +177,13 @@ public abstract class PlayerUtil<P extends R, R> {
                     lang.send(player, lang.get("Create.Error.Dimensions").replace("<min>", Double.toString(minDimensions)));
                     return false;
                 }
+                area = subtractIntersection(terrain, overlapping == null ? getOverlapping(terrain) : overlapping);
                 if ((area + (usedBlocks = getUsedBlockLimit(playerID))) > (maxBlocks = getMaxBlockLimit(player))) {
                     lang.send(player, lang.get("Create.Error.No Block Limit").replace("<area>", Double.toString(area)).replace("<used>", Long.toString(usedBlocks)));
                     return false;
                 }
-                usedBlocks += (long) area;
             }
-            if (!hasPermission(player, "terrainer.bypass.overlap")) {
-                for (Terrain t1 : TerrainManager.allTerrains()) {
-                    // Terrains can overlap if they are owned by the same person.
-                    if (playerID.equals(t1.owner())) continue;
-                    if (t1.isOverlapping(terrain)) {
-                        lang.send(player, lang.get("Create.Error.Overlap").replace("<other>", t1.name()));
-                        return false;
-                    }
-                }
-            }
+
             receiver = player;
         } else {
             receiver = getConsoleRecipient();
@@ -182,6 +199,21 @@ public abstract class PlayerUtil<P extends R, R> {
         return false;
     }
 
+    //TODO: subtract intersection
+    private long subtractIntersection(@NotNull Terrain terrain, @NotNull Set<Terrain> overlapping) {
+        return (long) terrain.area();
+    }
+
+    private @NotNull Set<Terrain> getOverlapping(@NotNull Terrain terrain) {
+        if (terrain.chunks().isEmpty()) return Collections.emptySet();
+
+        HashSet<Terrain> overlapping = new HashSet<>();
+
+        terrain.chunks().forEach(chunk -> TerrainManager.terrainsAtChunk(terrain.world(), chunk.x(), chunk.z()).forEach(t -> {
+            if (t.isOverlapping(terrain)) overlapping.add(t);
+        }));
+        return overlapping;
+    }
 
     /**
      * Gets the sum of the areas of all terrains owned by the specified player.
