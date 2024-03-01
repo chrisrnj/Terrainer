@@ -37,11 +37,12 @@ public final class BlockStateToBlockMapping {
             case "getX" -> state.getX();
             case "getY" -> state.getY();
             case "getZ" -> state.getZ();
+            case "getWorld" -> state.getWorld();
             case "equals" -> {
                 if (args.length == 1) {
                     Object otherObject = args[0];
                     if (!(otherObject instanceof Block b)) yield false;
-                    yield b.getX() == state.getX() && b.getY() == state.getY() && b.getZ() == state.getZ();
+                    yield b.getX() == state.getX() && b.getY() == state.getY() && b.getZ() == state.getZ() && b.getWorld().equals(state.getWorld());
                 }
                 yield false;
             }

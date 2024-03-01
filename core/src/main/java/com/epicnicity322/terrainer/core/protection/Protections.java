@@ -75,6 +75,8 @@ public abstract class Protections<P extends R, R, M, B, E> {
 
     protected abstract boolean isPlayer(@NotNull E entity);
 
+    protected abstract @NotNull UUID world(@NotNull B block);
+
     protected abstract int x(@NotNull B block);
 
     protected abstract int y(@NotNull B block);
@@ -375,6 +377,13 @@ public abstract class Protections<P extends R, R, M, B, E> {
 
     public boolean spongeAbsorb(@NotNull UUID world, int x, int y, int z, @NotNull List<B> blocks) {
         return handleOutsideBlockProtection(world, x, y, z, blocks, true, Flags.SPONGES, Flags.BUILD) && !blocks.isEmpty();
+    }
+
+    public boolean portalCreate(@NotNull P player, @NotNull List<B> blocks) {
+        for (B block : blocks) {
+            if (!handleProtection(player, world(block), x(block), y(block), z(block), Flags.BUILD, true)) return false;
+        }
+        return true;
     }
 
     public boolean signChange(@NotNull UUID world, int x, int y, int z, @NotNull P player) {

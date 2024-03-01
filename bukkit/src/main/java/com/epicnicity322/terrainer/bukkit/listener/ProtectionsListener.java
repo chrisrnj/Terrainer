@@ -58,6 +58,7 @@ import org.bukkit.event.hanging.HangingPlaceEvent;
 import org.bukkit.event.inventory.InventoryOpenEvent;
 import org.bukkit.event.player.*;
 import org.bukkit.event.vehicle.VehicleDestroyEvent;
+import org.bukkit.event.world.PortalCreateEvent;
 import org.bukkit.event.world.StructureGrowEvent;
 import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.meta.PotionMeta;
@@ -158,6 +159,11 @@ public final class ProtectionsListener extends Protections<Player, CommandSender
     @Override
     protected boolean isPlayer(@NotNull Entity entity) {
         return entity.getType() == EntityType.PLAYER;
+    }
+
+    @Override
+    protected @NotNull UUID world(@NotNull Block block) {
+        return block.getWorld().getUID();
     }
 
     @Override
@@ -744,6 +750,13 @@ public final class ProtectionsListener extends Protections<Player, CommandSender
         if (event.getFoodLevel() > human.getFoodLevel()) return;
         Location loc = human.getLocation();
         if (!playerFoodLeaveDecrease(human.getWorld().getUID(), loc.getBlockX(), loc.getBlockY(), loc.getBlockZ()))
+            event.setCancelled(true);
+    }
+
+    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
+    public void onPortalCreate(PortalCreateEvent event) {
+        if (!(event.getEntity() instanceof Player player)) return;
+        if (!portalCreate(player, BlockStateToBlockMapping.wrapBlockStates(event.getBlocks())))
             event.setCancelled(true);
     }
 
