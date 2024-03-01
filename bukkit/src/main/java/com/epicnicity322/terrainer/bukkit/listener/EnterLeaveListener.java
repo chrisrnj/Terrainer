@@ -70,17 +70,20 @@ public final class EnterLeaveListener extends ToggleableListener {
         return players;
     }
 
-    static boolean handlePassengerCarrier(@NotNull Entity vehicle, @NotNull Location from, @NotNull Location to) {
+    static void handlePassengerCarrier(@NotNull Entity vehicle, @NotNull Location from, @NotNull Location to) {
         int fromX = from.getBlockX(), fromY = from.getBlockY(), fromZ = from.getBlockZ();
         int toX = to.getBlockX(), toY = to.getBlockY(), toZ = to.getBlockZ();
 
         // Only full block moves are processed to save performance.
-        if (fromX == toX && fromY == toY && fromZ == toZ) return false;
-
-        Set<Player> players = getPassengers(vehicle, null);
-        if (players == null) return false;
+        if (fromX == toX && fromY == toY && fromZ == toZ) return;
 
         TerrainEvent.EnterLeaveReason reason = TerrainEvent.EnterLeaveReason.MOVE;
+        Player pVehicle = vehicle instanceof Player player ? player : null;
+        Set<Player> players = getPassengers(vehicle, null);
+
+        if (pVehicle == null) {
+            if (players == null) return;
+        } else if (players == null) players = Collections.emptySet();
 
         UUID world = vehicle.getWorld().getUID();
         Set<Terrain> fromTerrains = TerrainManager.terrainsAt(world, fromX, fromY, fromZ);
@@ -92,16 +95,28 @@ public final class EnterLeaveListener extends ToggleableListener {
 
         terrainLoop:
         for (Terrain terrain : fromTerrains) {
-            if (toTerrains.contains(terrain)) continue; // The terrain is in to, so the vehicle didn't really leave it.
+            if (toTerrains.remove(terrain)) continue; // The terrain was in to, so the vehicle didn't really leave it.
 
-            // The terrains to call leave event.
+            // Adding to terrains to call leave event.
             if (callLeaveEvents == null) callLeaveEvents = new LinkedList<>();
             callLeaveEvents.add(terrain);
 
-            // Leave is allowed, no need to call the event again, just adding the terrain to the list.
+            // Can Leave was allowed, no need to call the event again, just adding the terrain to the list.
             if (leaveAllowed) continue;
 
-            for (Player player : players) {
+            if (pVehicle != null) { // Calling Can Leave event for the player that's carrying other players.
+                var leave = new TerrainCanLeaveEvent(from, to, pVehicle, terrain, reason);
+
+                Bukkit.getPluginManager().callEvent(leave);
+
+                TerrainEvent.CanEnterLeave canLeave = leave.canLeave();
+                if (canLeave == TerrainEvent.CanEnterLeave.DENY) {
+                    cancel = true;
+                    break;
+                } else if (canLeave == TerrainEvent.CanEnterLeave.ALLOW) leaveAllowed = true;
+            }
+
+            for (Player player : players) { // Calling Can Leave event for each passenger.
                 var leave = new TerrainCanLeaveEvent(from, to, player, terrain, reason);
 
                 Bukkit.getPluginManager().callEvent(leave);
@@ -115,30 +130,45 @@ public final class EnterLeaveListener extends ToggleableListener {
         }
 
         LinkedList<Terrain> callEnterEvents = null;
-        boolean enterAllowed = false;
 
-        terrainLoop:
-        for (Terrain terrain : toTerrains) {
-            if (fromTerrains.contains(terrain))
-                continue; // The terrain was in from, so the vehicle didn't really enter it.
+        if (!cancel) { // Do not call Can Enter events if leave is already cancelled.
+            boolean enterAllowed = false;
 
-            // The terrains to call enter event.
-            if (callEnterEvents == null) callEnterEvents = new LinkedList<>();
-            callEnterEvents.add(terrain);
+            terrainLoop:
+            for (Terrain terrain : toTerrains) {
+                if (fromTerrains.contains(terrain))
+                    continue; // The terrain was in from, so the vehicle didn't really enter it.
 
-            // Enter is allowed, no need to call the event again, just adding the terrain to the list.
-            if (enterAllowed) continue;
+                // Adding to terrains to call enter event.
+                if (callEnterEvents == null) callEnterEvents = new LinkedList<>();
+                callEnterEvents.add(terrain);
 
-            for (Player player : players) {
-                var enter = new TerrainCanEnterEvent(from, to, player, terrain, reason);
+                // Can Enter was allowed, no need to call the event again, just adding the terrain to the list.
+                if (enterAllowed) continue;
 
-                Bukkit.getPluginManager().callEvent(enter);
+                if (pVehicle != null) { // Calling Can Enter event for the player that's carrying other players.
+                    var enter = new TerrainCanEnterEvent(from, to, pVehicle, terrain, reason);
 
-                TerrainEvent.CanEnterLeave canEnter = enter.canEnter();
-                if (canEnter == TerrainEvent.CanEnterLeave.DENY) {
-                    cancel = true;
-                    break terrainLoop;
-                } else if (canEnter == TerrainEvent.CanEnterLeave.ALLOW) enterAllowed = true;
+                    Bukkit.getPluginManager().callEvent(enter);
+
+                    TerrainEvent.CanEnterLeave canEnter = enter.canEnter();
+                    if (canEnter == TerrainEvent.CanEnterLeave.DENY) {
+                        cancel = true;
+                        break;
+                    } else if (canEnter == TerrainEvent.CanEnterLeave.ALLOW) enterAllowed = true;
+                }
+
+                for (Player player : players) {  // Calling Can Enter event for each passenger.
+                    var enter = new TerrainCanEnterEvent(from, to, player, terrain, reason);
+
+                    Bukkit.getPluginManager().callEvent(enter);
+
+                    TerrainEvent.CanEnterLeave canEnter = enter.canEnter();
+                    if (canEnter == TerrainEvent.CanEnterLeave.DENY) {
+                        cancel = true;
+                        break terrainLoop;
+                    } else if (canEnter == TerrainEvent.CanEnterLeave.ALLOW) enterAllowed = true;
+                }
             }
         }
 
@@ -147,19 +177,26 @@ public final class EnterLeaveListener extends ToggleableListener {
             // Ideally they should only be called on MONITOR event priority, because they are for when players really entered/left
             // terrains, but that would require gathering the terrains again, and it would be bad for performance.
             if (callLeaveEvents != null) for (Terrain terrain : callLeaveEvents) {
+                if (pVehicle != null) {
+                    var leave = new TerrainLeaveEvent(from, to, pVehicle, terrain, reason);
+                    Bukkit.getPluginManager().callEvent(leave);
+                }
                 for (Player player : players) {
                     var leave = new TerrainLeaveEvent(from, to, player, terrain, reason);
                     Bukkit.getPluginManager().callEvent(leave);
                 }
             }
             if (callEnterEvents != null) for (Terrain terrain : callEnterEvents) {
+                if (pVehicle != null) {
+                    var enter = new TerrainEnterEvent(from, to, pVehicle, terrain, reason);
+                    Bukkit.getPluginManager().callEvent(enter);
+                }
                 for (Player player : players) {
                     var enter = new TerrainEnterEvent(from, to, player, terrain, reason);
                     Bukkit.getPluginManager().callEvent(enter);
                 }
             }
         } else {
-            vehicle.setVelocity(zero);
             to.setX(from.getBlockX() + 0.5);
             to.setY(from.getBlockY());
             to.setZ(from.getBlockZ() + 0.5);
@@ -169,8 +206,8 @@ public final class EnterLeaveListener extends ToggleableListener {
                 var pUID = player.getUniqueId();
 
                 ignoredPlayersDismountEvent.add(pUID);
-                Entity pVehicle = player.getVehicle();
-                if (pVehicle != null) pVehicle.removePassenger(player);
+                Entity thisVehicle = player.getVehicle();
+                if (thisVehicle != null) thisVehicle.removePassenger(player);
 
                 Location tp = to.clone();
                 tp.setYaw(player.getYaw());
@@ -184,15 +221,32 @@ public final class EnterLeaveListener extends ToggleableListener {
                 }
             }
 
+            vehicle.eject();
+
             // Teleporting the vehicle as well.
-            if (vehicle instanceof Player) ignoredPlayersTeleportEvent.add(vehicle.getUniqueId());
-            if (asyncTeleport) {
-                vehicle.teleportAsync(to);
+            if (pVehicle == null) {
+                vehicle.setVelocity(zero);
+                if (asyncTeleport) {
+                    vehicle.teleportAsync(to);
+                } else {
+                    vehicle.teleport(to);
+                }
             } else {
-                vehicle.teleport(to);
+                ignoredPlayersTeleportEvent.add(vehicle.getUniqueId()); // Players automatically teleport to new "to" location.
+
+                // If player is in a vehicle, dismount the player while ignoring dismount event and teleport the vehicle to the cancelled location.
+                Entity vehiclesVehicle = pVehicle.getVehicle();
+                if (vehiclesVehicle != null) {
+                    ignoredPlayersDismountEvent.add(pVehicle.getUniqueId());
+                    vehiclesVehicle.removePassenger(pVehicle);
+                    if (asyncTeleport) {
+                        vehiclesVehicle.teleportAsync(to);
+                    } else {
+                        vehiclesVehicle.teleport(to);
+                    }
+                }
             }
         }
-        return cancel;
     }
 
     static boolean handleFromTo(@NotNull Location from, @NotNull Location to, @NotNull UUID worldFrom, @NotNull UUID worldTo, @NotNull Player player, @NotNull TerrainEvent.EnterLeaveReason reason) {
@@ -209,7 +263,7 @@ public final class EnterLeaveListener extends ToggleableListener {
         boolean leaveAllowed = false;
 
         for (Terrain terrain : fromTerrains) {
-            if (toTerrains.contains(terrain)) continue; // The terrain is in to, so the player didn't really leave it.
+            if (toTerrains.remove(terrain)) continue; // The terrain was in to, so the player didn't really leave it.
 
             // The terrains to call leave event.
             if (callLeaveEvents == null) callLeaveEvents = new LinkedList<>();
@@ -266,33 +320,7 @@ public final class EnterLeaveListener extends ToggleableListener {
     public void onPlayerMove(PlayerMoveEvent event) {
         Location from = event.getFrom(), to = event.getTo();
         Player player = event.getPlayer();
-
-        // Checking the player's passengers, if they have any.
-        if (handlePassengerCarrier(player, from, to)) return;
-
-        // Handling from to for player move event.
-        UUID world = player.getWorld().getUID();
-        boolean cancel = handleFromTo(from, to, world, world, player, TerrainEvent.EnterLeaveReason.MOVE);
-
-        if (cancel) {
-            to.setX(from.getBlockX() + 0.5);
-            to.setY(from.getBlockY());
-            to.setZ(from.getBlockZ() + 0.5);
-            // The change of the TO location will count as teleport as soon as the event finishes being called.
-            ignoredPlayersTeleportEvent.add(player.getUniqueId());
-
-            // If player is in a vehicle, dismount the player while ignoring dismount event and teleport the vehicle to the cancelled location.
-            Entity vehicle = player.getVehicle();
-            if (vehicle != null) {
-                ignoredPlayersDismountEvent.add(player.getUniqueId());
-                vehicle.removePassenger(player);
-                if (asyncTeleport) {
-                    vehicle.teleportAsync(to);
-                } else {
-                    vehicle.teleport(to);
-                }
-            }
-        }
+        handlePassengerCarrier(player, from, to);
     }
 
     @EventHandler
