@@ -120,7 +120,7 @@ public final class DefineCommand extends Command {
             Bukkit.getPluginManager().callEvent(create);
 
             if (sender instanceof Player player)
-                TerrainerPlugin.getPlayerUtil().colorizeSelectionMarkers(player, false);
+                TerrainerPlugin.getPlayerUtil().updateSelectionMarkersToTerrainMarkers(player);
         } else {
             if (sender instanceof Player player) TerrainerPlugin.getPlayerUtil().removeMarkers(player);
         }

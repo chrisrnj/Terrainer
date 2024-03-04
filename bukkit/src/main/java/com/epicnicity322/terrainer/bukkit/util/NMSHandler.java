@@ -30,15 +30,25 @@ public interface NMSHandler {
      * @param x      X coordinate.
      * @param y      Y coordinate.
      * @param z      Z coordinate.
+     * @param edge Whether this is the edge of the marker.
+     * @param selection Whether this should be a selection or terrain marker.
      * @return The entity's IDs.
      */
-    @NotNull PlayerUtil.SpawnedMarker spawnMarkerEntity(@NotNull Player player, int x, int y, int z) throws Throwable;
+    @NotNull PlayerUtil.SpawnedMarker spawnMarkerEntity(@NotNull Player player, int x, int y, int z, boolean edge, boolean selection) throws Throwable;
 
     /**
      * Kills an entity with the ID.
      *
-     * @param player   The player to send the entity remove packet to.
-     * @param entityID The ID of the entity to remove.
+     * @param player The player to send the entity remove packet to.
+     * @param marker The marker entity to remove.
      */
-    void killEntity(@NotNull Player player, int entityID) throws Throwable;
+    void killEntity(@NotNull Player player, @NotNull PlayerUtil.SpawnedMarker marker) throws Throwable;
+
+    /**
+     * Changes the color of a marker's glow effect.
+     *
+     * @param marker The marker to colorize.
+     * @param player The player to colorize the marker to.
+     */
+    void updateSelectionMarkerToTerrainMarker(@NotNull PlayerUtil.SpawnedMarker marker, @NotNull Player player) throws Throwable;
 }

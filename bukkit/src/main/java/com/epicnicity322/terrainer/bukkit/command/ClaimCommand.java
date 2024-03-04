@@ -118,7 +118,7 @@ public final class ClaimCommand extends Command {
         if (util.claimTerrain(player, terrain)) {
             var create = new UserCreateTerrainEvent(terrain, sender, false);
             Bukkit.getPluginManager().callEvent(create);
-            if (player != null) util.colorizeSelectionMarkers(player, false);
+            if (player != null) util.updateSelectionMarkersToTerrainMarkers(player);
         } else if (player != null) util.removeMarkers(player);
 
         // Clearing selections.

@@ -199,6 +199,14 @@ public final class Configurations {
               Enabled: true
               # How long in ticks the marker should be shown.
               Show Time: 1200
+              Created Color: 55FF55 # Hex
+              Selection Color: FFFF55
+              Terrain Color: FFFFFF
+              # Air blocks can only be colored by regular color codes
+              Selection Block: GLOWSTONE
+              Selection Edge Block: GOLD_BLOCK
+              Terrain Block: DIAMOND_BLOCK
+              Terrain Edge Block: GLASS
                         
             # The item for seeing information about terrains in the location.
             # Can be obtained/bought with '/tr wand info'
@@ -522,10 +530,6 @@ public final class Configurations {
                 &7Click with the info wand on the ground to
                 &7check information about any existing terrains
                 &7in the location.
-                        
-            Markers:
-              Selection Color: 'e'
-              Created Color: 'a'
                         
             Info:
               Error:

@@ -65,12 +65,16 @@ public final class TerrainerPlugin extends JavaPlugin {
     private static @Nullable EconomyHandler economyHandler;
     private static @NotNull NMSHandler nmsHandler = new NMSHandler() {
         @Override
-        public @NotNull PlayerUtil.SpawnedMarker spawnMarkerEntity(@NotNull Player player, int x, int y, int z) {
-            return new PlayerUtil.SpawnedMarker(0, new UUID(0, 0));
+        public @NotNull PlayerUtil.SpawnedMarker spawnMarkerEntity(@NotNull Player player, int x, int y, int z, boolean edge, boolean selection) {
+            return new PlayerUtil.SpawnedMarker(0, new UUID(0, 0), new Object());
         }
 
         @Override
-        public void killEntity(@NotNull Player player, int entityID) {
+        public void killEntity(@NotNull Player player, @NotNull PlayerUtil.SpawnedMarker marker) {
+        }
+
+        @Override
+        public void updateSelectionMarkerToTerrainMarker(@NotNull PlayerUtil.SpawnedMarker marker, @NotNull Player player) {
         }
     };
 
@@ -182,6 +186,14 @@ public final class TerrainerPlugin extends JavaPlugin {
             }
         }
         PlayerUtil.setDefaultClaimLimits(defaultClaimLimits);
+
+        // Marker options.
+        try {
+            ReflectionHook.setMarkerColors(Integer.parseInt(config.getString("Markers.Selection Color").orElse("FFFF55"), 16), Integer.parseInt(config.getString("Markers.Terrain Color").orElse("FFFFFF"), 16), Integer.parseInt(config.getString("Markers.Created Color").orElse("55FF55"), 16));
+        } catch (NumberFormatException e) {
+            logger.log("Marker colors could not be updated because of invalid hex codes. " + e.getMessage(), ConsoleLogger.Level.WARN);
+        }
+        ReflectionHook.setMarkerBlocks(Material.getMaterial(config.getString("Markers.Selection Block").orElse("GLOWSTONE")), Material.getMaterial(config.getString("Markers.Selection Edge Block").orElse("GOLD_BLOCK")), Material.getMaterial(config.getString("Markers.Terrain Block").orElse("DIAMOND_BLOCK")), Material.getMaterial(config.getString("Markers.Terrain Edge Block").orElse("GLASS")));
 
         // Instance required from now on
         if (instance == null) return false;
@@ -307,10 +319,12 @@ public final class TerrainerPlugin extends JavaPlugin {
 
         Scoreboard mainScoreboard = getServer().getScoreboardManager().getMainScoreboard();
 
-        Team selectionTeam = mainScoreboard.getTeam("TRselectionTeam");
-        if (selectionTeam != null) selectionTeam.unregister();
         Team createdTeam = mainScoreboard.getTeam("TRcreatedTeam");
         if (createdTeam != null) createdTeam.unregister();
+        Team selectionTeam = mainScoreboard.getTeam("TRselectionTeam");
+        if (selectionTeam != null) selectionTeam.unregister();
+        Team terrainTeam = mainScoreboard.getTeam("TRterrainTeam");
+        if (terrainTeam != null) terrainTeam.unregister();
 
         boolean kickPlayers = Configurations.CONFIG.getConfiguration().getBoolean("Kick Players On Disable").orElse(false) && (ReflectionUtil.getClass("io.papermc.paper.threadedregions.RegionizedServer") == null);
         if (kickPlayers) {

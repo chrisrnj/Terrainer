@@ -24,19 +24,15 @@ import com.epicnicity322.terrainer.core.WorldCoordinate;
 import com.epicnicity322.terrainer.core.config.Configurations;
 import com.epicnicity322.terrainer.core.util.PlayerUtil;
 import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.NamespacedKey;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.persistence.PersistentDataType;
-import org.bukkit.scoreboard.Scoreboard;
-import org.bukkit.scoreboard.Team;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.HashMap;
-import java.util.Objects;
 import java.util.UUID;
 
 public final class BukkitPlayerUtil extends PlayerUtil<Player, CommandSender> {
@@ -151,33 +147,16 @@ public final class BukkitPlayerUtil extends PlayerUtil<Player, CommandSender> {
 
     @Override
     protected void killMarker(@NotNull Player player, @NotNull SpawnedMarker marker) throws Throwable {
-        TerrainerPlugin.getNMSHandler().killEntity(player, marker.entityID());
-        // Removing from team.
-        Scoreboard board = plugin.getServer().getScoreboardManager().getMainScoreboard();
-        Team selectionTeam = board.getTeam("TRselectionTeam");
-        Team createdTeam = board.getTeam("TRcreatedTeam");
-        if (selectionTeam != null) {
-            selectionTeam.removeEntry(marker.entityUUID().toString());
-            if (selectionTeam.getEntries().isEmpty()) selectionTeam.unregister();
-        }
-        if (createdTeam != null) {
-            createdTeam.removeEntry(marker.entityUUID().toString());
-            if (createdTeam.getEntries().isEmpty()) createdTeam.unregister();
-        }
+        TerrainerPlugin.getNMSHandler().killEntity(player, marker);
     }
 
     @Override
-    protected @NotNull SpawnedMarker spawnMarker(@NotNull Player player, double x, double y, double z) throws Throwable {
-        return TerrainerPlugin.getNMSHandler().spawnMarkerEntity(player, (int) x, (int) y, (int) z);
+    protected @NotNull SpawnedMarker spawnMarker(@NotNull Player player, double x, double y, double z, boolean edges, boolean selection) throws Throwable {
+        return TerrainerPlugin.getNMSHandler().spawnMarkerEntity(player, (int) x, (int) y, (int) z, edges, selection);
     }
 
-    @SuppressWarnings("deprecation")
     @Override
-    protected void colorizeMarker(@NotNull SpawnedMarker marker, boolean selectionColor) {
-        Scoreboard board = plugin.getServer().getScoreboardManager().getMainScoreboard();
-        Team team = board.getTeam(selectionColor ? "TRselectionTeam" : "TRcreatedTeam");
-        if (team == null) team = board.registerNewTeam(selectionColor ? "TRselectionTeam" : "TRcreatedTeam");
-        team.setColor(Objects.requireNonNullElse(ChatColor.getByChar(TerrainerPlugin.getLanguage().getColored(selectionColor ? "Markers.Selection Color" : "Markers.Created Color")), selectionColor ? ChatColor.YELLOW : ChatColor.GREEN));
-        team.addEntry(marker.entityUUID().toString());
+    protected void updateSelectionMarkerToTerrainMarker(@NotNull SpawnedMarker marker, @NotNull Player player) throws Throwable {
+        TerrainerPlugin.getNMSHandler().updateSelectionMarkerToTerrainMarker(marker, player);
     }
 }

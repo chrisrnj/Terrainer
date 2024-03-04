@@ -42,6 +42,7 @@ import java.util.*;
  * @param <R> The message recipient type the platform, used for the {@link LanguageHolder}.
  */
 public abstract class PlayerUtil<P extends R, R> {
+    protected static final @NotNull HashMap<UUID, HashMap<SpawnedMarker, Boolean>> markers = new HashMap<>();
     /**
      * The default permission based block limits set up on config.
      */
@@ -50,7 +51,6 @@ public abstract class PlayerUtil<P extends R, R> {
      * The default permission based claim limits set up on config.
      */
     private static final @NotNull HashMap<String, Integer> defaultClaimLimits = new HashMap<>(8);
-    private static final @NotNull HashMap<UUID, HashMap<SpawnedMarker, Boolean>> markers = new HashMap<>();
     /**
      * The selected diagonals of players. Key as the player's ID and value as an array with size 2 containing the diagonals.
      */
@@ -394,27 +394,27 @@ public abstract class PlayerUtil<P extends R, R> {
 
     private void spawnAtY(@NotNull Coordinate min, @NotNull Coordinate max, @NotNull P player, int y, @NotNull HashMap<SpawnedMarker, Boolean> ids, boolean fromSelection) throws Throwable {
         // Left Bottom Corner
-        ids.put(spawnMarker(player, min.x(), y, min.z()), fromSelection);
+        ids.put(spawnMarker(player, min.x(), y, min.z(), false, fromSelection), fromSelection);
         // Left Upper Corner
-        ids.put(spawnMarker(player, min.x(), y, max.z()), fromSelection);
+        ids.put(spawnMarker(player, min.x(), y, max.z(), false, fromSelection), fromSelection);
         // Right Bottom Corner
-        ids.put(spawnMarker(player, max.x(), y, min.z()), fromSelection);
+        ids.put(spawnMarker(player, max.x(), y, min.z(), false, fromSelection), fromSelection);
         // Right Upper Corner
-        ids.put(spawnMarker(player, max.x(), y, max.z()), fromSelection);
+        ids.put(spawnMarker(player, max.x(), y, max.z(), false, fromSelection), fromSelection);
 
         if (max.x() - min.x() > 6 && max.z() - min.z() > 6) {
             // Left Bottom Corner
-            ids.put(spawnMarker(player, min.x(), y, min.z() + 1), fromSelection);
-            ids.put(spawnMarker(player, min.x() + 1, y, min.z()), fromSelection);
+            ids.put(spawnMarker(player, min.x(), y, min.z() + 1, true, fromSelection), fromSelection);
+            ids.put(spawnMarker(player, min.x() + 1, y, min.z(), true, fromSelection), fromSelection);
             // Left Upper Corner
-            ids.put(spawnMarker(player, min.x(), y, max.z() - 1), fromSelection);
-            ids.put(spawnMarker(player, min.x() + 1, y, max.z()), fromSelection);
+            ids.put(spawnMarker(player, min.x(), y, max.z() - 1, true, fromSelection), fromSelection);
+            ids.put(spawnMarker(player, min.x() + 1, y, max.z(), true, fromSelection), fromSelection);
             // Right Bottom Corner
-            ids.put(spawnMarker(player, max.x(), y, min.z() + 1), fromSelection);
-            ids.put(spawnMarker(player, max.x() - 1, y, min.z()), fromSelection);
+            ids.put(spawnMarker(player, max.x(), y, min.z() + 1, true, fromSelection), fromSelection);
+            ids.put(spawnMarker(player, max.x() - 1, y, min.z(), true, fromSelection), fromSelection);
             // Right Upper Corner
-            ids.put(spawnMarker(player, max.x(), y, max.z() - 1), fromSelection);
-            ids.put(spawnMarker(player, max.x() - 1, y, max.z()), fromSelection);
+            ids.put(spawnMarker(player, max.x(), y, max.z() - 1, true, fromSelection), fromSelection);
+            ids.put(spawnMarker(player, max.x() - 1, y, max.z(), true, fromSelection), fromSelection);
         }
     }
 
@@ -439,21 +439,21 @@ public abstract class PlayerUtil<P extends R, R> {
                 spawnAtY(min, max, player, (int) max.y(), ids, fromSelection);
 
                 if (max.x() - min.x() > 6 && max.z() - min.z() > 6 && max.y() - min.y() > 6) {
-                    ids.put(spawnMarker(player, min.x(), min.y() + 1, min.z()), fromSelection);
-                    ids.put(spawnMarker(player, min.x(), min.y() + 1, max.z()), fromSelection);
-                    ids.put(spawnMarker(player, max.x(), min.y() + 1, min.z()), fromSelection);
-                    ids.put(spawnMarker(player, max.x(), min.y() + 1, max.z()), fromSelection);
-                    ids.put(spawnMarker(player, min.x(), max.y() - 1, min.z()), fromSelection);
-                    ids.put(spawnMarker(player, min.x(), max.y() - 1, max.z()), fromSelection);
-                    ids.put(spawnMarker(player, max.x(), max.y() - 1, min.z()), fromSelection);
-                    ids.put(spawnMarker(player, max.x(), max.y() - 1, max.z()), fromSelection);
+                    ids.put(spawnMarker(player, min.x(), min.y() + 1, min.z(), true, fromSelection), fromSelection);
+                    ids.put(spawnMarker(player, min.x(), min.y() + 1, max.z(), true, fromSelection), fromSelection);
+                    ids.put(spawnMarker(player, max.x(), min.y() + 1, min.z(), true, fromSelection), fromSelection);
+                    ids.put(spawnMarker(player, max.x(), min.y() + 1, max.z(), true, fromSelection), fromSelection);
+                    ids.put(spawnMarker(player, min.x(), max.y() - 1, min.z(), true, fromSelection), fromSelection);
+                    ids.put(spawnMarker(player, min.x(), max.y() - 1, max.z(), true, fromSelection), fromSelection);
+                    ids.put(spawnMarker(player, max.x(), max.y() - 1, min.z(), true, fromSelection), fromSelection);
+                    ids.put(spawnMarker(player, max.x(), max.y() - 1, max.z(), true, fromSelection), fromSelection);
                 }
                 return;
             }
 
             if (max != null) min = max;
             if (min == null) return;
-            markers.computeIfAbsent(uuid, k -> new HashMap<>()).put(spawnMarker(player, (int) min.x(), y, (int) min.z()), fromSelection);
+            markers.computeIfAbsent(uuid, k -> new HashMap<>()).put(spawnMarker(player, (int) min.x(), y, (int) min.z(), false, fromSelection), fromSelection);
         } catch (Throwable t) {
             Terrainer.logger().log("Failed to spawn marker entity for player " + getOwnerName(getUniqueId(player)), ConsoleLogger.Level.WARN);
             t.printStackTrace();
@@ -481,7 +481,6 @@ public abstract class PlayerUtil<P extends R, R> {
 
         WorldCoordinate[] selections = selections(getUniqueId(player)); // Showing borders to selections.
         spawnMarkersAtBorders(selections[0] == null ? null : selections[0].coordinate(), selections[1] == null ? null : selections[1].coordinate(), player, y, true);
-        colorizeSelectionMarkers(player, true);
     }
 
     public @NotNull Set<Terrain> getTerrainsToShowBorders(@NotNull P player, @Nullable Coordinate location) {
@@ -529,13 +528,18 @@ public abstract class PlayerUtil<P extends R, R> {
         });
     }
 
-    public void colorizeSelectionMarkers(@NotNull P player, boolean selectionColor) {
+    public void updateSelectionMarkersToTerrainMarkers(@NotNull P player) {
         HashMap<SpawnedMarker, Boolean> ids = markers.get(getUniqueId(player));
         if (ids == null) return;
 
         ids.forEach((marker, fromSelection) -> {
             if (!fromSelection) return;
-            colorizeMarker(marker, selectionColor);
+            try {
+                updateSelectionMarkerToTerrainMarker(marker, player);
+            } catch (Throwable t) {
+                Terrainer.logger().log("Failed to update marker entity " + marker + " for player " + getOwnerName(getUniqueId(player)), ConsoleLogger.Level.WARN);
+                t.printStackTrace();
+            }
         });
     }
 
@@ -550,22 +554,24 @@ public abstract class PlayerUtil<P extends R, R> {
     /**
      * Send a packet to the player to spawn an entity with glow effect in the location.
      *
-     * @param player The player to send the packet.
-     * @param x      X coordinate.
-     * @param y      Y coordinate.
-     * @param z      Z coordinate.
+     * @param player    The player to send the packet.
+     * @param x         X coordinate.
+     * @param y         Y coordinate.
+     * @param z         Z coordinate.
+     * @param edges     If this is an edge of the marker.
+     * @param selection Whether this marker should be a selection marker or terrain marker.
      * @return The marker entity.
      */
-    protected abstract @NotNull SpawnedMarker spawnMarker(@NotNull P player, double x, double y, double z) throws Throwable;
+    protected abstract @NotNull SpawnedMarker spawnMarker(@NotNull P player, double x, double y, double z, boolean edges, boolean selection) throws Throwable;
 
     /**
      * Changes the color of a marker's glow effect.
      *
-     * @param marker         The marker to colorize.
-     * @param selectionColor Whether to colorize the marker with selection color or created color.
+     * @param marker The marker to colorize.
+     * @param player The player to colorize the marker to.
      */
-    protected abstract void colorizeMarker(@NotNull SpawnedMarker marker, boolean selectionColor);
+    protected abstract void updateSelectionMarkerToTerrainMarker(@NotNull SpawnedMarker marker, @NotNull P player) throws Throwable;
 
-    public record SpawnedMarker(int entityID, @NotNull UUID entityUUID) {
+    public record SpawnedMarker(int entityID, @NotNull UUID entityUUID, @NotNull Object markerEntity) {
     }
 }
