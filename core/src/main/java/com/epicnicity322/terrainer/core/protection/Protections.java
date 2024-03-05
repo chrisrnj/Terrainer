@@ -260,7 +260,7 @@ public abstract class Protections<P extends R, R, M, B, E> {
             Boolean state = terrain.flags().getData(flag);
             if (state == null) continue;
             if (!state && !terrain.isWithin(fromX, fromY, fromZ)) return false;
-            else break;
+            break;
         }
 
         return true;

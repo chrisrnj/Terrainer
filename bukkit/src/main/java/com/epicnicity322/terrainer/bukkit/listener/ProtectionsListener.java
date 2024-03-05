@@ -422,10 +422,10 @@ public final class ProtectionsListener extends Protections<Player, CommandSender
 
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
     public void onEntityChangeBlock(EntityChangeBlockEvent event) {
-        if (event.getEntityType() != EntityType.FALLING_BLOCK) return;
+        if (event.getEntityType() != EntityType.FALLING_BLOCK || event.getTo() == Material.AIR) return;
         Block block = event.getBlock();
         Location loc = origin(event.getEntity());
-        if (!fallingBlockFall(block.getWorld().getUID(), block.getX(), block.getY(), block.getZ(), loc.getBlockX(), loc.getBlockY(), loc.getBlockY()))
+        if (!fallingBlockFall(block.getWorld().getUID(), block.getX(), block.getY(), block.getZ(), loc.getBlockX(), loc.getBlockY(), loc.getBlockZ()))
             event.setCancelled(true);
     }
 
