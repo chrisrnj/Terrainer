@@ -26,11 +26,11 @@ public interface NMSHandler {
     /**
      * Spawns a marker entity at the location.
      *
-     * @param player The player to send the fake entity spawn packet to.
-     * @param x      X coordinate.
-     * @param y      Y coordinate.
-     * @param z      Z coordinate.
-     * @param edge Whether this is the edge of the marker.
+     * @param player    The player to send the fake entity spawn packet to.
+     * @param x         X coordinate.
+     * @param y         Y coordinate.
+     * @param z         Z coordinate.
+     * @param edge      Whether this is the edge of the marker.
      * @param selection Whether this should be a selection or terrain marker.
      * @return The entity's IDs.
      */
