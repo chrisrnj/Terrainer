@@ -40,7 +40,7 @@ public interface IUserNameTerrainEvent<T> extends TerrainEvent, SenderEvent<T> {
     static boolean isBlackListed(@NotNull String nameColorStripped) {
         // Replacing all non word characters, for a better matching.
         String nameToTest = nameColorStripped.replaceAll("[^\\p{L}]", "");
-        return Configurations.CONFIG.getConfiguration().getCollection("Blacklisted Names", Object::toString).stream().anyMatch(nameToTest::contains);
+        return Configurations.CONFIG.getConfiguration().getCollection("Blacklisted Names", Object::toString).stream().filter(name -> !name.isBlank()).anyMatch(nameToTest::contains);
     }
 
     /**
