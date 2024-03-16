@@ -5,7 +5,7 @@ description: A fast and simple terrain claiming plugin.
 folia-supported: true
 main: com.epicnicity322.terrainer.bukkit.TerrainerPlugin
 name: Terrainer
-softdepend: [ Vault ]
+softdepend: [ PlaceholderAPI, Vault ]
 version: '1.0'
 
 commands:

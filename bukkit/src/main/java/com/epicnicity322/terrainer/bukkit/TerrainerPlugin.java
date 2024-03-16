@@ -33,6 +33,7 @@ import com.epicnicity322.terrainer.bukkit.event.terrain.TerrainAddEvent;
 import com.epicnicity322.terrainer.bukkit.event.terrain.TerrainRemoveEvent;
 import com.epicnicity322.terrainer.bukkit.hook.economy.VaultHook;
 import com.epicnicity322.terrainer.bukkit.hook.nms.ReflectionHook;
+import com.epicnicity322.terrainer.bukkit.hook.placeholderapi.TerrainerPlaceholderExpansion;
 import com.epicnicity322.terrainer.bukkit.listener.*;
 import com.epicnicity322.terrainer.bukkit.util.*;
 import com.epicnicity322.terrainer.core.Terrainer;
@@ -247,6 +248,15 @@ public final class TerrainerPlugin extends JavaPlugin {
                 logger.log("Vault was found and hooked!");
             } catch (Throwable t) {
                 logger.log("Vault was found, but there is no economy handling plugin.", ConsoleLogger.Level.WARN);
+            }
+        }
+
+        if (pm.getPlugin("PlaceholderAPI") != null) {
+            try {
+                new TerrainerPlaceholderExpansion().register();
+                logger.log("PlaceholderAPI was found, 'terrainer' placeholder registered!");
+            } catch (Throwable t) {
+                logger.log("PlaceholderAPI was found, but an unknown issue happened while registering the placeholder.", ConsoleLogger.Level.WARN);
             }
         }
 

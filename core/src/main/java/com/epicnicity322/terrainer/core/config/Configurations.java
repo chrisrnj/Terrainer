@@ -416,6 +416,18 @@ public final class Configurations {
                 Info: 'info'
                 Selector: 'selector'
                         
+            Placeholder Values:
+              Console Owner: 'Console'
+              Flag Undefined: 'Undefined'
+              Infinite Limit: 'Infinite'
+              Roles:
+                Member: 'Member'
+                Moderator: 'Moderator'
+                Owner: 'Owner'
+                Unrelated: 'Unrelated'
+              Terrain Not Found: '&aWilderness'
+              Unknown Terrain: 'Unknown'
+                        
             Confirm:
               Arguments: '[<id>|list] [page]'
               Error:
