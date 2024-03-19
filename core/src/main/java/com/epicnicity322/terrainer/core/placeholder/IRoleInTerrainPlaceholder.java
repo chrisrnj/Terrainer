@@ -50,7 +50,7 @@ public interface IRoleInTerrainPlaceholder<O, P extends O> extends TerrainPlaceh
         if (Objects.equals(uuid, terrain.owner())) {
             return lang.get("Placeholder Values.Roles.Owner");
         } else if (terrain.moderators().view().contains(uuid)) {
-            return lang.get("Placeholder Values.Roles.Moderators");
+            return lang.get("Placeholder Values.Roles.Moderator");
         } else if (terrain.members().view().contains(uuid)) {
             return lang.get("Placeholder Values.Roles.Member");
         } else {
