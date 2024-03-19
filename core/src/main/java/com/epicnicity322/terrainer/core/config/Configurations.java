@@ -420,6 +420,7 @@ public final class Configurations {
               Console Owner: 'Console'
               Flag Undefined: 'Undefined'
               Infinite Limit: 'Infinite'
+              No One Top: 'No one'
               Roles:
                 Member: 'Member'
                 Moderator: 'Moderator'

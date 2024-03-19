@@ -18,6 +18,10 @@
 
 package com.epicnicity322.terrainer.bukkit.placeholder;
 
-// TODO:
-public class TopAssociatedTerrainsPlaceholder {
+import com.epicnicity322.terrainer.bukkit.placeholder.formatter.BukkitPlaceholderFormatter;
+import com.epicnicity322.terrainer.core.placeholder.ITopAssociatedTerrainsPlaceholder;
+import org.bukkit.OfflinePlayer;
+import org.bukkit.entity.Player;
+
+public final class TopAssociatedTerrainsPlaceholder extends BukkitPlaceholderFormatter implements ITopAssociatedTerrainsPlaceholder<OfflinePlayer, Player> {
 }

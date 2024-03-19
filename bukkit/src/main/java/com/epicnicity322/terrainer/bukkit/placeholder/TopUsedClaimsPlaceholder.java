@@ -18,6 +18,10 @@
 
 package com.epicnicity322.terrainer.bukkit.placeholder;
 
-// TODO:
-public class TopUsedClaimsPlaceholder {
+import com.epicnicity322.terrainer.bukkit.placeholder.formatter.BukkitPlaceholderFormatter;
+import com.epicnicity322.terrainer.core.placeholder.ITopUsedClaimsPlaceholder;
+import org.bukkit.OfflinePlayer;
+import org.bukkit.entity.Player;
+
+public final class TopUsedClaimsPlaceholder extends BukkitPlaceholderFormatter implements ITopUsedClaimsPlaceholder<OfflinePlayer, Player> {
 }
