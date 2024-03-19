@@ -22,16 +22,18 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 public interface PriorityPlaceholderFormatter<O, P extends O> extends PlaceholderFormatter<O, P> {
-    int DEFAULT_PRIORITY = Integer.MAX_VALUE;
-
     default @NotNull String namespace() {
         return "_priority_";
+    }
+
+    default int defaultPriority() {
+        return Integer.MAX_VALUE;
     }
 
     private int priority(@NotNull String params) {
         String namespace = namespace();
         int namespaceIndex = params.indexOf(namespace);
-        if (namespaceIndex < 0) return DEFAULT_PRIORITY;
+        if (namespaceIndex < 0) return defaultPriority();
         String priority = params.substring(namespaceIndex + namespace.length());
         int endingUnderline = priority.indexOf('_');
         if (endingUnderline > 0) priority = priority.substring(0, endingUnderline);
@@ -39,7 +41,7 @@ public interface PriorityPlaceholderFormatter<O, P extends O> extends Placeholde
         try {
             return Integer.parseInt(priority);
         } catch (NumberFormatException e) {
-            return DEFAULT_PRIORITY;
+            return defaultPriority();
         }
     }
 
