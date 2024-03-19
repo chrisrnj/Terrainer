@@ -58,10 +58,11 @@
     </build>
 
     <dependencies>
+        <!-- https://mvnrepository.com/artifact/com.google.guava/guava -->
         <dependency>
             <groupId>com.google.guava</groupId>
             <artifactId>guava</artifactId>
-            <version>32.1.2-jre</version>
+            <version>33.1.0-jre</version>
             <scope>provided</scope>
         </dependency>
     </dependencies>
