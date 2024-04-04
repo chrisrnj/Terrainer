@@ -40,7 +40,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.*;
-import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.stream.Stream;
 
 public final class TerrainManager {
@@ -72,10 +72,10 @@ public final class TerrainManager {
     private static final @NotNull Set<UUID> terrainsToRemove = ConcurrentHashMap.newKeySet(4);
 
     // Usually there's only one listener for these events: the one to be used internally by Terrainer.
-    private static final @NotNull ArrayList<Function<ITerrainAddEvent, Boolean>> onAddListeners = new ArrayList<>(2);
-    private static final @NotNull ArrayList<Function<ITerrainRemoveEvent, Boolean>> onRemoveListeners = new ArrayList<>(2);
-    private static final @NotNull ArrayList<Function<IFlagSetEvent<?>, Boolean>> onFlagSetListeners = new ArrayList<>(2);
-    private static final @NotNull ArrayList<Function<IFlagUnsetEvent<?>, Boolean>> onFlagUnsetListeners = new ArrayList<>(2);
+    private static final @NotNull ArrayList<Predicate<ITerrainAddEvent>> onAddListeners = new ArrayList<>(2);
+    private static final @NotNull ArrayList<Predicate<ITerrainRemoveEvent>> onRemoveListeners = new ArrayList<>(2);
+    private static final @NotNull ArrayList<Predicate<IFlagSetEvent<?>>> onFlagSetListeners = new ArrayList<>(2);
+    private static final @NotNull ArrayList<Predicate<IFlagUnsetEvent<?>>> onFlagUnsetListeners = new ArrayList<>(2);
 
     private static final @NotNull ScheduledExecutorService autoSaveExecutor = Executors.newSingleThreadScheduledExecutor();
     private static volatile @Nullable ScheduledFuture<?> autoSave = null;
@@ -651,50 +651,50 @@ public final class TerrainManager {
     }
 
     /**
-     * Adds a function that will be applied once a terrain is added. The result of the function will be used to determine
+     * Adds a predicate that will be tested once a terrain is added. The result of the predicate will be used to determine
      * if the addition of the terrain should be cancelled or not.
      *
      * @param onAdd The listener for TerrainAddEvent.
      * @apiNote You should use the platform's implementation of {@link ITerrainAddEvent} instead of this. This is only used internally to call the platform's event.
      */
     @ApiStatus.Internal
-    public static void setOnTerrainAddListener(@NotNull Function<ITerrainAddEvent, Boolean> onAdd) {
+    public static void setOnTerrainAddListener(@NotNull Predicate<ITerrainAddEvent> onAdd) {
         onAddListeners.add(onAdd);
     }
 
     /**
-     * Adds a function that will be applied once the terrain is removed.
-     * The result of the function will be used to determine if the removal of the terrain should be cancelled or not.
+     * Adds a predicate that will be tested once the terrain is removed.
+     * The result of the predicate will be used to determine if the removal of the terrain should be cancelled or not.
      *
      * @param onRemove The listener for TerrainRemoveEvent.
      * @apiNote You should use the platform's implementation of {@link ITerrainRemoveEvent} instead of this. This is only used internally to call the platform's event.
      */
     @ApiStatus.Internal
-    public static void setOnTerrainRemoveListener(@NotNull Function<ITerrainRemoveEvent, Boolean> onRemove) {
+    public static void setOnTerrainRemoveListener(@NotNull Predicate<ITerrainRemoveEvent> onRemove) {
         onRemoveListeners.add(onRemove);
     }
 
     /**
-     * Adds a function that will be applied once a flag is added to a terrain by any means. The result of the function
+     * Adds a predicate that will be tested once a flag is added to a terrain by any means. The result of the predicate
      * will be used to determine if the addition of the flag should be cancelled or not.
      *
      * @param onFlagSet The listener for FlagSetEvent.
      * @apiNote You should use the platform's implementation of {@link IFlagSetEvent} instead of this. This is only used internally to call the platform's event.
      */
     @ApiStatus.Internal
-    public static void setOnFlagSetListener(@NotNull Function<IFlagSetEvent<?>, Boolean> onFlagSet) {
+    public static void setOnFlagSetListener(@NotNull Predicate<IFlagSetEvent<?>> onFlagSet) {
         onFlagSetListeners.add(onFlagSet);
     }
 
     /**
-     * Adds a function that will be applied once a flag is removed from a terrain by any means. The result of the function
+     * Adds a predicate that will be tested once a flag is removed from a terrain by any means. The result of the predicate
      * will be used to determine if the removal of the flag should be cancelled or not.
      *
      * @param onFlagUnset The listener for FlagUnsetEvent.
      * @apiNote You should use the platform's implementation of {@link IFlagUnsetEvent} instead of this. This is only used internally to call the platform's event.
      */
     @ApiStatus.Internal
-    public static void setOnFlagUnsetListener(@NotNull Function<IFlagUnsetEvent<?>, Boolean> onFlagUnset) {
+    public static void setOnFlagUnsetListener(@NotNull Predicate<IFlagUnsetEvent<?>> onFlagUnset) {
         onFlagUnsetListeners.add(onFlagUnset);
     }
 
@@ -706,9 +706,9 @@ public final class TerrainManager {
             }
         };
         boolean cancel = false;
-        for (Function<ITerrainAddEvent, Boolean> listener : onAddListeners) {
+        for (Predicate<ITerrainAddEvent> listener : onAddListeners) {
             try {
-                if (listener.apply(event)) cancel = true;
+                if (listener.test(event)) cancel = true;
             } catch (Throwable t) {
                 Terrainer.logger().log("Unknown issue happened while calling TerrainAddEvent for terrain " + terrain.id + ":", ConsoleLogger.Level.WARN);
                 t.printStackTrace();
@@ -725,9 +725,9 @@ public final class TerrainManager {
             }
         };
         boolean cancel = false;
-        for (Function<ITerrainRemoveEvent, Boolean> listener : onRemoveListeners) {
+        for (Predicate<ITerrainRemoveEvent> listener : onRemoveListeners) {
             try {
-                if (listener.apply(event)) cancel = true;
+                if (listener.test(event)) cancel = true;
             } catch (Throwable t) {
                 Terrainer.logger().log("Unknown issue happened while calling TerrainRemoveEvent for terrain " + terrain.id + ":", ConsoleLogger.Level.WARN);
                 t.printStackTrace();
@@ -736,9 +736,14 @@ public final class TerrainManager {
         return cancel;
     }
 
-    static <T> FlagSetResult<T> callOnFlagSet(@NotNull Terrain terrain, @NotNull Flag<T> flag, @NotNull T data) {
+    static <T> FlagSetResult<T> callOnFlagSet(@NotNull Terrain terrain, @NotNull Flag<T> flag, @NotNull T data, @Nullable UUID affectedMember) {
         var event = new IFlagSetEvent<T>() {
             private @NotNull T newData = data;
+
+            @Override
+            public @Nullable UUID affectedMember() {
+                return affectedMember;
+            }
 
             @Override
             public @NotNull Flag<T> flag() {
@@ -762,9 +767,9 @@ public final class TerrainManager {
             }
         };
         boolean cancel = false;
-        for (Function<IFlagSetEvent<?>, Boolean> listener : onFlagSetListeners) {
+        for (Predicate<IFlagSetEvent<?>> listener : onFlagSetListeners) {
             try {
-                if (listener.apply(event)) cancel = true;
+                if (listener.test(event)) cancel = true;
             } catch (Throwable t) {
                 Terrainer.logger().log("Unknown issue happened while calling FlagSetEvent for terrain " + terrain.id + ":", ConsoleLogger.Level.WARN);
                 t.printStackTrace();
@@ -773,8 +778,13 @@ public final class TerrainManager {
         return new FlagSetResult<>(cancel, event.newData);
     }
 
-    static <T> boolean callOnFlagUnset(@NotNull Terrain terrain, @NotNull Flag<T> flag) {
+    static <T> boolean callOnFlagUnset(@NotNull Terrain terrain, @NotNull Flag<T> flag, @Nullable UUID affectedMember) {
         var event = new IFlagUnsetEvent<T>() {
+            @Override
+            public @Nullable UUID affectedMember() {
+                return affectedMember;
+            }
+
             @Override
             public @NotNull Flag<T> flag() {
                 return flag;
@@ -786,9 +796,9 @@ public final class TerrainManager {
             }
         };
         boolean cancel = false;
-        for (Function<IFlagUnsetEvent<?>, Boolean> listener : onFlagUnsetListeners) {
+        for (Predicate<IFlagUnsetEvent<?>> listener : onFlagUnsetListeners) {
             try {
-                if (listener.apply(event)) cancel = true;
+                if (listener.test(event)) cancel = true;
             } catch (Throwable t) {
                 Terrainer.logger().log("Unknown issue happened while calling FlagUnsetEvent for terrain " + terrain.id + ":", ConsoleLogger.Level.WARN);
                 t.printStackTrace();

@@ -98,7 +98,7 @@ public final class FlagCommand extends Command {
         if (args.length == 1) {
             // remove flag if it is already set.
             if (terrain.flags().view().containsKey(flag.id())) {
-                UserFlagUnsetEvent e = new UserFlagUnsetEvent(sender, terrain, flag, false);
+                UserFlagUnsetEvent e = new UserFlagUnsetEvent(sender, terrain, flag, false, null);
                 Bukkit.getPluginManager().callEvent(e);
                 if (e.isCancelled()) return;
 
@@ -122,7 +122,7 @@ public final class FlagCommand extends Command {
                 Flag<Boolean> booleanFlag = (Flag<Boolean>) flag;
                 boolean newState = !booleanFlag.defaultValue();
 
-                UserFlagSetEvent e = new UserFlagSetEvent(sender, terrain, flag, Boolean.toString(newState), false);
+                UserFlagSetEvent e = new UserFlagSetEvent(sender, terrain, flag, Boolean.toString(newState), false, null);
                 Bukkit.getPluginManager().callEvent(e);
                 if (e.isCancelled()) return;
 
@@ -136,7 +136,7 @@ public final class FlagCommand extends Command {
 
         String input = CommandUtil.join(args, 1);
 
-        UserFlagSetEvent e = new UserFlagSetEvent(sender, terrain, flag, input, false);
+        UserFlagSetEvent e = new UserFlagSetEvent(sender, terrain, flag, input, false, null);
         Bukkit.getPluginManager().callEvent(e);
         if (e.isCancelled()) return;
 

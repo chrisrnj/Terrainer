@@ -917,7 +917,7 @@ public class Terrain implements Serializable {
                 throw new IllegalArgumentException("Flags must only hold Serializable data.");
 
             if (callEvents) {
-                TerrainManager.FlagSetResult<T> result = TerrainManager.callOnFlagSet(Terrain.this, flag, data);
+                TerrainManager.FlagSetResult<T> result = TerrainManager.callOnFlagSet(Terrain.this, flag, data, null);
                 if (result.cancel()) return null;
                 data = result.newData();
             }
@@ -973,7 +973,9 @@ public class Terrain implements Serializable {
 
         private @Nullable Object removeFlag(@NotNull Flag<?> flag, boolean callEvents) {
             if (map == null) return null;
-            if (callEvents && TerrainManager.callOnFlagUnset(Terrain.this, flag)) return null;
+            if (!map.containsKey(flag.id())) return null;
+            if (callEvents && TerrainManager.callOnFlagUnset(Terrain.this, flag, null)) return null;
+
             try {
                 return map.remove(flag.id());
             } finally {
@@ -995,7 +997,9 @@ public class Terrain implements Serializable {
         @SuppressWarnings("unchecked")
         public @Nullable <T> T getAndRemoveFlag(@NotNull Flag<T> flag) {
             if (map == null) return null;
-            if (TerrainManager.callOnFlagUnset(Terrain.this, flag)) return null;
+            if (!map.containsKey(flag.id())) return null;
+            if (TerrainManager.callOnFlagUnset(Terrain.this, flag, null)) return null;
+
             try {
                 Object previous = map.remove(flag.id());
                 if (previous == null) return null;
@@ -1018,6 +1022,39 @@ public class Terrain implements Serializable {
          */
         public @NotNull Map<String, Object> view() {
             return Objects.requireNonNullElse(unmodifiableMap, Collections.emptyMap());
+        }
+
+        /**
+         * Remove all flags and revert the map to default.
+         *
+         * @return Whether the map had any elements.
+         */
+        public boolean clear() {
+            return clear(true, null);
+        }
+
+        private boolean clear(boolean callEvents, @Nullable UUID affectedMember) {
+            if (!callEvents) {
+                boolean wasEmpty = map == null || map.isEmpty();
+                map = null;
+                unmodifiableMap = null;
+                if (!wasEmpty) markAsChanged();
+                return wasEmpty;
+            }
+
+            if (map == null) return false;
+            boolean anyRemoved = map.keySet().removeIf(flagID -> {
+                Flag<?> f = Flags.matchFlag(flagID);
+                if (f == null) return true;
+                return !TerrainManager.callOnFlagUnset(Terrain.this, f, affectedMember);
+            });
+
+            if (map.isEmpty()) {
+                map = null;
+                unmodifiableMap = null;
+            }
+            if (anyRemoved) markAsChanged();
+            return anyRemoved;
         }
 
         @Override
@@ -1074,7 +1111,11 @@ public class Terrain implements Serializable {
         public <T> Object putFlag(@NotNull UUID member, @NotNull Flag<T> flag, T data) {
             if (!(data instanceof Serializable))
                 throw new IllegalArgumentException("Flags must only hold Serializable data.");
-            // TODO: Member flag set event
+
+            TerrainManager.FlagSetResult<T> result = TerrainManager.callOnFlagSet(Terrain.this, flag, data, member);
+            if (result.cancel()) return null;
+            data = result.newData();
+
             if (map == null) map = new HashMap<>(INITIAL_CAPACITY);
             return map.computeIfAbsent(member, k -> new FlagMap(null)).putFlag(flag, data, false);
         }
@@ -1102,11 +1143,12 @@ public class Terrain implements Serializable {
          */
         public @Nullable Map<String, Object> removeMember(@NotNull UUID member) {
             if (map == null) return null;
-            FlagMap removed = map.remove(member);
-            if (removed == null) return null;
-            // TODO: Member flag unset event
-            markAsChanged();
-            return removed.view();
+            FlagMap flagMap = map.get(member);
+            if (flagMap == null) return null;
+            if (flagMap.clear(false, member)) markAsChanged();
+            if (flagMap.view().isEmpty()) map.remove(member);
+            if (map.isEmpty()) map = null;
+            return flagMap.view();
         }
 
         /**
@@ -1120,14 +1162,15 @@ public class Terrain implements Serializable {
             if (map == null) return null;
             FlagMap flagMap = map.get(member);
             if (flagMap == null) return null;
+            if (!flagMap.view().containsKey(flag.id())) return null;
+            if (TerrainManager.callOnFlagUnset(Terrain.this, flag, member)) return null;
+
             try {
-                // TODO: Member flag unset event
                 return flagMap.removeFlag(flag, false);
             } finally {
-                if (flagMap.view().isEmpty()) {
-                    map.remove(member);
-                    markAsChanged();
-                }
+                if (flagMap.view().isEmpty()) map.remove(member);
+                if (map.isEmpty()) map = null;
+                markAsChanged();
             }
         }
 

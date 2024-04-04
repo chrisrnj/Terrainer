@@ -18,8 +18,7 @@
 
 package com.epicnicity322.terrainer.core.event.flag;
 
-import com.epicnicity322.terrainer.core.event.FlagEvent;
-import com.epicnicity322.terrainer.core.event.TerrainEvent;
+import com.epicnicity322.terrainer.core.event.MemberFlagSetUnsetEvent;
 import com.epicnicity322.terrainer.core.terrain.Flag;
 import org.jetbrains.annotations.NotNull;
 
@@ -28,7 +27,7 @@ import org.jetbrains.annotations.NotNull;
  *
  * @param <T> The data type of the flag being set.
  */
-public interface IFlagSetEvent<T> extends FlagEvent, TerrainEvent {
+public interface IFlagSetEvent<T> extends MemberFlagSetUnsetEvent {
     @Override
     @NotNull Flag<T> flag();
 

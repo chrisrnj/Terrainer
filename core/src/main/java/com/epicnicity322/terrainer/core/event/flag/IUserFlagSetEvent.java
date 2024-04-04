@@ -18,9 +18,8 @@
 
 package com.epicnicity322.terrainer.core.event.flag;
 
-import com.epicnicity322.terrainer.core.event.FlagEvent;
+import com.epicnicity322.terrainer.core.event.MemberFlagSetUnsetEvent;
 import com.epicnicity322.terrainer.core.event.SenderEvent;
-import com.epicnicity322.terrainer.core.event.TerrainEvent;
 import com.epicnicity322.terrainer.core.terrain.Flag;
 import org.jetbrains.annotations.NotNull;
 
@@ -31,7 +30,7 @@ import org.jetbrains.annotations.NotNull;
  *
  * @param <T> The type of {@link #sender()}.
  */
-public interface IUserFlagSetEvent<T> extends FlagEvent, TerrainEvent, SenderEvent<T> {
+public interface IUserFlagSetEvent<T> extends MemberFlagSetUnsetEvent, SenderEvent<T> {
     /**
      * @return The extra command arguments, if a command was used to add the flag to this terrain.
      */

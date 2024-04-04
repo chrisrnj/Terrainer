@@ -26,23 +26,18 @@ import org.bukkit.event.Cancellable;
 import org.bukkit.event.Event;
 import org.bukkit.event.HandlerList;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
+import java.util.UUID;
 
 public class FlagSetEvent<T> extends Event implements IFlagSetEvent<T>, Cancellable {
     private static final @NotNull HandlerList handlers = new HandlerList();
-    private final @NotNull Terrain terrain;
-    private final @NotNull Flag<T> flag;
-    private @NotNull T data;
+    private final @NotNull IFlagSetEvent<T> event;
     private boolean cancelled = false;
 
     public FlagSetEvent(@NotNull IFlagSetEvent<T> event) {
-        this(event.terrain(), event.flag(), event.data());
-    }
-
-    public FlagSetEvent(@NotNull Terrain terrain, @NotNull Flag<T> flag, @NotNull T data) {
         super(!Bukkit.isPrimaryThread());
-        this.terrain = terrain;
-        this.flag = flag;
-        this.data = data;
+        this.event = event;
     }
 
     public static @NotNull HandlerList getHandlerList() {
@@ -66,21 +61,26 @@ public class FlagSetEvent<T> extends Event implements IFlagSetEvent<T>, Cancella
 
     @Override
     public @NotNull Terrain terrain() {
-        return terrain;
+        return event.terrain();
     }
 
     @Override
     public @NotNull Flag<T> flag() {
-        return flag;
+        return event.flag();
     }
 
     @Override
     public @NotNull T data() {
-        return data;
+        return event.data();
     }
 
     @Override
     public void setData(@NotNull T data) {
-        this.data = data;
+        event.setData(data);
+    }
+
+    @Override
+    public @Nullable UUID affectedMember() {
+        return event.affectedMember();
     }
 }

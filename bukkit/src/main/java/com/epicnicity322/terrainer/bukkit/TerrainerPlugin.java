@@ -294,7 +294,7 @@ public final class TerrainerPlugin extends JavaPlugin {
             return set.isCancelled();
         });
         TerrainManager.setOnFlagUnsetListener(event -> {
-            var unset = new FlagUnsetEvent<>(event.terrain(), event.flag());
+            var unset = new FlagUnsetEvent<>(event);
             pm.callEvent(unset);
             return unset.isCancelled();
         });

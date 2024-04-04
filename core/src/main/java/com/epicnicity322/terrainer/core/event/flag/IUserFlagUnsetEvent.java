@@ -18,16 +18,15 @@
 
 package com.epicnicity322.terrainer.core.event.flag;
 
-import com.epicnicity322.terrainer.core.event.FlagEvent;
+import com.epicnicity322.terrainer.core.event.MemberFlagSetUnsetEvent;
 import com.epicnicity322.terrainer.core.event.SenderEvent;
-import com.epicnicity322.terrainer.core.event.TerrainEvent;
 
 /**
  * When a player unsets a flag of a terrain using the Flag Management GUI or the command <u>/tr flag {@literal <flag>}</u>.
  *
  * @param <T> The type of {@link #sender()}.
  */
-public interface IUserFlagUnsetEvent<T> extends FlagEvent, TerrainEvent, SenderEvent<T> {
+public interface IUserFlagUnsetEvent<T> extends MemberFlagSetUnsetEvent, SenderEvent<T> {
     /**
      * @return Whether a GUI was used to edit this flag.
      */

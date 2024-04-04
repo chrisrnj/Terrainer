@@ -22,11 +22,15 @@ import com.epicnicity322.terrainer.core.event.flag.IUserFlagSetEvent;
 import com.epicnicity322.terrainer.core.terrain.Flag;
 import com.epicnicity322.terrainer.core.terrain.Terrain;
 import org.bukkit.Bukkit;
+import org.bukkit.OfflinePlayer;
 import org.bukkit.command.CommandSender;
 import org.bukkit.event.Cancellable;
 import org.bukkit.event.Event;
 import org.bukkit.event.HandlerList;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
+import java.util.UUID;
 
 /**
  * When a player sets a flag to a terrain using the Flag Management GUI or the command <u>/tr flag {@literal <flag> <inputArgs>}</u>.
@@ -39,16 +43,18 @@ public class UserFlagSetEvent extends Event implements IUserFlagSetEvent<Command
     private final @NotNull Terrain terrain;
     private final @NotNull Flag<?> flag;
     private final boolean gui;
+    private final @Nullable OfflinePlayer affectedPlayer;
     private @NotNull String input;
     private boolean cancelled = false;
 
-    public UserFlagSetEvent(@NotNull CommandSender sender, @NotNull Terrain terrain, @NotNull Flag<?> flag, @NotNull String input, boolean gui) {
+    public UserFlagSetEvent(@NotNull CommandSender sender, @NotNull Terrain terrain, @NotNull Flag<?> flag, @NotNull String input, boolean gui, @Nullable OfflinePlayer affectedPlayer) {
         super(!Bukkit.isPrimaryThread());
         this.sender = sender;
         this.terrain = terrain;
         this.flag = flag;
         this.input = input;
         this.gui = gui;
+        this.affectedPlayer = affectedPlayer;
     }
 
     public static @NotNull HandlerList getHandlerList() {
@@ -98,5 +104,14 @@ public class UserFlagSetEvent extends Event implements IUserFlagSetEvent<Command
     @Override
     public boolean isGui() {
         return gui;
+    }
+
+    public @Nullable OfflinePlayer affectedPlayer() {
+        return affectedPlayer;
+    }
+
+    @Override
+    public @Nullable UUID affectedMember() {
+        return affectedPlayer == null ? null : affectedPlayer.getUniqueId();
     }
 }

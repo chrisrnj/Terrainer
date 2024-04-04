@@ -26,17 +26,26 @@ import org.bukkit.event.Cancellable;
 import org.bukkit.event.Event;
 import org.bukkit.event.HandlerList;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
+import java.util.UUID;
 
 public class FlagUnsetEvent<T> extends Event implements IFlagUnsetEvent<T>, Cancellable {
     private static final @NotNull HandlerList handlers = new HandlerList();
     private final @NotNull Terrain terrain;
     private final @NotNull Flag<T> flag;
+    private final @Nullable UUID affectedMember;
     private boolean cancelled = false;
 
-    public FlagUnsetEvent(@NotNull Terrain terrain, @NotNull Flag<T> flag) {
+    public FlagUnsetEvent(@NotNull IFlagUnsetEvent<T> event) {
+        this(event.terrain(), event.flag(), event.affectedMember());
+    }
+
+    public FlagUnsetEvent(@NotNull Terrain terrain, @NotNull Flag<T> flag, @Nullable UUID affectedMember) {
         super(!Bukkit.isPrimaryThread());
         this.terrain = terrain;
         this.flag = flag;
+        this.affectedMember = affectedMember;
     }
 
     public static @NotNull HandlerList getHandlerList() {
@@ -66,5 +75,10 @@ public class FlagUnsetEvent<T> extends Event implements IFlagUnsetEvent<T>, Canc
     @Override
     public @NotNull Flag<T> flag() {
         return flag;
+    }
+
+    @Override
+    public @Nullable UUID affectedMember() {
+        return affectedMember;
     }
 }

@@ -104,7 +104,7 @@ public class FlagListGUI extends ListGUI<FlagListGUI.FlagEntry> {
             String localized = lang.get("Flags.Values." + flag.id() + ".Display Name");
 
             if (event.getClick() == ClickType.RIGHT || event.getClick() == ClickType.DROP) {
-                UserFlagUnsetEvent e = new UserFlagUnsetEvent(player, terrain, flag, true);
+                UserFlagUnsetEvent e = new UserFlagUnsetEvent(player, terrain, flag, true, null);
                 Bukkit.getPluginManager().callEvent(e);
                 if (e.isCancelled()) return;
 
@@ -118,7 +118,7 @@ public class FlagListGUI extends ListGUI<FlagListGUI.FlagEntry> {
                 Flag<Boolean> conditionalFlag = (Flag<Boolean>) flag;
                 Boolean state = (state = terrain.flags().getData(conditionalFlag)) == null || state;
 
-                UserFlagSetEvent e = new UserFlagSetEvent(player, terrain, conditionalFlag, state ? "false" : "true", true);
+                UserFlagSetEvent e = new UserFlagSetEvent(player, terrain, conditionalFlag, state ? "false" : "true", true, null);
                 Bukkit.getPluginManager().callEvent(e);
                 if (e.isCancelled()) return;
 
@@ -131,7 +131,7 @@ public class FlagListGUI extends ListGUI<FlagListGUI.FlagEntry> {
 
             Consumer<String> onInput = input -> {
                 if (input.isBlank()) {
-                    UserFlagUnsetEvent e = new UserFlagUnsetEvent(player, terrain, flag, true);
+                    UserFlagUnsetEvent e = new UserFlagUnsetEvent(player, terrain, flag, true, null);
                     Bukkit.getPluginManager().callEvent(e);
                     if (e.isCancelled()) return;
 
@@ -140,7 +140,7 @@ public class FlagListGUI extends ListGUI<FlagListGUI.FlagEntry> {
                     event.getInventory().setItem(event.getSlot(), item(t));
                     return;
                 }
-                UserFlagSetEvent e = new UserFlagSetEvent(player, terrain, flag, input, true);
+                UserFlagSetEvent e = new UserFlagSetEvent(player, terrain, flag, input, true, null);
                 Bukkit.getPluginManager().callEvent(e);
                 if (e.isCancelled()) return;
 

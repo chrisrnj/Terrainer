@@ -16,18 +16,20 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.epicnicity322.terrainer.core.event.flag;
+package com.epicnicity322.terrainer.core.event;
 
-import com.epicnicity322.terrainer.core.event.MemberFlagSetUnsetEvent;
-import com.epicnicity322.terrainer.core.terrain.Flag;
-import org.jetbrains.annotations.NotNull;
+import com.epicnicity322.terrainer.core.terrain.Terrain;
+import org.jetbrains.annotations.Nullable;
+
+import java.util.UUID;
 
 /**
- * When a flag is unset from a terrain by any means.
- *
- * @param <T> The data type of the flag being removed.
+ * A flag event called when a flag is set or unset, whether to a specific player or to everyone in the terrain.
  */
-public interface IFlagUnsetEvent<T> extends MemberFlagSetUnsetEvent {
-    @Override
-    @NotNull Flag<T> flag();
+public interface MemberFlagSetUnsetEvent extends FlagEvent, TerrainEvent {
+    /**
+     * @return The {@link UUID} of the player this flag is being specifically set to. {@code null} if the flag is being set globally on the terrain.
+     * @see Terrain#memberFlags()
+     */
+    @Nullable UUID affectedMember();
 }
