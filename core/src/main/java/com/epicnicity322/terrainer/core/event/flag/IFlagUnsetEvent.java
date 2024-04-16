@@ -29,5 +29,6 @@ import org.jetbrains.annotations.NotNull;
  */
 public interface IFlagUnsetEvent<T> extends MemberFlagSetUnsetEvent {
     @Override
-    @NotNull Flag<T> flag();
+    @NotNull
+    Flag<T> flag();
 }

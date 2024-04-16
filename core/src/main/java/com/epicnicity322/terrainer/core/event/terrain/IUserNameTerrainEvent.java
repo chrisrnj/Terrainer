@@ -51,19 +51,22 @@ public interface IUserNameTerrainEvent<T> extends TerrainEvent, SenderEvent<T> {
      *
      * @return The name that was set on the terrain.
      */
-    @NotNull String previousName();
+    @NotNull
+    String previousName();
 
     /**
      * @return The new name of the terrain.
      */
-    @NotNull String newName();
+    @NotNull
+    String newName();
 
     /**
      * The reason that caused this name event.
      *
      * @return Why the terrain was named/renamed.
      */
-    @NotNull NameReason reason();
+    @NotNull
+    NameReason reason();
 
     enum NameReason {
         CREATION, RENAME

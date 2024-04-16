@@ -31,5 +31,6 @@ public interface MemberFlagSetUnsetEvent extends FlagEvent, TerrainEvent {
      * @return The {@link UUID} of the player this flag is being specifically set to. {@code null} if the flag is being set globally on the terrain.
      * @see Terrain#memberFlags()
      */
-    @Nullable UUID affectedMember();
+    @Nullable
+    UUID affectedMember();
 }

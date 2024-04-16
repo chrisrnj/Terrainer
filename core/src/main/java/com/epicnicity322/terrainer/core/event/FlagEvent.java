@@ -28,5 +28,6 @@ public interface FlagEvent {
     /**
      * @return The flag involved in this event.
      */
-    @NotNull Flag<?> flag();
+    @NotNull
+    Flag<?> flag();
 }

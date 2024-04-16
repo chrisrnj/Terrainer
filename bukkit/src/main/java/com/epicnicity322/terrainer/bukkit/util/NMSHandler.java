@@ -34,7 +34,8 @@ public interface NMSHandler {
      * @param selection Whether this should be a selection or terrain marker.
      * @return The entity's IDs.
      */
-    @NotNull PlayerUtil.SpawnedMarker spawnMarkerEntity(@NotNull Player player, int x, int y, int z, boolean edge, boolean selection) throws Throwable;
+    @NotNull
+    PlayerUtil.SpawnedMarker spawnMarkerEntity(@NotNull Player player, int x, int y, int z, boolean edge, boolean selection) throws Throwable;
 
     /**
      * Kills an entity with the ID.

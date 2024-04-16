@@ -42,7 +42,9 @@ public final class CreatureSpawnListener extends ToggleableListener {
         Location loc = event.getLocation();
 
         switch (event.getSpawnReason()) {
-            case BUILD_IRONGOLEM, BUILD_SNOWMAN, BUILD_WITHER, CUSTOM, DISPENSE_EGG, DUPLICATION, ENDER_PEARL, JOCKEY, MOUNT, NATURAL, NETHER_PORTAL, OCELOT_BABY, PATROL, RAID, REINFORCEMENTS, SILVERFISH_BLOCK, SLIME_SPLIT, SPAWNER_EGG, SPELL, TRAP, VILLAGE_DEFENSE, VILLAGE_INVASION -> {
+            case BUILD_IRONGOLEM, BUILD_SNOWMAN, BUILD_WITHER, CUSTOM, DISPENSE_EGG, DUPLICATION, ENDER_PEARL, JOCKEY,
+                 MOUNT, NATURAL, NETHER_PORTAL, OCELOT_BABY, PATROL, RAID, REINFORCEMENTS, SILVERFISH_BLOCK,
+                 SLIME_SPLIT, SPAWNER_EGG, SPELL, TRAP, VILLAGE_DEFENSE, VILLAGE_INVASION -> {
                 if (!protectionsListener.creatureSpawn(loc.getWorld().getUID(), loc.getBlockX(), loc.getBlockY(), loc.getBlockZ()))
                     event.setCancelled(true);
             }

@@ -27,5 +27,6 @@ public interface SenderEvent<T> {
     /**
      * @return Who sent the command.
      */
-    @NotNull T sender();
+    @NotNull
+    T sender();
 }

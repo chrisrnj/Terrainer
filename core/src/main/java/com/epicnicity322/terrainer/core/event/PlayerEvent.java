@@ -29,5 +29,6 @@ public interface PlayerEvent<P> {
     /**
      * @return The player involved in this event.
      */
-    @NotNull P player();
+    @NotNull
+    P player();
 }

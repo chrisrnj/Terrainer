@@ -34,7 +34,8 @@ public interface IUserFlagSetEvent<T> extends MemberFlagSetUnsetEvent, SenderEve
     /**
      * @return The extra command arguments, if a command was used to add the flag to this terrain.
      */
-    @NotNull String input();
+    @NotNull
+    String input();
 
     /**
      * Changes the provided input of the flag. This input will be used to generate the data of the flag.

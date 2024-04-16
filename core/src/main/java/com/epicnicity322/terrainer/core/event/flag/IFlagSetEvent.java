@@ -29,12 +29,14 @@ import org.jetbrains.annotations.NotNull;
  */
 public interface IFlagSetEvent<T> extends MemberFlagSetUnsetEvent {
     @Override
-    @NotNull Flag<T> flag();
+    @NotNull
+    Flag<T> flag();
 
     /**
      * @return The data being set to the flag. Should never be null.
      */
-    @NotNull T data();
+    @NotNull
+    T data();
 
     /**
      * Sets the data that this flag should be set to.
