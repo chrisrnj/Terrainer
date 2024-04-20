@@ -22,6 +22,8 @@ import com.epicnicity322.terrainer.bukkit.placeholder.*;
 import com.epicnicity322.terrainer.bukkit.util.CommandUtil;
 import com.epicnicity322.terrainer.core.TerrainerVersion;
 import com.epicnicity322.terrainer.core.placeholder.formatter.PlaceholderFormatter;
+import com.epicnicity322.terrainer.core.placeholder.formatter.PriorityPlaceholderFormatter;
+import com.epicnicity322.terrainer.core.placeholder.formatter.TerrainPlaceholderFormatter;
 import me.clip.placeholderapi.expansion.PlaceholderExpansion;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
@@ -30,20 +32,41 @@ import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.Locale;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class TerrainerPlaceholderExpansion extends PlaceholderExpansion {
+    private static final @NotNull String IDENTIFIER = "terrainer";
+    private static final @NotNull String PLAYER_NAMESPACE = "_player_";
     private static final @NotNull Map<String, PlaceholderFormatter<OfflinePlayer, Player>> placeholders = Stream.of(new AssociatedTerrainsAmountPlaceholder(), new AssociatedTerrainsPlaceholder(), new FlagDataPlaceholder(), new FreeBlockLimitPlaceholder(), new FreeClaimLimitPlaceholder(), new MaxBlockLimitPlaceholder(), new MaxClaimLimitPlaceholder(), new OwningTerrainsAmountPlaceholder(), new OwningTerrainsPlaceholder(), new RoleInTerrainPlaceholder(), new TerrainAreaPlaceholder(), new TerrainCreationDatePlaceholder(), new TerrainDescriptionPlaceholder(), new TerrainFlagsPlaceholder(), new TerrainMembersPlaceholder(), new TerrainModeratorsPlaceholder(), new TerrainNamePlaceholder(), new TerrainOwnerPlaceholder(), new TerrainPriorityPlaceholder(), new TerrainUUIDPlaceholder(), new TopAssociatedTerrainsPlaceholder(), new TopUsedBlocksPlaceholder(), new TopUsedClaimsPlaceholder(), new UsedBlocksPlaceholder(), new UsedClaimsPlaceholder()).collect(Collectors.toMap(PlaceholderFormatter::name, value -> value));
+    private static final @NotNull ArrayList<String> placeholderTabCompleteValues = new ArrayList<>(74);
+
+    static {
+        String prefix = '%' + IDENTIFIER + '_';
+        placeholders.forEach((name, placeholder) -> {
+            name = name + placeholder.suggestedSuffix();
+            placeholderTabCompleteValues.add(prefix + name + '%');
+            if (placeholder.isPlayerRelevant()) {
+                placeholderTabCompleteValues.add(prefix + name + PLAYER_NAMESPACE + "<name or uuid>%");
+            }
+            if (placeholder instanceof TerrainPlaceholderFormatter<OfflinePlayer, Player>) {
+                placeholderTabCompleteValues.add(prefix + name + TerrainPlaceholderFormatter.TERRAIN_NAMESPACE + "<terrain>%");
+            }
+            if (placeholder instanceof PriorityPlaceholderFormatter<OfflinePlayer, Player> priorityPlaceholder) {
+                if (priorityPlaceholder.namespace().startsWith(priorityPlaceholder.name())) {
+                    placeholderTabCompleteValues.add(prefix + priorityPlaceholder.namespace() + "1%");
+                } else {
+                    placeholderTabCompleteValues.add(prefix + name + priorityPlaceholder.namespace() + "1%");
+                }
+            }
+        });
+    }
 
     private static @Nullable OfflinePlayer player(@Nullable OfflinePlayer requester, @NotNull String params) {
-        String namespace = "_player_";
-        int namespaceIndex = params.lastIndexOf(namespace);
+        int namespaceIndex = params.lastIndexOf(PLAYER_NAMESPACE);
         if (namespaceIndex < 0) return requester;
-        String playerID = params.substring(namespaceIndex + namespace.length());
+        String playerID = params.substring(namespaceIndex + PLAYER_NAMESPACE.length());
         int endingUnderline = playerID.indexOf('_');
         if (endingUnderline > 0) playerID = playerID.substring(0, endingUnderline);
 
@@ -60,7 +83,7 @@ public class TerrainerPlaceholderExpansion extends PlaceholderExpansion {
 
     @Override
     public final @NotNull String getIdentifier() {
-        return "terrainer";
+        return IDENTIFIER;
     }
 
     @Override
@@ -90,5 +113,10 @@ public class TerrainerPlaceholderExpansion extends PlaceholderExpansion {
         String value = formatter.formatPlaceholder(player(player, params), params);
         if (value == null) return null;
         return ChatColor.translateAlternateColorCodes('&', value);
+    }
+
+    @Override
+    public @NotNull List<String> getPlaceholders() {
+        return placeholderTabCompleteValues;
     }
 }

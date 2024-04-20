@@ -30,7 +30,8 @@ import java.util.UUID;
  * @param <P> Online Player
  */
 public interface PlaceholderFormatter<O, P extends O> {
-    @NotNull String name();
+    @NotNull
+    String name();
 
     default @Nullable String formatPlaceholder(@Nullable O player, @NotNull String params) {
         return player == null ? formatOnlinePlaceholder(null, params) : (isOnline(player) ? this.formatOnlinePlaceholder((P) player, params) : null);
@@ -40,11 +41,22 @@ public interface PlaceholderFormatter<O, P extends O> {
         return null;
     }
 
+    default boolean isPlayerRelevant() {
+        return true;
+    }
+
+    default @NotNull String suggestedSuffix() {
+        return "";
+    }
+
     boolean isOnline(@NotNull O offlinePlayer);
 
-    @NotNull UUID uuid(@NotNull O offlinePlayer);
+    @NotNull
+    UUID uuid(@NotNull O offlinePlayer);
 
-    @Nullable WorldCoordinate location(@NotNull O player);
+    @Nullable
+    WorldCoordinate location(@NotNull O player);
 
-    @NotNull PlayerUtil<P, ? super P> playerUtil();
+    @NotNull
+    PlayerUtil<P, ? super P> playerUtil();
 }

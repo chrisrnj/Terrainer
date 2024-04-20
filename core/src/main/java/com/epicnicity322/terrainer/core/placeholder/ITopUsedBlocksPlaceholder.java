@@ -47,4 +47,9 @@ public interface ITopUsedBlocksPlaceholder<O, P extends O> extends PriorityPlace
         PlayerUtil<P, ? super P> playerUtil = playerUtil();
         return ITopAssociatedTerrainsPlaceholder.getTop(priority, playerUtil::getUsedBlockLimit).map(playerUtil::getOwnerName).orElseGet(() -> Terrainer.lang().get("Placeholder Values.No One Top"));
     }
+
+    @Override
+    default boolean isPlayerRelevant() {
+        return false;
+    }
 }

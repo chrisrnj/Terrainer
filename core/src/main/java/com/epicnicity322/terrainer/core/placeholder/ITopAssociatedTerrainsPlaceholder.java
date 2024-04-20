@@ -60,4 +60,9 @@ public interface ITopAssociatedTerrainsPlaceholder<O, P extends O> extends Prior
         PlayerUtil<P, ? super P> playerUtil = playerUtil();
         return getTop(priority, uuid -> StreamSupport.stream(TerrainManager.allTerrains().spliterator(), false).filter(t -> IAssociatedTerrainsPlaceholder.hasAnyRelations(uuid, t)).count()).map(playerUtil::getOwnerName).orElseGet(() -> Terrainer.lang().get("Placeholder Values.No One Top"));
     }
+
+    @Override
+    default boolean isPlayerRelevant() {
+        return false;
+    }
 }

@@ -32,6 +32,12 @@ public interface IFlagDataPlaceholder<O, P extends O> extends TerrainPlaceholder
         return "flag-data";
     }
 
+    @Override
+    @NotNull
+    default String suggestedSuffix() {
+        return "_<flag id>";
+    }
+
     private @Nullable Flag<?> flag(@NotNull String params) {
         String namespace = name() + '_';
         int namespaceIndex = params.indexOf(namespace);

@@ -47,4 +47,9 @@ public interface ITopUsedClaimsPlaceholder<O, P extends O> extends PriorityPlace
         PlayerUtil<P, ? super P> playerUtil = playerUtil();
         return ITopAssociatedTerrainsPlaceholder.getTop(priority, uuid -> (long) playerUtil.getUsedClaimLimit(uuid)).map(playerUtil::getOwnerName).orElseGet(() -> Terrainer.lang().get("Placeholder Values.No One Top"));
     }
+
+    @Override
+    default boolean isPlayerRelevant() {
+        return false;
+    }
 }
