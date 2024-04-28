@@ -401,13 +401,13 @@ public final class TerrainManager {
     public static @NotNull List<Terrain> terrainsOf(@Nullable UUID owner) {
         ArrayList<Terrain> terrainsOf = new ArrayList<>();
         for (Set<Terrain> terrainList : registeredTerrains.values()) {
-            for (Terrain terrain : terrainList) if (Objects.equals(terrain.owner, owner)) terrainsOf.add(terrain);
+            for (Terrain terrain : terrainList) if (Objects.equals(terrain.owner(), owner)) terrainsOf.add(terrain);
         }
         return terrainsOf;
     }
 
     /**
-     * Gets the highest priority terrain at the specified location that has the specified flag set with a value that's
+     * Gets the highest priority terrain at the specified location that has the specified flag set with data that's
      * not null.
      * <p>
      * There can be two terrains with same priority at the location with diverging flag data, this method returns the
@@ -415,14 +415,14 @@ public final class TerrainManager {
      *
      * @param flag            The flag to look for in the location.
      * @param worldCoordinate The coordinate to get the terrain at.
-     * @return The terrain in the location that has this flag, null if not found.
+     * @return An entry with the terrain and the flag's data in the location, null if not found.
      */
-    public static @Nullable Terrain highestPriorityTerrainWithFlagAt(@NotNull Flag<?> flag, @NotNull WorldCoordinate worldCoordinate) {
+    public static <T> Map.@Nullable Entry<Terrain, T> highestPriorityTerrainWithFlagAt(@NotNull Flag<T> flag, @NotNull WorldCoordinate worldCoordinate) {
         return highestPriorityTerrainWithFlagAt(flag, worldCoordinate.world(), (int) worldCoordinate.coordinate().x(), (int) worldCoordinate.coordinate().y(), (int) worldCoordinate.coordinate().z());
     }
 
     /**
-     * Gets the highest priority terrain at the specified block location that has the specified flag set with a value that's
+     * Gets the highest priority terrain at the specified block location that has the specified flag set with data that's
      * not null.
      * <p>
      * There can be two terrains with same priority at the location with diverging flag data, this method returns the
@@ -433,12 +433,87 @@ public final class TerrainManager {
      * @param x     The X coordinate of the block.
      * @param y     The Y coordinate of the block.
      * @param z     The Z coordinate of the block.
-     * @return The terrain in the location that has this flag, null if not found.
+     * @return An entry with the terrain and the flag's data in the location, null if not found.
      */
-    public static @Nullable Terrain highestPriorityTerrainWithFlagAt(@NotNull Flag<?> flag, @NotNull UUID world, int x, int y, int z) {
+    public static <T> Map.@Nullable Entry<Terrain, T> highestPriorityTerrainWithFlagAt(@NotNull Flag<T> flag, @NotNull UUID world, int x, int y, int z) {
         // Terrain list is sorted by priority.
-        for (Terrain terrain : terrainsAt(world, x, y, z)) if (terrain.flags().getData(flag) != null) return terrain;
+        for (Terrain terrain : terrainsAt(world, x, y, z)) {
+            T data = terrain.flags().getData(flag);
+            if (data != null) return Map.entry(terrain, data);
+        }
         return null;
+    }
+
+    /**
+     * Gets the highest priority terrain at the specified location that has the specified flag set with a value that's
+     * not null. This method checks both the terrain's {@link Terrain#memberFlags()} and the {@link Terrain#flags()}.
+     * <p>
+     * There can be two terrains with same priority at the location with diverging flag data, this method returns the
+     * first one found.
+     *
+     * @param flag            The flag to look for in the location.
+     * @param player          The player to look if they have a specific flag set to.
+     * @param worldCoordinate The coordinate to get the terrain at.
+     * @return An entry with the terrain and the flag's data in the location, null if not found.
+     */
+    public static <T> Map.@Nullable Entry<Terrain, T> highestPriorityTerrainWithFlagAt(@NotNull Flag<T> flag, @NotNull UUID player, @NotNull WorldCoordinate worldCoordinate) {
+        return highestPriorityTerrainWithFlagAt(flag, player, worldCoordinate.world(), (int) worldCoordinate.coordinate().x(), (int) worldCoordinate.coordinate().y(), (int) worldCoordinate.coordinate().z());
+    }
+
+    /**
+     * Gets the highest priority terrain at the specified block location that has the specified flag set with a value that's
+     * not null. This method checks both the terrain's {@link Terrain#memberFlags()} and the {@link Terrain#flags()}.
+     * <p>
+     * There can be two terrains with same priority at the location with diverging flag data, this method returns the
+     * first one found.
+     *
+     * @param flag   The flag to look for in the location.
+     * @param player The player to look if they have a specific flag set to.
+     * @param world  The UUID of the world where the location resides.
+     * @param x      The X coordinate of the block.
+     * @param y      The Y coordinate of the block.
+     * @param z      The Z coordinate of the block.
+     * @return An entry with the terrain and the flag's data in the location, null if not found.
+     */
+    public static <T> Map.@Nullable Entry<Terrain, T> highestPriorityTerrainWithFlagAt(@NotNull Flag<T> flag, @NotNull UUID player, @NotNull UUID world, int x, int y, int z) {
+        // Terrain list is sorted by priority.
+        for (Terrain terrain : terrainsAt(world, x, y, z)) {
+            T data = terrain.memberFlags().getData(player, flag); // Member-specific data takes priority.
+            if (data == null) data = terrain.flags().getData(flag);
+            if (data != null) return Map.entry(terrain, data);
+        }
+        return null;
+    }
+
+    /**
+     * Determines whether a specific flag is allowed at a given location based on the value set on the terrain with the highest priority.
+     *
+     * @param flag            The flag to be tested at the location.
+     * @param worldCoordinate The location where to test the flag.
+     * @return {@code true} if the flag is allowed at the specified location; {@code false} otherwise.
+     */
+    public static boolean isFlagAllowedAt(@NotNull Flag<Boolean> flag, @NotNull WorldCoordinate worldCoordinate) {
+        return isFlagAllowedAt(flag, worldCoordinate.world(), (int) worldCoordinate.coordinate().x(), (int) worldCoordinate.coordinate().y(), (int) worldCoordinate.coordinate().z());
+    }
+
+    /**
+     * Determines whether a specific flag is allowed at a given block location based on the value set on the terrain with the highest priority.
+     *
+     * @param flag  The flag to be tested at the location.
+     * @param world The UUID of the world where the location resides.
+     * @param x     The X coordinate of the block.
+     * @param y     The Y coordinate of the block.
+     * @param z     The Z coordinate of the block.
+     * @return {@code true} if the flag is allowed at the specified location; {@code false} otherwise.
+     */
+    public static boolean isFlagAllowedAt(@NotNull Flag<Boolean> flag, @NotNull UUID world, int x, int y, int z) {
+        // Terrain list is sorted by priority.
+        for (Terrain terrain : terrainsAt(world, x, y, z)) {
+            Boolean state = terrain.flags().getData(flag);
+            if (state != null) return state;
+        }
+
+        return true;
     }
 
     /**
@@ -458,7 +533,6 @@ public final class TerrainManager {
      * @param player          The UUID of the player.
      * @param worldCoordinate The location where to test the flag.
      * @return {@code true} if the flag is allowed at the specified location; {@code false} otherwise.
-     * @throws UnsupportedOperationException If terrainer is not loaded yet or {@link Terrainer#playerUtil()} is not set.
      */
     public static boolean isFlagAllowedAt(@NotNull Flag<Boolean> flag, @NotNull UUID player, @NotNull WorldCoordinate worldCoordinate) {
         return isFlagAllowedAt(flag, player, worldCoordinate.world(), (int) worldCoordinate.coordinate().x(), (int) worldCoordinate.coordinate().y(), (int) worldCoordinate.coordinate().z());
@@ -491,25 +565,251 @@ public final class TerrainManager {
         // Terrain list is sorted by priority.
         for (Terrain terrain : terrainsAt(world, x, y, z)) {
             // If the flag was already found, check if the player has relations to terrains in the location which have the same priority.
-            if (foundPriority != null && terrain.priority != foundPriority) return false;
+            if (foundPriority != null && terrain.priority() != foundPriority) return false;
             // If the player has any relations to terrains found at the location, return true.
             if (hasAnyRelations(player, terrain)) return true;
             if (foundPriority != null) continue;
 
             // Check member specific flag first.
-            Boolean state = terrain.memberFlags.getData(player, flag);
-            if (state == null) state = terrain.flags.getData(flag);
+            Boolean state = terrain.memberFlags().getData(player, flag);
+            if (state == null) state = terrain.flags().getData(flag);
 
             if (state != null) {
                 // State found as false. Continue loop to check for relations with terrains with same priority.
                 if (!state) {
-                    foundPriority = terrain.priority;
+                    foundPriority = terrain.priority();
                     continue;
                 }
                 return true;
             }
         }
         return foundPriority == null;
+    }
+
+    /**
+     * Gets a collection of data set in a flag on the specified location.
+     * <p>
+     * There can be multiple terrains with the same flag on the location, this method concatenates the collections set
+     * in the terrains with the highest priority.
+     *
+     * @param flag            The flag to look for on the location.
+     * @param worldCoordinate The coordinate to get the collections at.
+     * @param <E>             The type of element in the collection.
+     * @return The data of the flags concatenated in a single collection.
+     */
+    public static <E> @NotNull List<E> getCollectionFlagDataAt(@NotNull Flag<? extends Collection<E>> flag, @NotNull WorldCoordinate worldCoordinate) {
+        return getCollectionFlagDataAt(flag, worldCoordinate.world(), (int) worldCoordinate.coordinate().x(), (int) worldCoordinate.coordinate().y(), (int) worldCoordinate.coordinate().z());
+    }
+
+    /**
+     * Gets a collection of data set in a flag on the specified location.
+     * <p>
+     * There can be multiple terrains with the same flag on the location, this method concatenates the collections set
+     * in the terrains with the highest priority.
+     *
+     * @param flag  The flag to look for on the location.
+     * @param world The UUID of the world where the location resides.
+     * @param x     The X coordinate of the block.
+     * @param y     The Y coordinate of the block.
+     * @param z     The Z coordinate of the block.
+     * @param <E>   The type of element in the collection.
+     * @return The data of the flags concatenated in a single collection.
+     */
+    public static <E> @NotNull List<E> getCollectionFlagDataAt(@NotNull Flag<? extends Collection<E>> flag, @NotNull UUID world, int x, int y, int z) {
+        List<E> collectionData = null;
+        Integer priorityFound = null;
+
+        // Terrain list is sorted by priority.
+        for (Terrain terrain : terrainsAt(world, x, y, z)) {
+            // Add elements to the collection only if this terrain is the same priority as the terrain that the flag was found.
+            if (priorityFound != null && priorityFound != terrain.priority()) break;
+
+            Collection<E> collection = terrain.flags().getData(flag);
+
+            if (collection == null) continue;
+            if (priorityFound == null) priorityFound = terrain.priority();
+            if (collection.isEmpty()) continue;
+            if (collectionData == null) collectionData = new ArrayList<>(collection);
+            else collectionData.addAll(collection);
+        }
+
+        return collectionData == null ? Collections.emptyList() : collectionData;
+    }
+
+    /**
+     * Gets a collection of data set in a flag on the specified location.
+     * <p>
+     * There can be multiple terrains with the same flag on the location, this method concatenates the collections set
+     * in the terrains with the highest priority.
+     * <p>
+     * Member flags take priority over the terrain's global flags.
+     *
+     * @param flag                      The flag to look for on the location.
+     * @param player                    The player to get member flags and check if they have relations.
+     * @param worldCoordinate           The coordinate to get the collections at.
+     * @param emptyIfPlayerHasRelations Whether to return an empty list if the player has relations to the terrain with the highest priority.
+     * @param <E>                       The type of element in the collection.
+     * @return The data of the flags concatenated in a single collection.
+     */
+    public static <E> @NotNull List<E> getCollectionFlagDataAt(@NotNull Flag<? extends Collection<E>> flag, @NotNull UUID player, @NotNull WorldCoordinate worldCoordinate, boolean emptyIfPlayerHasRelations) {
+        return getCollectionFlagDataAt(flag, player, worldCoordinate.world(), (int) worldCoordinate.coordinate().x(), (int) worldCoordinate.coordinate().y(), (int) worldCoordinate.coordinate().z(), emptyIfPlayerHasRelations);
+    }
+
+    /**
+     * Gets a collection of data set in a flag on the specified location.
+     * <p>
+     * There can be multiple terrains with the same flag on the location, this method concatenates the collections set
+     * in the terrains with the highest priority.
+     * <p>
+     * Member flags take priority over the terrain's global flags.
+     *
+     * @param flag                      The flag to look for on the location.
+     * @param player                    The player to get member flags and check if they have relations.
+     * @param world                     The UUID of the world where the location resides.
+     * @param x                         The X coordinate of the block.
+     * @param y                         The Y coordinate of the block.
+     * @param z                         The Z coordinate of the block.
+     * @param emptyIfPlayerHasRelations Whether to return an empty list if the player has relations to the terrain with the highest priority.
+     * @param <E>                       The type of element in the collection.
+     * @return The data of the flags concatenated in a single collection.
+     */
+    public static <E> @NotNull List<E> getCollectionFlagDataAt(@NotNull Flag<? extends Collection<E>> flag, @NotNull UUID player, @NotNull UUID world, int x, int y, int z, boolean emptyIfPlayerHasRelations) {
+        List<E> collectionData = null;
+        Integer priorityFound = null;
+
+        // Terrain list is sorted by priority.
+        for (Terrain terrain : terrainsAt(world, x, y, z)) {
+            // Add elements to the collection only if this terrain is the same priority as the terrain that the flag was found.
+            if (priorityFound != null && priorityFound != terrain.priority()) break;
+            if (emptyIfPlayerHasRelations && hasAnyRelations(player, terrain)) return Collections.emptyList();
+
+            // Get member specific flag first.
+            Collection<E> collection = terrain.memberFlags().getData(player, flag);
+            if (collection == null) collection = terrain.flags().getData(flag);
+
+            if (collection == null) continue;
+            if (priorityFound == null) priorityFound = terrain.priority();
+            if (collection.isEmpty()) continue;
+            if (collectionData == null) collectionData = new ArrayList<>(collection);
+            else collectionData.addAll(collection);
+        }
+
+        return collectionData == null ? Collections.emptyList() : collectionData;
+    }
+
+    /**
+     * Gets a map of data set in a flag on the specified location.
+     * <p>
+     * There can be multiple terrains with the same flag on the location, this method concatenates the maps set in the
+     * terrains with the highest priority.
+     *
+     * @param flag            The flag to look for on the location.
+     * @param worldCoordinate The coordinate to get the collections at.
+     * @param <K>             The type of keys in the map.
+     * @param <V>             The type of mapped values in the map.
+     * @return The data of the flags concatenated in a single map.
+     */
+    public static <K, V> @NotNull Map<K, V> getMapFlagDataAt(@NotNull Flag<? extends Map<K, V>> flag, @NotNull WorldCoordinate worldCoordinate) {
+        return getMapFlagDataAt(flag, worldCoordinate.world(), (int) worldCoordinate.coordinate().x(), (int) worldCoordinate.coordinate().y(), (int) worldCoordinate.coordinate().z());
+    }
+
+    /**
+     * Gets a map of data set in a flag on the specified location.
+     * <p>
+     * There can be multiple terrains with the same flag on the location, this method concatenates the maps set in the
+     * terrains with the highest priority.
+     *
+     * @param flag  The flag to look for on the location.
+     * @param world The UUID of the world where the location resides.
+     * @param x     The X coordinate of the block.
+     * @param y     The Y coordinate of the block.
+     * @param z     The Z coordinate of the block.
+     * @param <K>   The type of keys in the map.
+     * @param <V>   The type of mapped values in the map.
+     * @return The data of the flags concatenated in a single map.
+     */
+    public static <K, V> @NotNull Map<K, V> getMapFlagDataAt(@NotNull Flag<? extends Map<K, V>> flag, @NotNull UUID world, int x, int y, int z) {
+        Map<K, V> mapData = null;
+        Integer priorityFound = null;
+
+        // Terrain list is sorted by priority.
+        for (Terrain terrain : terrainsAt(world, x, y, z)) {
+            // Add elements to the map only if this terrain is the same priority as the terrain that the flag was found.
+            if (priorityFound != null && priorityFound != terrain.priority()) break;
+
+            Map<K, V> map = terrain.flags().getData(flag);
+
+            if (map == null) continue;
+            if (priorityFound == null) priorityFound = terrain.priority();
+            if (map.isEmpty()) continue;
+            if (mapData == null) mapData = new HashMap<>(map);
+            else mapData.putAll(map);
+        }
+
+        return mapData == null ? Collections.emptyMap() : mapData;
+    }
+
+    /**
+     * Gets a map of data set in a flag on the specified location.
+     * <p>
+     * There can be multiple terrains with the same flag on the location, this method concatenates the maps set in the
+     * terrains with the highest priority.
+     * <p>
+     * Member flags take priority over the terrain's global flags.
+     *
+     * @param flag                      The flag to look for on the location.
+     * @param player                    The player to get member flags and check if they have relations.
+     * @param worldCoordinate           The coordinate to get the collections at.
+     * @param emptyIfPlayerHasRelations Whether to return an empty list if the player has relations to the terrain with the highest priority.
+     * @param <K>                       The type of keys in the map.
+     * @param <V>                       The type of mapped values in the map.
+     * @return The data of the flags concatenated in a single map.
+     */
+    public static <K, V> @NotNull Map<K, V> getMapFlagDataAt(@NotNull Flag<? extends Map<K, V>> flag, @NotNull UUID player, @NotNull WorldCoordinate worldCoordinate, boolean emptyIfPlayerHasRelations) {
+        return getMapFlagDataAt(flag, player, worldCoordinate.world(), (int) worldCoordinate.coordinate().x(), (int) worldCoordinate.coordinate().y(), (int) worldCoordinate.coordinate().z(), emptyIfPlayerHasRelations);
+    }
+
+    /**
+     * Gets a map of data set in a flag on the specified location.
+     * <p>
+     * There can be multiple terrains with the same flag on the location, this method concatenates the maps set in the
+     * terrains with the highest priority.
+     * <p>
+     * Member flags take priority over the terrain's global flags.
+     *
+     * @param flag                      The flag to look for on the location.
+     * @param player                    The player to get member flags and check if they have relations.
+     * @param world                     The UUID of the world where the location resides.
+     * @param x                         The X coordinate of the block.
+     * @param y                         The Y coordinate of the block.
+     * @param z                         The Z coordinate of the block.
+     * @param emptyIfPlayerHasRelations Whether to return an empty list if the player has relations to the terrain with the highest priority.
+     * @param <K>                       The type of keys in the map.
+     * @param <V>                       The type of mapped values in the map.
+     * @return The data of the flags concatenated in a single map.
+     */
+    public static <K, V> @NotNull Map<K, V> getMapFlagDataAt(@NotNull Flag<? extends Map<K, V>> flag, @NotNull UUID player, @NotNull UUID world, int x, int y, int z, boolean emptyIfPlayerHasRelations) {
+        Map<K, V> mapData = null;
+        Integer priorityFound = null;
+
+        // Terrain list is sorted by priority.
+        for (Terrain terrain : terrainsAt(world, x, y, z)) {
+            // Add elements to the map only if this terrain is the same priority as the terrain that the flag was found.
+            if (priorityFound != null && priorityFound != terrain.priority()) break;
+            if (emptyIfPlayerHasRelations && hasAnyRelations(player, terrain)) return Collections.emptyMap();
+
+            // Get member specific flag first.
+            Map<K, V> map = terrain.memberFlags().getData(player, flag);
+            if (map == null) map = terrain.flags().getData(flag);
+
+            if (map == null) continue;
+            if (priorityFound == null) priorityFound = terrain.priority();
+            if (map.isEmpty()) continue;
+            if (mapData == null) mapData = new HashMap<>(map);
+            else mapData.putAll(map);
+        }
+
+        return mapData == null ? Collections.emptyMap() : mapData;
     }
 
     private static boolean hasAnyRelations(@NotNull UUID player, @NotNull Terrain terrain) {
@@ -537,15 +837,17 @@ public final class TerrainManager {
             if (!addWithoutAutoSave(savedWorld)) return;
         }
 
-        alertDangerousFlagAllowed(savedWorld, Flags.EXPLOSION_DAMAGE);
-        alertDangerousFlagAllowed(savedWorld, Flags.FIRE_DAMAGE);
-        alertDangerousFlagAllowed(savedWorld, Flags.FIRE_SPREAD);
+        if (Configurations.CONFIG.getConfiguration().getBoolean("Alert Dangerous Flags").orElse(false)) {
+            alertDangerousFlagAllowed(savedWorld, Flags.EXPLOSION_DAMAGE);
+            alertDangerousFlagAllowed(savedWorld, Flags.FIRE_DAMAGE);
+            alertDangerousFlagAllowed(savedWorld, Flags.FIRE_SPREAD);
+        }
     }
 
     private static void alertDangerousFlagAllowed(@NotNull Terrain terrain, @NotNull Flag<Boolean> flag) {
         Boolean state = terrain.flags().getData(flag);
         if (state == null || state) {
-            Terrainer.logger().log("World " + terrain.name() + " has flag &c" + flag.id() + "&r ALLOWED");
+            Terrainer.logger().log("&r" + flag.id() + "&r is &cALLOWED&r for " + terrain.name());
         }
     }
 
