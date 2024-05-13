@@ -62,8 +62,8 @@ public final class ReflectionHook implements NMSHandler {
     private static final Method method_Entity_getBukkitEntity = ReflectionUtil.getMethod(Entity.class, "getBukkitEntity");
     private static final Method method_Entity_getDataWatcher = ReflectionUtil.findMethodByType(Entity.class, DataWatcher.class, false);
     private static final Constructor<?> constructor_PacketPlayOutEntityMetadata;
-    private static final EntityTypes<?> slimeEntityType = findEntityType("net.minecraft.world.entity.EntityTypes<net.minecraft.world.entity.monster.EntitySlime>");
-    private static final EntityTypes<?> blockDisplayType = findEntityType("net.minecraft.world.entity.EntityTypes<net.minecraft.world.entity.Display$BlockDisplay>");
+    private static final EntityTypes<?> slimeEntityType = findEntityType(EntityTypes.class.getName() + "<" + EntitySlime.class.getName() + ">");
+    private static final EntityTypes<?> blockDisplayType = findEntityType(EntityTypes.class.getName() + "<" + Display.BlockDisplay.class.getName() + ">");
     private static final boolean newPacketMetadataConstructor;
     private static final boolean hasBlockDisplays = blockDisplayType != null;
     private static @NotNull BlockData selectionBlock = Material.GLOWSTONE.createBlockData();
