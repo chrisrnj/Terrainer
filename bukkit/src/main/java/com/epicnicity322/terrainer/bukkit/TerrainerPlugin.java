@@ -200,7 +200,7 @@ public final class TerrainerPlugin extends JavaPlugin {
         if (instance == null) return false;
 
         // Loading listener performance settings
-        instance.enterLeaveEvents.set(!config.getBoolean("Performance.Disable Enter Leave Events").orElse(false));
+        instance.enterLeaveEvents.set(!config.getBoolean("Protections And Performance.Disable Enter Leave Events").orElse(false));
         instance.reloadListeners();
 
         // Borders Particle
@@ -364,10 +364,10 @@ public final class TerrainerPlugin extends JavaPlugin {
     private void reloadListeners() {
         Configuration config = Configurations.CONFIG.getConfiguration();
         boolean enterLeaveEvents = this.enterLeaveEvents.get();
-        boolean entityMoveEvent = !config.getBoolean("Performance.Disable Entity Move Event").orElse(false);
-        boolean pistonEvents = !config.getBoolean("Performance.Disable Piston Events").orElse(false);
-        boolean blockFromToEvent = !config.getBoolean("Performance.Disable Block From To Event").orElse(false);
-        boolean creatureSpawnEvent = !config.getBoolean("Performance.Disable Creature Spawn Event").orElse(false);
+        boolean entityMoveEvent = !config.getBoolean("Protections And Performance.Disable Entity Move Event").orElse(false);
+        boolean pistonEvents = !config.getBoolean("Protections And Performance.Disable Piston Events").orElse(false);
+        boolean blockFromToEvent = !config.getBoolean("Protections And Performance.Disable Block From To Event").orElse(false);
+        boolean creatureSpawnEvent = !config.getBoolean("Protections And Performance.Disable Creature Spawn Event").orElse(false);
 
         loadListener(enterLeaveListener, enterLeaveEvents, "Enter/Leave", true);
         if (ReflectionUtil.getClass("io.papermc.paper.event.entity.EntityMoveEvent") != null) {
