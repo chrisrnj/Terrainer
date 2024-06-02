@@ -26,6 +26,7 @@ import com.epicnicity322.terrainer.bukkit.event.flag.UserFlagUnsetEvent;
 import com.epicnicity322.terrainer.core.terrain.Flag;
 import com.epicnicity322.terrainer.core.terrain.Flags;
 import com.epicnicity322.terrainer.core.terrain.Terrain;
+import com.epicnicity322.terrainer.core.terrain.TerrainManager;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
@@ -33,11 +34,11 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
-import org.bukkit.potion.PotionEffect;
-import org.bukkit.potion.PotionEffectType;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.Map;
+import java.util.UUID;
 
 /**
  * A listener of flag set and unset events. Used for applying effects when the {@link Flags#EFFECTS} is set/unset, and
@@ -47,6 +48,54 @@ import java.util.Map;
  * they don't own.
  */
 public final class FlagListener implements Listener {
+    private static void doEffectsFlagUpdate(@NotNull Terrain terrain, @Nullable UUID affectedMember, @Nullable Map<String, Integer> data) {
+        UUID wUID = terrain.world();
+        World world = Bukkit.getWorld(wUID);
+        if (world == null) return;
+
+        if (affectedMember == null) {
+            for (Player player : world.getPlayers()) {
+                playerEffectsUpdate(player, terrain, data);
+            }
+        } else {
+            Player player = Bukkit.getPlayer(affectedMember);
+            if (player == null || player.getWorld() != world) return;
+            playerEffectsUpdate(player, terrain, data);
+        }
+    }
+
+    private static void playerEffectsUpdate(@NotNull Player player, @NotNull Terrain changedTerrain, @Nullable Map<String, Integer> newEffects) {
+        Location loc = player.getLocation();
+        int x = loc.getBlockX(), y = loc.getBlockY(), z = loc.getBlockZ();
+        if (!changedTerrain.isWithin(x, y, z)) return;
+
+        // Removing previous effects from player.
+        TerrainManager.getMapFlagDataAt(Flags.EFFECTS, player.getUniqueId(), changedTerrain.world(), x, y, z, false).forEach((effect, level) -> TerrainerPlugin.getPlayerUtil().removeEffect(player, effect));
+
+        // Getting the effects at the player's location and applying with the new flag value. This will ensure the player has the correct effects according to terrain priority.
+        applyNewEffects(player, changedTerrain.world(), x, y, z, changedTerrain, newEffects);
+    }
+
+    private static void applyNewEffects(@NotNull Player player, @NotNull UUID world, int x, int y, int z, @NotNull Terrain changedTerrain, @Nullable Map<String, Integer> newEffects) {
+        Integer priorityFound = null;
+
+        for (Terrain terrain : TerrainManager.terrainsAt(world, x, y, z)) {
+            if (priorityFound != null && priorityFound != terrain.priority()) break;
+
+            Map<String, Integer> map;
+            if (terrain == changedTerrain) {
+                map = newEffects;
+            } else {
+                map = terrain.memberFlags().getData(player.getUniqueId(), Flags.EFFECTS);
+                if (map == null) map = terrain.flags().getData(Flags.EFFECTS);
+            }
+
+            if (map == null) continue;
+            if (priorityFound == null) priorityFound = terrain.priority();
+            map.forEach((effect, level) -> TerrainerPlugin.getPlayerUtil().applyEffect(player, effect, level));
+        }
+    }
+
     @EventHandler(priority = EventPriority.LOWEST)
     public void onUserFlagSet(UserFlagSetEvent event) {
         Flag<?> flag = event.flag();
@@ -75,59 +124,17 @@ public final class FlagListener implements Listener {
         }
     }
 
-    @SuppressWarnings({"unchecked", "deprecation"})
+    @SuppressWarnings("unchecked")
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onFlagSet(FlagSetEvent<?> event) {
-        Flag<?> flag = event.flag();
-        if (flag != Flags.EFFECTS) return;
-        Terrain terrain = event.terrain();
-        World world = Bukkit.getWorld(terrain.world());
-        if (world == null) return;
-
-        // Removing previous effects from players within the terrain.
-        removeEffects(terrain, world);
-
-        // Applying new effects to players within the terrain.
-        Map<String, Integer> newEffects = (Map<String, Integer>) event.data();
-
-        // TODO: Take member specific flags into account.
-        for (Player player : world.getPlayers()) {
-            Location loc = player.getLocation();
-            if (!terrain.isWithin(loc.getBlockX(), loc.getBlockY(), loc.getBlockZ())) continue;
-            newEffects.forEach((effect, power) -> {
-                PotionEffectType type = PotionEffectType.getByName(effect);
-                if (type == null) return;
-                player.addPotionEffect(new PotionEffect(type, Integer.MAX_VALUE, power, false, false));
-            });
-        }
+        if (event.flag() == Flags.EFFECTS)
+            doEffectsFlagUpdate(event.terrain(), event.affectedMember(), (Map<String, Integer>) event.data());
     }
 
+    @SuppressWarnings("unchecked")
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onFlagUnset(FlagUnsetEvent<?> event) {
-        Flag<?> flag = event.flag();
-        if (flag != Flags.EFFECTS) return;
-        Terrain terrain = event.terrain();
-        World world = Bukkit.getWorld(terrain.world());
-        if (world == null) return;
-
-        // Removing effects from players within the terrain.
-        removeEffects(terrain, world);
-    }
-
-    @SuppressWarnings("deprecation")
-    private void removeEffects(@NotNull Terrain terrain, @NotNull World world) {
-        Map<String, Integer> previousEffects = terrain.flags().getData(Flags.EFFECTS);
-
-        if (previousEffects != null) {
-            for (Player player : world.getPlayers()) {
-                Location loc = player.getLocation();
-                if (!terrain.isWithin(loc.getBlockX(), loc.getBlockY(), loc.getBlockZ())) continue;
-                previousEffects.forEach((effect, power) -> {
-                    PotionEffectType type = PotionEffectType.getByName(effect);
-                    if (type == null) return;
-                    player.removePotionEffect(type);
-                });
-            }
-        }
+        if (event.flag() == Flags.EFFECTS)
+            doEffectsFlagUpdate(event.terrain(), event.affectedMember(), (Map<String, Integer>) event.data());
     }
 }
