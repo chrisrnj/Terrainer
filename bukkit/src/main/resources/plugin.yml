@@ -27,6 +27,7 @@ permissions:
       terrainer.bypass.build: true
       terrainer.bypass.limit.blocks: true
       terrainer.bypass.limit.claims: true
+      terrainer.bypass.overlap: true
       terrainer.define: true
       terrainer.description.others: true
       terrainer.flag.*: true
