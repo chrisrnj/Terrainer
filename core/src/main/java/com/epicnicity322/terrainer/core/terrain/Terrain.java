@@ -49,7 +49,7 @@ public class Terrain implements Serializable {
      */
     public static final int MAX_CHUNK_AMOUNT = 8398404;
     @Serial
-    private static final long serialVersionUID = -2582900539602283179L;
+    private static final long serialVersionUID = 7286549863789463530L;
     final @NotNull UUID world;
     final @NotNull UUID id;
     final @NotNull ZonedDateTime creationDate;
@@ -346,17 +346,12 @@ public class Terrain implements Serializable {
      */
     protected @NotNull Set<Coordinate> findBorders(@NotNull Coordinate minDiagonal, @NotNull Coordinate maxDiagonal) {
         Configuration config = Configurations.CONFIG.getConfiguration();
-        double area = (maxDiagonal.x() - (minDiagonal.x() - 1)) * (maxDiagonal.z() - (minDiagonal.z() - 1));
 
-        if (!config.getBoolean("Borders.Enabled").orElse(false) || area > config.getNumber("Borders.Max Area").orElse(2500).doubleValue()) {
+        if (!config.getBoolean("Borders.Enabled").orElse(false) || area() > config.getNumber("Borders.Max Area").orElse(2500).doubleValue()) {
             return Collections.emptySet();
         }
 
-        double startX = minDiagonal.x();
-        double endX = maxDiagonal.x() + 1d;
-        double startZ = minDiagonal.z();
-        double endZ = maxDiagonal.z() + 1d;
-
+        double startX = minDiagonal.x(), endX = maxDiagonal.x() + 1d, startZ = minDiagonal.z(), endZ = maxDiagonal.z() + 1d;
         double borderAmount = ((endX - startX) + (endZ - startZ)) * 2;
         var border = new HashSet<Coordinate>((int) (borderAmount / .75f) + 1);
 
@@ -496,6 +491,13 @@ public class Terrain implements Serializable {
     }
 
     /**
+     * @return The bi-dimensional area of this terrain.
+     */
+    public double area() {
+        return (maxDiagonal.x() - (minDiagonal.x() - 1)) * (maxDiagonal.z() - (minDiagonal.z() - 1));
+    }
+
+    /**
      * Gets the borders of this terrain.
      *
      * @return A set with the exact coordinates of the borders of the terrain.
@@ -503,6 +505,10 @@ public class Terrain implements Serializable {
      */
     public @NotNull Set<Coordinate> borders() {
         return borders;
+    }
+
+    public @NotNull Coordinate center() {
+        return new Coordinate(minDiagonal.x() + ((maxDiagonal.x() - minDiagonal.x() + 1) / 2), minDiagonal.y() + ((maxDiagonal.y() - minDiagonal.y() + 1) / 2), minDiagonal.z() + ((maxDiagonal.z() - minDiagonal.z() + 1) / 2));
     }
 
     /**
@@ -733,13 +739,6 @@ public class Terrain implements Serializable {
     }
 
     /**
-     * @return The bi-dimensional area of this terrain.
-     */
-    public double area() {
-        return (maxDiagonal.x() - (minDiagonal.x() - 1)) * (maxDiagonal.z() - (minDiagonal.z() - 1));
-    }
-
-    /**
      * @return Whether this implementation of Terrain uses the default values of the flags when they are undefined.
      */
     public boolean usesDefaultFlagValues() {
@@ -872,7 +871,7 @@ public class Terrain implements Serializable {
     public final class FlagMap implements Serializable {
         private static final int INITIAL_CAPACITY = 8;
         @Serial
-        private static final long serialVersionUID = 85010310532174397L;
+        private static final long serialVersionUID = -2028321748760154015L;
 
         @Nullable HashMap<String, Object> map;
         private @Nullable Map<String, Object> unmodifiableMap;
