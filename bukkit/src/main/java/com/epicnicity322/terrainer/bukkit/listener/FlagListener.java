@@ -55,16 +55,16 @@ public final class FlagListener implements Listener {
 
         if (affectedMember == null) {
             for (Player player : world.getPlayers()) {
-                playerEffectsUpdate(player, terrain, data);
+                playerEffectsUpdate(player, terrain, true, data);
             }
         } else {
             Player player = Bukkit.getPlayer(affectedMember);
             if (player == null || player.getWorld() != world) return;
-            playerEffectsUpdate(player, terrain, data);
+            playerEffectsUpdate(player, terrain, false, data);
         }
     }
 
-    private static void playerEffectsUpdate(@NotNull Player player, @NotNull Terrain changedTerrain, @Nullable Map<String, Integer> newEffects) {
+    private static void playerEffectsUpdate(@NotNull Player player, @NotNull Terrain changedTerrain, boolean generalFlag, @Nullable Map<String, Integer> newEffects) {
         Location loc = player.getLocation();
         int x = loc.getBlockX(), y = loc.getBlockY(), z = loc.getBlockZ();
         if (!changedTerrain.isWithin(x, y, z)) return;
@@ -73,20 +73,22 @@ public final class FlagListener implements Listener {
         TerrainManager.getMapFlagDataAt(Flags.EFFECTS, player.getUniqueId(), changedTerrain.world(), x, y, z, false).forEach((effect, level) -> TerrainerPlugin.getPlayerUtil().removeEffect(player, effect));
 
         // Getting the effects at the player's location and applying with the new flag value. This will ensure the player has the correct effects according to terrain priority.
-        applyNewEffects(player, changedTerrain.world(), x, y, z, changedTerrain, newEffects);
+        applyNewEffects(player, changedTerrain.world(), x, y, z, changedTerrain, generalFlag, newEffects);
     }
 
-    private static void applyNewEffects(@NotNull Player player, @NotNull UUID world, int x, int y, int z, @NotNull Terrain changedTerrain, @Nullable Map<String, Integer> newEffects) {
+    private static void applyNewEffects(@NotNull Player player, @NotNull UUID world, int x, int y, int z, @NotNull Terrain changedTerrain, boolean generalFlag, @Nullable Map<String, Integer> newEffects) {
         Integer priorityFound = null;
 
         for (Terrain terrain : TerrainManager.terrainsAt(world, x, y, z)) {
             if (priorityFound != null && priorityFound != terrain.priority()) break;
 
             Map<String, Integer> map;
-            if (terrain == changedTerrain) {
-                map = newEffects;
-            } else {
+
+            if (generalFlag) {
                 map = terrain.memberFlags().getData(player.getUniqueId(), Flags.EFFECTS);
+                if (map == null) map = terrain == changedTerrain ? newEffects : terrain.flags().getData(Flags.EFFECTS);
+            } else {
+                map = terrain == changedTerrain ? newEffects : terrain.memberFlags().getData(player.getUniqueId(), Flags.EFFECTS);
                 if (map == null) map = terrain.flags().getData(Flags.EFFECTS);
             }
 
