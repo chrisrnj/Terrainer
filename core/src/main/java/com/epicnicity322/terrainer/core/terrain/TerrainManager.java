@@ -1081,6 +1081,8 @@ public final class TerrainManager {
     }
 
     static <T> boolean callOnFlagUnset(@NotNull Terrain terrain, @NotNull Flag<T> flag, @Nullable UUID affectedMember) {
+        T newData = affectedMember == null ? terrain.usesDefaultFlagValues() ? flag.defaultValue() : null : null;
+
         var event = new IFlagUnsetEvent<T>() {
             @Override
             public @Nullable UUID affectedMember() {
@@ -1090,6 +1092,11 @@ public final class TerrainManager {
             @Override
             public @NotNull Flag<T> flag() {
                 return flag;
+            }
+
+            @Override
+            public @Nullable T data() {
+                return newData;
             }
 
             @Override

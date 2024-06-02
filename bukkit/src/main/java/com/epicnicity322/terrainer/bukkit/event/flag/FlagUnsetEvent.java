@@ -35,17 +35,19 @@ public class FlagUnsetEvent<T> extends Event implements IFlagUnsetEvent<T>, Canc
     private final @NotNull Terrain terrain;
     private final @NotNull Flag<T> flag;
     private final @Nullable UUID affectedMember;
+    private final @Nullable T data;
     private boolean cancelled = false;
 
     public FlagUnsetEvent(@NotNull IFlagUnsetEvent<T> event) {
-        this(event.terrain(), event.flag(), event.affectedMember());
+        this(event.terrain(), event.flag(), event.affectedMember(), event.data());
     }
 
-    public FlagUnsetEvent(@NotNull Terrain terrain, @NotNull Flag<T> flag, @Nullable UUID affectedMember) {
+    public FlagUnsetEvent(@NotNull Terrain terrain, @NotNull Flag<T> flag, @Nullable UUID affectedMember, @Nullable T data) {
         super(!Bukkit.isPrimaryThread());
         this.terrain = terrain;
         this.flag = flag;
         this.affectedMember = affectedMember;
+        this.data = data;
     }
 
     public static @NotNull HandlerList getHandlerList() {
@@ -75,6 +77,11 @@ public class FlagUnsetEvent<T> extends Event implements IFlagUnsetEvent<T>, Canc
     @Override
     public @NotNull Flag<T> flag() {
         return flag;
+    }
+
+    @Override
+    public @Nullable T data() {
+        return data;
     }
 
     @Override

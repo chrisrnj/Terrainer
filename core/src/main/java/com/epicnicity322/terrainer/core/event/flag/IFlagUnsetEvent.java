@@ -20,7 +20,9 @@ package com.epicnicity322.terrainer.core.event.flag;
 
 import com.epicnicity322.terrainer.core.event.MemberFlagSetUnsetEvent;
 import com.epicnicity322.terrainer.core.terrain.Flag;
+import com.epicnicity322.terrainer.core.terrain.WorldTerrain;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * When a flag is unset from a terrain by any means.
@@ -31,4 +33,15 @@ public interface IFlagUnsetEvent<T> extends MemberFlagSetUnsetEvent {
     @Override
     @NotNull
     Flag<T> flag();
+
+    /**
+     * The new data of this flag. Could be a default value, or null if the terrain accepts null data.
+     * <p>
+     * The data of the flag after being <b>unset</b> will always be null if there is an {@link #affectedMember()}.
+     *
+     * @return The new data of this flag.
+     * @see WorldTerrain#usesDefaultFlagValues()
+     */
+    @Nullable
+    T data();
 }
