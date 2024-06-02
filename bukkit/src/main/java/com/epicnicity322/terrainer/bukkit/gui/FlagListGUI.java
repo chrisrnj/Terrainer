@@ -41,26 +41,32 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.jetbrains.annotations.NotNull;
 
+import java.lang.ref.WeakReference;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Objects;
-import java.util.TreeSet;
 import java.util.function.Consumer;
 
 public class FlagListGUI extends ListGUI<FlagListGUI.FlagEntry> {
+    @SuppressWarnings("deprecation")
+    private static final @NotNull Comparator<FlagEntry> flagNameComparator = Comparator.comparing(flagEntry -> ChatColor.stripColor(TerrainerPlugin.getLanguage().getColored("Flags.Values." + flagEntry.flag().id() + ".Display Name")));
+
     public FlagListGUI(@NotNull HumanEntity player, @NotNull Terrain terrain) {
         super(qualifiedFlags(terrain, player), TerrainerPlugin.getLanguage().getColored("Flags.Management GUI Title").replace("<terrain>", terrain.name()));
     }
 
-    private static @NotNull TreeSet<FlagEntry> qualifiedFlags(@NotNull Terrain terrain, @NotNull HumanEntity player) {
-        TreeSet<FlagEntry> qualified = new TreeSet<>(Comparator.comparing(entry -> entry.flag().id()));
+    private static @NotNull ArrayList<FlagEntry> qualifiedFlags(@NotNull Terrain terrain, @NotNull HumanEntity player) {
+        var terrainReference = new WeakReference<>(terrain);
+        var qualified = new ArrayList<FlagEntry>();
 
         for (Flag<?> flag : Flags.values()) {
-            if (player.hasPermission(flag.editPermission())) qualified.add(new FlagEntry(terrain, flag));
+            if (player.hasPermission(flag.editPermission())) qualified.add(new FlagEntry(terrainReference, flag));
         }
         for (Flag<?> customFlag : Flags.customValues()) {
             if (player.hasPermission(customFlag.editPermission()))
-                qualified.add(new FlagEntry(terrain, customFlag));
+                qualified.add(new FlagEntry(terrainReference, customFlag));
         }
+        qualified.sort(flagNameComparator);
         return qualified;
     }
 
@@ -69,9 +75,11 @@ public class FlagListGUI extends ListGUI<FlagListGUI.FlagEntry> {
         return item(obj.flag, obj.terrain);
     }
 
-    private <T> @NotNull ItemStack item(@NotNull Flag<T> flag, Terrain terrain) {
+    @SuppressWarnings("deprecation")
+    private <T> @NotNull ItemStack item(@NotNull Flag<T> flag, @NotNull WeakReference<Terrain> terrainReference) {
         MessageSender lang = TerrainerPlugin.getLanguage();
-        T data = terrain.flags().getData(flag);
+        Terrain terrain = terrainReference.get();
+        T data = terrain == null ? null : terrain.flags().getData(flag);
         String state = null;
         if (data != null) {
             try {
@@ -92,14 +100,15 @@ public class FlagListGUI extends ListGUI<FlagListGUI.FlagEntry> {
         return item;
     }
 
+    @SuppressWarnings("unchecked")
     @Override
     protected @NotNull Consumer<InventoryClickEvent> event(@NotNull FlagEntry t) {
         MessageSender lang = TerrainerPlugin.getLanguage();
-        Terrain terrain = t.terrain();
         Flag<?> flag = t.flag();
 
-
         return event -> {
+            Terrain terrain = t.terrain().get();
+            if (terrain == null) return;
             HumanEntity player = event.getWhoClicked();
             String localized = lang.get("Flags.Values." + flag.id() + ".Display Name");
 
@@ -130,22 +139,25 @@ public class FlagListGUI extends ListGUI<FlagListGUI.FlagEntry> {
             }
 
             Consumer<String> onInput = input -> {
+                Terrain terrain1 = t.terrain().get();
+                if (terrain1 == null) return;
+
                 if (input.isBlank()) {
-                    UserFlagUnsetEvent e = new UserFlagUnsetEvent(player, terrain, flag, true, null);
+                    UserFlagUnsetEvent e = new UserFlagUnsetEvent(player, terrain1, flag, true, null);
                     Bukkit.getPluginManager().callEvent(e);
                     if (e.isCancelled()) return;
 
-                    terrain.flags().removeFlag(flag);
-                    lang.send(player, lang.get("Flags.Unset").replace("<flag>", localized).replace("<name>", terrain.name()));
+                    terrain1.flags().removeFlag(flag);
+                    lang.send(player, lang.get("Flags.Unset").replace("<flag>", localized).replace("<name>", terrain1.name()));
                     event.getInventory().setItem(event.getSlot(), item(t));
                     return;
                 }
-                UserFlagSetEvent e = new UserFlagSetEvent(player, terrain, flag, input, true, null);
+                UserFlagSetEvent e = new UserFlagSetEvent(player, terrain1, flag, input, true, null);
                 Bukkit.getPluginManager().callEvent(e);
                 if (e.isCancelled()) return;
 
                 input = e.input();
-                if (putFlag(terrain, flag, input, player, localized)) {
+                if (putFlag(terrain1, flag, input, player, localized)) {
                     event.getInventory().setItem(event.getSlot(), item(t));
                 }
             };
@@ -187,7 +199,7 @@ public class FlagListGUI extends ListGUI<FlagListGUI.FlagEntry> {
         return false;
     }
 
-    protected record FlagEntry(@NotNull Terrain terrain, @NotNull Flag<?> flag) {
+    protected record FlagEntry(@NotNull WeakReference<Terrain> terrain, @NotNull Flag<?> flag) {
         @Override
         public boolean equals(Object o) {
             if (this == o) return true;
