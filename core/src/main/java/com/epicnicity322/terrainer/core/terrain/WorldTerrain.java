@@ -79,6 +79,11 @@ public final class WorldTerrain extends Terrain {
         return true;
     }
 
+    /**
+     * {@inheritDoc}
+     *
+     * @implNote WorldTerrains have null flag values when they are unset.
+     */
     @Override
     public boolean usesDefaultFlagValues() {
         return false;
