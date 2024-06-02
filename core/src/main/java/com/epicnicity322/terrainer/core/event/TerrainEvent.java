@@ -28,65 +28,6 @@ public interface TerrainEvent {
     /**
      * @return The terrain involved in this event.
      */
-    @NotNull Terrain terrain();
-
-    /**
-     * Determine whether a player can enter or leave a terrain.
-     */
-    enum CanEnterLeave {
-        /**
-         * Allow the player to enter or leave.
-         */
-        ALLOW,
-        /**
-         * No verdict made, allow entry or leave.
-         */
-        DEFAULT,
-        /**
-         * Deny the player from entering or leaving.
-         */
-        DENY
-    }
-
-    /**
-     * Reason why an enter or leave event is called.
-     */
-    enum EnterLeaveReason {
-        /**
-         * When a terrain is created where the player is located.
-         */
-        CREATE,
-        /**
-         * When a player dismounts an entity.
-         */
-        DISMOUNT,
-        /**
-         * When the player joins the server within a terrain.
-         */
-        JOIN_SERVER,
-        /**
-         * When the player leaves the server within a terrain.
-         */
-        LEAVE_SERVER,
-        /**
-         * When the player mounts an entity.
-         */
-        MOUNT,
-        /**
-         * When the player moves out of or into a terrain.
-         */
-        MOVE,
-        /**
-         * When the terrain is removed.
-         */
-        REMOVE,
-        /**
-         * When a player respawns in a terrain.
-         */
-        RESPAWN,
-        /**
-         * When the player teleports out of or into a terrain.
-         */
-        TELEPORT
-    }
+    @NotNull
+    Terrain terrain();
 }

@@ -23,12 +23,17 @@ import com.epicnicity322.terrainer.core.Coordinate;
 import com.epicnicity322.terrainer.core.WorldCoordinate;
 import com.epicnicity322.terrainer.core.config.Configurations;
 import com.epicnicity322.terrainer.core.util.PlayerUtil;
+import com.epicnicity322.yamlhandler.Configuration;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.NamespacedKey;
+import org.bukkit.Registry;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
+import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
+import org.bukkit.potion.PotionEffect;
+import org.bukkit.potion.PotionEffectType;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -56,8 +61,31 @@ public final class BukkitPlayerUtil extends PlayerUtil<Player, CommandSender> {
     }
 
     @Override
-    public void setResetFly(@NotNull Player player, boolean checkPermission) {
-        player.getPersistentDataContainer().set(resetFlyKey, PersistentDataType.INTEGER, checkPermission ? 1 : 0);
+    public void setCanFly(@NotNull Player player, boolean canFly) {
+        player.setAllowFlight(canFly);
+    }
+
+    @Override
+    public boolean shouldResetFly(@NotNull Player player) {
+        Integer resetFly = player.getPersistentDataContainer().get(resetFlyKey, PersistentDataType.INTEGER);
+        if (resetFly == null) return false;
+        Configuration config = Configurations.CONFIG.getConfiguration();
+
+        return resetFly == 1 ? player.hasPermission(config.getString("Fly Permission").orElse("essentials.fly")) : !config.getBoolean("Strict Fly Return").orElse(false);
+    }
+
+    @Override
+    public void setResetFly(@NotNull Player player, boolean value) {
+        PersistentDataContainer container = player.getPersistentDataContainer();
+
+        if (value) {
+            Configuration config = Configurations.CONFIG.getConfiguration();
+            int checkPermissionToReset = player.hasPermission(config.getString("Fly Permission").orElse("essentials.fly")) ? 1 : 0;
+
+            container.set(resetFlyKey, PersistentDataType.INTEGER, checkPermissionToReset);
+        } else {
+            container.remove(resetFlyKey);
+        }
     }
 
     @Override
@@ -66,8 +94,51 @@ public final class BukkitPlayerUtil extends PlayerUtil<Player, CommandSender> {
     }
 
     @Override
+    public boolean isFlying(@NotNull Player player) {
+        return player.isFlying();
+    }
+
+    @Override
+    public boolean isGliding(@NotNull Player player) {
+        return player.isGliding();
+    }
+
+    @Override
+    public void setGliding(@NotNull Player player, boolean glide) {
+        player.setGliding(glide);
+    }
+
+    @Override
+    public void applyEffect(@NotNull Player player, @NotNull String effect, int power) {
+        NamespacedKey key = NamespacedKey.fromString(effect);
+        if (key == null) return;
+        PotionEffectType type = Registry.POTION_EFFECT_TYPE.get(key);
+        if (type == null) return;
+        player.addPotionEffect(new PotionEffect(type, Integer.MAX_VALUE, power, false, false));
+    }
+
+    @Override
+    public void removeEffect(@NotNull Player player, @NotNull String effect) {
+        NamespacedKey key = NamespacedKey.fromString(effect);
+        if (key == null) return;
+        PotionEffectType type = Registry.POTION_EFFECT_TYPE.get(key);
+        if (type == null) return;
+        player.removePotionEffect(type);
+    }
+
+    @Override
+    public void dispatchCommand(@Nullable Player executor, @NotNull String command) {
+        plugin.getServer().dispatchCommand(executor == null ? plugin.getServer().getConsoleSender() : executor, command);
+    }
+
+    @Override
     public boolean hasPermission(@NotNull Player player, @NotNull String permission) {
         return player.hasPermission(permission);
+    }
+
+    @Override
+    public @NotNull String getName(@NotNull Player player) {
+        return player.getName();
     }
 
     @Override

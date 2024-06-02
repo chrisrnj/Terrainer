@@ -91,11 +91,29 @@ public abstract class PlayerUtil<P extends R, R> {
 
     public abstract boolean canFly(@NotNull P player);
 
+    public abstract void setCanFly(@NotNull P player, boolean canFly);
+
+    public abstract boolean shouldResetFly(@NotNull P player);
+
     public abstract void setResetFly(@NotNull P player, boolean checkPermission);
 
     public abstract boolean isSneaking(@NotNull P player);
 
+    public abstract boolean isFlying(@NotNull P player);
+
+    public abstract boolean isGliding(@NotNull P player);
+
+    public abstract void setGliding(@NotNull P player, boolean glide);
+
     public abstract boolean hasPermission(@NotNull P player, @NotNull String permission);
+
+    public abstract void applyEffect(@NotNull P player, @NotNull String effect, int power);
+
+    public abstract void removeEffect(@NotNull P player, @NotNull String effect);
+
+    public abstract void dispatchCommand(@Nullable P executor, @NotNull String command);
+
+    public abstract @NotNull String getName(@NotNull P player);
 
     /**
      * Finds the name of the proprietary of this UUID. {@code null} is used to find the name of console.

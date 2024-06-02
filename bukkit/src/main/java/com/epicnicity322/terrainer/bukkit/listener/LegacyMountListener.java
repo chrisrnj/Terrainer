@@ -18,7 +18,7 @@
 
 package com.epicnicity322.terrainer.bukkit.listener;
 
-import com.epicnicity322.terrainer.core.event.TerrainEvent;
+import com.epicnicity322.terrainer.core.event.TerrainEnterLeaveEvent;
 import org.bukkit.Location;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
@@ -53,13 +53,15 @@ public final class LegacyMountListener implements Listener {
         Location from = player.getLocation(), to = event.getMount().getLocation();
         UUID toWorld = mount.getWorld().getUID();
 
+        // Checking mount protection.
         if (!protectionsListener.mount(toWorld, to.getBlockX(), to.getBlockY(), to.getBlockZ(), player)) {
             event.setCancelled(true);
             return;
         }
 
+        // Calling enter/leave events for mount if enabled.
         if (!enterLeaveEvents.get()) return;
-        if (EnterLeaveListener.handleFromTo(from, to, player.getWorld().getUID(), toWorld, player, TerrainEvent.EnterLeaveReason.MOUNT)) {
+        if (EnterLeaveListener.handleFromTo(from, to, player.getWorld().getUID(), toWorld, player, TerrainEnterLeaveEvent.EnterLeaveReason.MOUNT)) {
             event.setCancelled(true);
         }
     }
@@ -70,7 +72,7 @@ public final class LegacyMountListener implements Listener {
         if (!(event.getEntity() instanceof Player player)) return;
         if (EnterLeaveListener.ignoredPlayersDismountEvent.remove(player.getUniqueId())) return;
         Location from = event.getDismounted().getLocation(), to = player.getLocation();
-        if (EnterLeaveListener.handleFromTo(from, to, event.getDismounted().getWorld().getUID(), player.getWorld().getUID(), player, TerrainEvent.EnterLeaveReason.DISMOUNT)) {
+        if (EnterLeaveListener.handleFromTo(from, to, event.getDismounted().getWorld().getUID(), player.getWorld().getUID(), player, TerrainEnterLeaveEvent.EnterLeaveReason.DISMOUNT)) {
             EnterLeaveListener.ignoredPlayersTeleportEvent.add(player.getUniqueId());
             player.teleport(from);
         }

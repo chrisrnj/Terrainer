@@ -22,15 +22,11 @@ import com.epicnicity322.epicpluginlib.bukkit.lang.MessageSender;
 import com.epicnicity322.epicpluginlib.bukkit.reflection.ReflectionUtil;
 import com.epicnicity322.terrainer.bukkit.TerrainerPlugin;
 import com.epicnicity322.terrainer.bukkit.command.BordersCommand;
-import com.epicnicity322.terrainer.bukkit.event.terrain.TerrainCanEnterEvent;
-import com.epicnicity322.terrainer.bukkit.event.terrain.TerrainCanLeaveEvent;
 import com.epicnicity322.terrainer.bukkit.event.terrain.TerrainEnterEvent;
 import com.epicnicity322.terrainer.bukkit.event.terrain.TerrainLeaveEvent;
 import com.epicnicity322.terrainer.bukkit.util.BlockStateToBlockMapping;
 import com.epicnicity322.terrainer.bukkit.util.TaskFactory;
 import com.epicnicity322.terrainer.core.Coordinate;
-import com.epicnicity322.terrainer.core.config.Configurations;
-import com.epicnicity322.terrainer.core.event.TerrainEvent;
 import com.epicnicity322.terrainer.core.protection.Protections;
 import com.epicnicity322.terrainer.core.terrain.Flag;
 import com.epicnicity322.terrainer.core.terrain.Flags;
@@ -38,7 +34,10 @@ import com.epicnicity322.terrainer.core.terrain.Terrain;
 import net.md_5.bungee.api.ChatMessageType;
 import net.md_5.bungee.api.chat.TextComponent;
 import org.apache.commons.lang3.mutable.Mutable;
-import org.bukkit.*;
+import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
+import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.block.*;
 import org.bukkit.block.data.Directional;
 import org.bukkit.boss.BarColor;
@@ -62,9 +61,6 @@ import org.bukkit.event.world.PortalCreateEvent;
 import org.bukkit.event.world.StructureGrowEvent;
 import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.meta.PotionMeta;
-import org.bukkit.persistence.PersistentDataType;
-import org.bukkit.potion.PotionEffect;
-import org.bukkit.potion.PotionEffectType;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -79,13 +75,11 @@ public final class ProtectionsListener extends Protections<Player, CommandSender
     private final @NotNull MessageSender lang = TerrainerPlugin.getLanguage();
     private final @NotNull TerrainerPlugin plugin;
     private final @NotNull BordersCommand bordersCommand;
-    private final @NotNull NamespacedKey resetFly;
 
     public ProtectionsListener(@NotNull TerrainerPlugin plugin, @NotNull BordersCommand bordersCommand) {
         super(TerrainerPlugin.getPlayerUtil(), TerrainerPlugin.getLanguage());
         this.plugin = plugin;
         this.bordersCommand = bordersCommand;
-        resetFly = new NamespacedKey(plugin, "reset-fly-on-leave");
     }
 
     /**
@@ -96,8 +90,10 @@ public final class ProtectionsListener extends Protections<Player, CommandSender
             return enemyInterface.isAssignableFrom(entity.getClass()) || entity instanceof Wolf wolf && wolf.isAngry();
         } else {
             return switch (entity.getType()) {
-                case BLAZE, CAVE_SPIDER, CREEPER, DROWNED, ELDER_GUARDIAN, ENDER_DRAGON, ENDERMAN, ENDERMITE, EVOKER, GHAST, GIANT, GUARDIAN, HOGLIN, HUSK, ILLUSIONER, MAGMA_CUBE, PHANTOM, PIGLIN, PIGLIN_BRUTE, PILLAGER, RAVAGER, SHULKER, SILVERFISH, SKELETON, SLIME, SPIDER, STRAY, VEX, VINDICATOR, WARDEN, WITCH, WITHER, WITHER_SKELETON, ZOGLIN, ZOMBIE, ZOMBIE_VILLAGER, ZOMBIFIED_PIGLIN ->
-                        true;
+                case BLAZE, CAVE_SPIDER, CREEPER, DROWNED, ELDER_GUARDIAN, ENDER_DRAGON, ENDERMAN, ENDERMITE, EVOKER,
+                     GHAST, GIANT, GUARDIAN, HOGLIN, HUSK, ILLUSIONER, MAGMA_CUBE, PHANTOM, PIGLIN, PIGLIN_BRUTE,
+                     PILLAGER, RAVAGER, SHULKER, SILVERFISH, SKELETON, SLIME, SPIDER, STRAY, VEX, VINDICATOR, WARDEN,
+                     WITCH, WITHER, WITHER_SKELETON, ZOGLIN, ZOMBIE, ZOMBIE_VILLAGER, ZOMBIFIED_PIGLIN -> true;
                 default -> entity instanceof Wolf wolf && wolf.isAngry();
             };
         }
@@ -135,8 +131,10 @@ public final class ProtectionsListener extends Protections<Player, CommandSender
         if (material.isBlock()) return true;
 
         return switch (material) {
-            case ARMOR_STAND, AXOLOTL_BUCKET, BUCKET, CHEST_MINECART, COD_BUCKET, COMMAND_BLOCK_MINECART, END_CRYSTAL, FURNACE_MINECART, GLOW_ITEM_FRAME, HOPPER_MINECART, ITEM_FRAME, LAVA_BUCKET, MINECART, PAINTING, POWDER_SNOW_BUCKET, PUFFERFISH_BUCKET, SALMON_BUCKET, STRING, TADPOLE_BUCKET, TNT_MINECART, TROPICAL_FISH_BUCKET, WATER_BUCKET ->
-                    true;
+            case ARMOR_STAND, AXOLOTL_BUCKET, BUCKET, CHEST_MINECART, COD_BUCKET, COMMAND_BLOCK_MINECART, END_CRYSTAL,
+                 FURNACE_MINECART, GLOW_ITEM_FRAME, HOPPER_MINECART, ITEM_FRAME, LAVA_BUCKET, MINECART, PAINTING,
+                 POWDER_SNOW_BUCKET, PUFFERFISH_BUCKET, SALMON_BUCKET, STRING, TADPOLE_BUCKET, TNT_MINECART,
+                 TROPICAL_FISH_BUCKET, WATER_BUCKET -> true;
             default -> material.name().endsWith("BOAT");
         };
     }
@@ -169,8 +167,11 @@ public final class ProtectionsListener extends Protections<Player, CommandSender
     @Override
     protected boolean isContainer(@NotNull Material material) {
         return switch (material) {
-            case BARREL, BLAST_FURNACE, BREWING_STAND, CHEST, DISPENSER, DROPPER, FURNACE, HOPPER, SMOKER, TRAPPED_CHEST, SHULKER_BOX, BLACK_SHULKER_BOX, BLUE_SHULKER_BOX, BROWN_SHULKER_BOX, CYAN_SHULKER_BOX, GRAY_SHULKER_BOX, GREEN_SHULKER_BOX, LIGHT_BLUE_SHULKER_BOX, LIGHT_GRAY_SHULKER_BOX, LIME_SHULKER_BOX, MAGENTA_SHULKER_BOX, ORANGE_SHULKER_BOX, PINK_SHULKER_BOX, PURPLE_SHULKER_BOX, RED_SHULKER_BOX, WHITE_SHULKER_BOX, YELLOW_SHULKER_BOX ->
-                    true;
+            case BARREL, BLAST_FURNACE, BREWING_STAND, CHEST, DISPENSER, DROPPER, FURNACE, HOPPER, SMOKER,
+                 TRAPPED_CHEST, SHULKER_BOX, BLACK_SHULKER_BOX, BLUE_SHULKER_BOX, BROWN_SHULKER_BOX, CYAN_SHULKER_BOX,
+                 GRAY_SHULKER_BOX, GREEN_SHULKER_BOX, LIGHT_BLUE_SHULKER_BOX, LIGHT_GRAY_SHULKER_BOX, LIME_SHULKER_BOX,
+                 MAGENTA_SHULKER_BOX, ORANGE_SHULKER_BOX, PINK_SHULKER_BOX, PURPLE_SHULKER_BOX, RED_SHULKER_BOX,
+                 WHITE_SHULKER_BOX, YELLOW_SHULKER_BOX -> true;
             default -> false;
         };
     }
@@ -294,6 +295,28 @@ public final class ProtectionsListener extends Protections<Player, CommandSender
     protected @NotNull Coordinate entityOrigin(@NotNull Entity entity) {
         Location loc = origin(entity);
         return new Coordinate(loc.getBlockX(), loc.getBlockY(), loc.getBlockZ());
+    }
+
+    @Override
+    protected void showBorders(@NotNull Player player, @NotNull Set<Terrain> terrains) {
+        terrains = new HashSet<>(terrains);
+        terrains.removeIf(t -> t.borders().isEmpty() || !Boolean.TRUE.equals(t.flags().getData(Flags.SHOW_BORDERS)));
+        if (!terrains.isEmpty()) bordersCommand.showBorders(player, terrains);
+    }
+
+    @SuppressWarnings("deprecation")
+    @Override
+    protected void terrainMessage(@NotNull Terrain terrain, @NotNull Player player, @NotNull String location, @NotNull String message) {
+        String formatted = ChatColor.translateAlternateColorCodes('&', lang.get("Enter Leave Messages Format").replace("<name>", terrain.name()).replace("<message>", message));
+
+        switch (location) {
+            case "actionbar" ->
+                    player.spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacyText(formatted));
+            case "bossbar" -> sendBar(formatted, player);
+            case "chat" -> lang.send(player, false, formatted);
+            case "title" ->
+                    player.sendTitle(ChatColor.GOLD + ChatColor.translateAlternateColorCodes('&', terrain.name()), ChatColor.GRAY + ChatColor.translateAlternateColorCodes('&', message));
+        }
     }
 
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
@@ -626,7 +649,7 @@ public final class ProtectionsListener extends Protections<Player, CommandSender
         Player player = event.getPlayer();
         Location loc = player.getLocation();
         if (!startFlight(player.getWorld().getUID(), loc.getBlockX(), loc.getBlockY(), loc.getBlockZ(), player))
-            player.setAllowFlight(false);
+            event.setCancelled(true);
     }
 
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
@@ -777,149 +800,28 @@ public final class ProtectionsListener extends Protections<Player, CommandSender
             event.setCancelled(true);
     }
 
-    private boolean deny(Terrain terrain, Flag<Boolean> flag) {
-        Boolean state = terrain.flags().getData(flag);
-        return state != null && !state;
-    }
-
-    // TODO: Take member specific flags into account.
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
-    public void canEnter(TerrainCanEnterEvent event) {
-        // Checking if canEnter was already set by a listener called before this one.
-        if (event.canEnter() != TerrainEvent.CanEnterLeave.DEFAULT) return;
-        Terrain terrain = event.terrain();
-        Player player = event.player();
-        Boolean enter = terrain.flags().getData(Flags.ENTER);
-        if (enter == null) return;
-        if (enter || player.hasPermission(Flags.ENTER.bypassPermission()) || TerrainerPlugin.getPlayerUtil().hasAnyRelations(player, terrain)) {
-            event.setCanEnter(TerrainEvent.CanEnterLeave.ALLOW);
-            return;
-        }
-
-        event.setCanEnter(TerrainEvent.CanEnterLeave.DENY);
-        lang.send(player, lang.get("Protections." + Flags.ENTER.id()));
+    public void onTerrainEnter(TerrainEnterEvent event) {
+        if (!terrainEnter(event.player(), event.terrains(), event.toTerrains(), event.reason()))
+            event.setCancelled(true);
     }
 
-    // TODO: Take member specific flags into account.
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
-    public void canLeave(TerrainCanLeaveEvent event) {
-        // Checking if canLeave was already set by a listener called before this one.
-        if (event.canLeave() != TerrainEvent.CanEnterLeave.DEFAULT) return;
-        Terrain terrain = event.terrain();
-        Player player = event.player();
-        Boolean leave = terrain.flags().getData(Flags.LEAVE);
-        if (leave == null) return;
-        if (leave || player.hasPermission(Flags.LEAVE.bypassPermission()) || TerrainerPlugin.getPlayerUtil().hasAnyRelations(player, terrain)) {
-            event.setCanLeave(TerrainEvent.CanEnterLeave.ALLOW);
-            return;
-        }
-
-        event.setCanLeave(TerrainEvent.CanEnterLeave.DENY);
-        lang.send(player, lang.get("Protections." + Flags.LEAVE.id()));
+    public void onTerrainLeave(TerrainLeaveEvent event) {
+        if (!terrainLeave(event.player(), event.terrains(), event.fromTerrains(), event.toTerrains()))
+            event.setCancelled(true);
     }
 
-    // TODO: Take member specific flags into account.
-    @SuppressWarnings("deprecation")
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
-    public void monitorOnEnter(TerrainEnterEvent event) {
-        Terrain terrain = event.terrain();
-        Player player = event.player();
-
-        // Checking fly flag.
-        if ((player.isFlying() || player.getAllowFlight()) && !player.hasPermission(Flags.FLY.bypassPermission())) {
-            if (!TerrainerPlugin.getPlayerUtil().hasAnyRelations(player, terrain) && deny(terrain, Flags.FLY)) {
-                // Setting tag on player to return flight when leaving the terrain.
-                if (player.getAllowFlight()) {
-                    String flyPermission = Configurations.CONFIG.getConfiguration().getString("Fly Permission").orElse("essentials.fly");
-                    player.getPersistentDataContainer().set(resetFly, PersistentDataType.INTEGER, player.hasPermission(flyPermission) ? 1 : 0);
-                }
-                player.setAllowFlight(false);
-                if (player.isFlying()) lang.send(player, lang.get("Protections." + Flags.FLY.id()));
-            }
-        }
-
-        // Checking glide flag.
-        if (player.isGliding() && !player.hasPermission(Flags.GLIDE.bypassPermission())) {
-            if (!TerrainerPlugin.getPlayerUtil().hasAnyRelations(player, terrain) && deny(terrain, Flags.GLIDE)) {
-                player.setGliding(false);
-                lang.send(player, lang.get("Protections." + Flags.GLIDE.id()));
-            }
-        }
-
-        // Applying effects of effects flag.
-        Map<String, Integer> effects = terrain.flags().getData(Flags.EFFECTS);
-        if (effects != null) {
-            effects.forEach((effect, power) -> {
-                PotionEffectType type = PotionEffectType.getByName(effect);
-                if (type == null) return;
-                player.addPotionEffect(new PotionEffect(type, Integer.MAX_VALUE, power, false, false));
-            });
-        }
-
-        // Showing enter message.
-        String messageLocation = terrain.flags().getData(Flags.MESSAGE_LOCATION);
-        if (messageLocation != null && !(messageLocation = messageLocation.toLowerCase(Locale.ROOT)).equals("none")) {
-            String message = ChatColor.translateAlternateColorCodes('&', lang.get("Enter Leave Messages Format").replace("<name>", terrain.name()).replace("<message>", terrain.description()));
-            switch (messageLocation) {
-                case "actionbar" ->
-                        player.spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacyText(message));
-                case "bossbar" -> sendBar(message, player);
-                case "chat" -> lang.send(player, message);
-                case "title" ->
-                        player.sendTitle(ChatColor.GOLD + ChatColor.translateAlternateColorCodes('&', terrain.name()), ChatColor.GRAY + ChatColor.translateAlternateColorCodes('&', terrain.description()));
-            }
-        }
-
-        // Showing borders.
-        if (!terrain.borders().isEmpty() && Boolean.TRUE.equals(terrain.flags().getData(Flags.SHOW_BORDERS)) && Configurations.CONFIG.getConfiguration().getBoolean("Borders.On Enter").orElse(false)) {
-            bordersCommand.showBorders(player, Collections.singleton(terrain));
-        }
+    public void onTerrainEnterMonitor(TerrainEnterEvent event) {
+        monitorTerrainEnter(event.player(), event.terrains(), event.toTerrains());
     }
 
-    // TODO: Take member specific flags into account.
-    @SuppressWarnings("deprecation")
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
-    public void monitorOnLeave(TerrainLeaveEvent event) {
-        Terrain terrain = event.terrain();
-        Player player = event.player();
-
-        // Returning the player's ability to fly.
-        Integer returnFlight = player.getPersistentDataContainer().get(resetFly, PersistentDataType.INTEGER);
-        if (returnFlight != null) {
-            player.getPersistentDataContainer().remove(resetFly);
-
-            String flyPermission = Configurations.CONFIG.getConfiguration().getString("Fly Permission").orElse("essentials.fly");
-
-            // Checking fly permission only if the player had it before losing the flight.
-            if (returnFlight == 0 || player.hasPermission(flyPermission)) player.setAllowFlight(true);
-        }
-
-        // Removing effects from effects flag.
-        Map<String, Integer> effects = terrain.flags().getData(Flags.EFFECTS);
-        if (effects != null) {
-            effects.forEach((effect, power) -> {
-                PotionEffectType type = PotionEffectType.getByName(effect);
-                if (type == null) return;
-                player.removePotionEffect(type);
-            });
-        }
-
-        // Showing leave message.
-        String messageLocation = terrain.flags().getData(Flags.MESSAGE_LOCATION);
-        if (messageLocation != null && !(messageLocation = messageLocation.toLowerCase(Locale.ROOT)).equals("none")) {
-            String leaveMessage = terrain.flags().getData(Flags.LEAVE_MESSAGE);
-            if (leaveMessage != null && !leaveMessage.isEmpty()) {
-                String message = ChatColor.translateAlternateColorCodes('&', lang.get("Enter Leave Messages Format").replace("<name>", terrain.name()).replace("<message>", leaveMessage));
-                switch (messageLocation) {
-                    case "actionbar" ->
-                            player.spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacyText(message));
-                    case "bossbar" -> sendBar(message, player);
-                    case "chat" -> lang.send(player, message);
-                    case "title" ->
-                            player.sendTitle(ChatColor.GOLD + ChatColor.translateAlternateColorCodes('&', terrain.name()), ChatColor.GRAY + ChatColor.translateAlternateColorCodes('&', leaveMessage));
-                }
-            }
-        }
+    public void onTerrainLeaveMonitor(TerrainLeaveEvent event) {
+        Location from = event.from();
+        Location to = event.to();
+        monitorTerrainLeave(event.player(), event.terrains(), event.player().getWorld().getUID(), to.getBlockX(), to.getBlockY(), to.getBlockZ(), event.fromTerrains());
     }
 
     private void sendBar(@NotNull String message, @NotNull Player player) {

@@ -20,30 +20,41 @@ package com.epicnicity322.terrainer.bukkit.event.terrain;
 
 import com.epicnicity322.terrainer.core.event.terrain.ITerrainLeaveEvent;
 import com.epicnicity322.terrainer.core.terrain.Terrain;
+import com.epicnicity322.terrainer.core.terrain.TerrainManager;
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
+import org.bukkit.event.Cancellable;
 import org.bukkit.event.Event;
 import org.bukkit.event.HandlerList;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
+import java.util.Collections;
+import java.util.Set;
 
 /**
  * When a player has left a terrain.
- *
- * @see TerrainCanLeaveEvent
  */
-public class TerrainLeaveEvent extends Event implements ITerrainLeaveEvent<Location, Player> {
+public class TerrainLeaveEvent extends Event implements ITerrainLeaveEvent<Location, Player>, Cancellable {
     private static final @NotNull HandlerList handlers = new HandlerList();
     private final @NotNull Location from;
     private final @NotNull Location to;
     private final @NotNull Player player;
-    private final @NotNull Terrain terrain;
+    private final @NotNull Set<Terrain> terrains;
     private final @NotNull EnterLeaveReason reason;
+    private @Nullable Set<Terrain> fromTerrains;
+    private @Nullable Set<Terrain> toTerrains;
+    private boolean cancelled = false;
 
-    public TerrainLeaveEvent(@NotNull Location from, @NotNull Location to, @NotNull Player player, @NotNull Terrain terrain, @NotNull EnterLeaveReason reason) {
+    public TerrainLeaveEvent(@NotNull Location from, @NotNull Location to, @NotNull Player player, @NotNull Set<Terrain> terrains, @Nullable Set<Terrain> fromTerrains, @Nullable Set<Terrain> toTerrains, @NotNull EnterLeaveReason reason) {
+        super(!Bukkit.isPrimaryThread());
         this.from = from;
         this.to = to;
         this.player = player;
-        this.terrain = terrain;
+        this.terrains = terrains;
+        this.fromTerrains = fromTerrains;
+        this.toTerrains = toTerrains;
         this.reason = reason;
     }
 
@@ -54,6 +65,37 @@ public class TerrainLeaveEvent extends Event implements ITerrainLeaveEvent<Locat
     @Override
     public @NotNull HandlerList getHandlers() {
         return handlers;
+    }
+
+    @Override
+    public boolean isCancelled() {
+        return cancelled;
+    }
+
+    @Override
+    public void setCancelled(boolean cancel) {
+        this.cancelled = cancel;
+    }
+
+    @Override
+    public @NotNull Set<Terrain> terrains() {
+        return Collections.unmodifiableSet(terrains);
+    }
+
+    @Override
+    public @NotNull Set<Terrain> fromTerrains() {
+        if (fromTerrains == null) {
+            fromTerrains = TerrainManager.terrainsAt(from.getWorld().getUID(), from.getBlockX(), from.getBlockY(), from.getBlockZ());
+        }
+        return Collections.unmodifiableSet(fromTerrains);
+    }
+
+    @Override
+    public @NotNull Set<Terrain> toTerrains() {
+        if (toTerrains == null) {
+            toTerrains = TerrainManager.terrainsAt(to.getWorld().getUID(), to.getBlockX(), to.getBlockY(), to.getBlockZ());
+        }
+        return Collections.unmodifiableSet(toTerrains);
     }
 
     @Override
@@ -74,10 +116,5 @@ public class TerrainLeaveEvent extends Event implements ITerrainLeaveEvent<Locat
     @Override
     public @NotNull Player player() {
         return player;
-    }
-
-    @Override
-    public @NotNull Terrain terrain() {
-        return terrain;
     }
 }

@@ -19,10 +19,13 @@
 package com.epicnicity322.terrainer.bukkit.listener;
 
 import com.epicnicity322.epicpluginlib.bukkit.reflection.ReflectionUtil;
-import com.epicnicity322.terrainer.bukkit.event.terrain.*;
+import com.epicnicity322.terrainer.bukkit.event.terrain.TerrainAddEvent;
+import com.epicnicity322.terrainer.bukkit.event.terrain.TerrainEnterEvent;
+import com.epicnicity322.terrainer.bukkit.event.terrain.TerrainLeaveEvent;
+import com.epicnicity322.terrainer.bukkit.event.terrain.TerrainRemoveEvent;
 import com.epicnicity322.terrainer.bukkit.util.ToggleableListener;
 import com.epicnicity322.terrainer.core.Terrainer;
-import com.epicnicity322.terrainer.core.event.TerrainEvent;
+import com.epicnicity322.terrainer.core.event.TerrainEnterLeaveEvent.EnterLeaveReason;
 import com.epicnicity322.terrainer.core.terrain.Terrain;
 import com.epicnicity322.terrainer.core.terrain.TerrainManager;
 import org.bukkit.Bukkit;
@@ -77,7 +80,7 @@ public final class EnterLeaveListener extends ToggleableListener {
         // Only full block moves are processed to save performance.
         if (fromX == toX && fromY == toY && fromZ == toZ) return;
 
-        TerrainEvent.EnterLeaveReason reason = TerrainEvent.EnterLeaveReason.MOVE;
+        EnterLeaveReason reason = EnterLeaveReason.MOVE;
         Player pVehicle = vehicle instanceof Player player ? player : null;
         Set<Player> players = getPassengers(vehicle, null);
 
@@ -88,168 +91,92 @@ public final class EnterLeaveListener extends ToggleableListener {
         UUID world = vehicle.getWorld().getUID();
         Set<Terrain> fromTerrains = TerrainManager.terrainsAt(world, fromX, fromY, fromZ);
         Set<Terrain> toTerrains = TerrainManager.terrainsAt(world, toX, toY, toZ);
-        boolean cancel = false;
+        Set<Terrain> leftTerrains = new HashSet<>(fromTerrains);
+        Set<Terrain> enteredTerrains = new HashSet<>(toTerrains);
 
-        LinkedList<Terrain> callLeaveEvents = null;
-        boolean leaveAllowed = false;
+        leftTerrains.removeIf(enteredTerrains::remove); // Removing the intersection of the sets, leaving only the actual left and entered terrains.
 
-        terrainLoop:
-        for (Terrain terrain : fromTerrains) {
-            if (toTerrains.remove(terrain)) continue; // The terrain was in to, so the vehicle didn't really leave it.
-
-            // Adding to terrains to call leave event.
-            if (callLeaveEvents == null) callLeaveEvents = new LinkedList<>();
-            callLeaveEvents.add(terrain);
-
-            // Can Leave was allowed, no need to call the event again, just adding the terrain to the list.
-            if (leaveAllowed) continue;
-
-            if (pVehicle != null) { // Calling Can Leave event for the player that's carrying other players.
-                var leave = new TerrainCanLeaveEvent(from, to, pVehicle, terrain, reason);
-
-                Bukkit.getPluginManager().callEvent(leave);
-
-                TerrainEvent.CanEnterLeave canLeave = leave.canLeave();
-                if (canLeave == TerrainEvent.CanEnterLeave.DENY) {
-                    cancel = true;
-                    break;
-                } else if (canLeave == TerrainEvent.CanEnterLeave.ALLOW) leaveAllowed = true;
+        if (!leftTerrains.isEmpty()) {
+            if (pVehicle != null && callLeave(leftTerrains, fromTerrains, toTerrains, from, to, pVehicle, reason)) {
+                cancelMovement(from, to, players, pVehicle, vehicle);
+                return;
             }
 
-            for (Player player : players) { // Calling Can Leave event for each passenger.
-                var leave = new TerrainCanLeaveEvent(from, to, player, terrain, reason);
-
-                Bukkit.getPluginManager().callEvent(leave);
-
-                TerrainEvent.CanEnterLeave canLeave = leave.canLeave();
-                if (canLeave == TerrainEvent.CanEnterLeave.DENY) {
-                    cancel = true;
-                    break terrainLoop;
-                } else if (canLeave == TerrainEvent.CanEnterLeave.ALLOW) leaveAllowed = true;
-            }
-        }
-
-        LinkedList<Terrain> callEnterEvents = null;
-
-        if (!cancel) { // Do not call Can Enter events if leave is already cancelled.
-            boolean enterAllowed = false;
-
-            terrainLoop:
-            for (Terrain terrain : toTerrains) {
-                if (fromTerrains.contains(terrain))
-                    continue; // The terrain was in from, so the vehicle didn't really enter it.
-
-                // Adding to terrains to call enter event.
-                if (callEnterEvents == null) callEnterEvents = new LinkedList<>();
-                callEnterEvents.add(terrain);
-
-                // Can Enter was allowed, no need to call the event again, just adding the terrain to the list.
-                if (enterAllowed) continue;
-
-                if (pVehicle != null) { // Calling Can Enter event for the player that's carrying other players.
-                    var enter = new TerrainCanEnterEvent(from, to, pVehicle, terrain, reason);
-
-                    Bukkit.getPluginManager().callEvent(enter);
-
-                    TerrainEvent.CanEnterLeave canEnter = enter.canEnter();
-                    if (canEnter == TerrainEvent.CanEnterLeave.DENY) {
-                        cancel = true;
-                        break;
-                    } else if (canEnter == TerrainEvent.CanEnterLeave.ALLOW) enterAllowed = true;
-                }
-
-                for (Player player : players) {  // Calling Can Enter event for each passenger.
-                    var enter = new TerrainCanEnterEvent(from, to, player, terrain, reason);
-
-                    Bukkit.getPluginManager().callEvent(enter);
-
-                    TerrainEvent.CanEnterLeave canEnter = enter.canEnter();
-                    if (canEnter == TerrainEvent.CanEnterLeave.DENY) {
-                        cancel = true;
-                        break terrainLoop;
-                    } else if (canEnter == TerrainEvent.CanEnterLeave.ALLOW) enterAllowed = true;
-                }
-            }
-        }
-
-        if (!cancel) {
-            // These events will only be called if the CanEnterLeave events were not cancelled.
-            // Ideally they should only be called on MONITOR event priority, because they are for when players really entered/left
-            // terrains, but that would require gathering the terrains again, and it would be bad for performance.
-            if (callLeaveEvents != null) for (Terrain terrain : callLeaveEvents) {
-                if (pVehicle != null) {
-                    var leave = new TerrainLeaveEvent(from, to, pVehicle, terrain, reason);
-                    Bukkit.getPluginManager().callEvent(leave);
-                }
-                for (Player player : players) {
-                    var leave = new TerrainLeaveEvent(from, to, player, terrain, reason);
-                    Bukkit.getPluginManager().callEvent(leave);
-                }
-            }
-            if (callEnterEvents != null) for (Terrain terrain : callEnterEvents) {
-                if (pVehicle != null) {
-                    var enter = new TerrainEnterEvent(from, to, pVehicle, terrain, reason);
-                    Bukkit.getPluginManager().callEvent(enter);
-                }
-                for (Player player : players) {
-                    var enter = new TerrainEnterEvent(from, to, player, terrain, reason);
-                    Bukkit.getPluginManager().callEvent(enter);
-                }
-            }
-        } else {
-            to.setX(from.getBlockX() + 0.5);
-            to.setY(from.getBlockY());
-            to.setZ(from.getBlockZ() + 0.5);
-
-            // Removing the player from the passenger carrier while ignoring dismount event, then teleporting player to the cancelled location while ignoring teleport.
             for (Player player : players) {
-                var pUID = player.getUniqueId();
-
-                ignoredPlayersDismountEvent.add(pUID);
-                Entity thisVehicle = player.getVehicle();
-                if (thisVehicle != null) thisVehicle.removePassenger(player);
-
-                Location tp = to.clone();
-                tp.setYaw(player.getYaw());
-                tp.setPitch(player.getPitch());
-
-                ignoredPlayersTeleportEvent.add(pUID);
-                if (asyncTeleport) {
-                    player.teleportAsync(tp);
-                } else {
-                    player.teleport(tp);
+                if (callLeave(leftTerrains, fromTerrains, toTerrains, from, to, player, reason)) {
+                    cancelMovement(from, to, players, pVehicle, vehicle);
+                    return;
                 }
             }
+        }
+        if (!enteredTerrains.isEmpty()) {
+            if (pVehicle != null && callEnter(enteredTerrains, fromTerrains, toTerrains, from, to, pVehicle, reason)) {
+                cancelMovement(from, to, players, pVehicle, vehicle);
+                return;
+            }
 
-            vehicle.eject();
-
-            // Teleporting the vehicle as well.
-            if (pVehicle == null) {
-                vehicle.setVelocity(zero);
-                if (asyncTeleport) {
-                    vehicle.teleportAsync(to);
-                } else {
-                    vehicle.teleport(to);
-                }
-            } else {
-                ignoredPlayersTeleportEvent.add(vehicle.getUniqueId()); // Players automatically teleport to new "to" location.
-
-                // If player is in a vehicle, dismount the player while ignoring dismount event and teleport the vehicle to the cancelled location.
-                Entity vehiclesVehicle = pVehicle.getVehicle();
-                if (vehiclesVehicle != null) {
-                    ignoredPlayersDismountEvent.add(pVehicle.getUniqueId());
-                    vehiclesVehicle.removePassenger(pVehicle);
-                    if (asyncTeleport) {
-                        vehiclesVehicle.teleportAsync(to);
-                    } else {
-                        vehiclesVehicle.teleport(to);
-                    }
+            for (Player player : players) {
+                if (callEnter(enteredTerrains, fromTerrains, toTerrains, from, to, player, reason)) {
+                    cancelMovement(from, to, players, pVehicle, vehicle);
+                    return;
                 }
             }
         }
     }
 
-    static boolean handleFromTo(@NotNull Location from, @NotNull Location to, @NotNull UUID worldFrom, @NotNull UUID worldTo, @NotNull Player player, @NotNull TerrainEvent.EnterLeaveReason reason) {
+    private static void cancelMovement(@NotNull Location from, @NotNull Location to, @NotNull Set<Player> players, @Nullable Player pVehicle, @NotNull Entity vehicle) {
+        to.setX(from.getBlockX() + 0.5); // Using 0.5 offset to avoid teleport abuse and potential lag.
+        to.setY(from.getBlockY());
+        to.setZ(from.getBlockZ() + 0.5);
+
+        // Removing the player from the passenger carrier while ignoring dismount event, then teleporting player to the cancelled location while ignoring teleport.
+        for (Player player : players) {
+            var pUID = player.getUniqueId();
+
+            ignoredPlayersDismountEvent.add(pUID);
+            Entity thisVehicle = player.getVehicle();
+            if (thisVehicle != null) thisVehicle.removePassenger(player);
+
+            Location tp = to.clone();
+            tp.setYaw(player.getYaw());
+            tp.setPitch(player.getPitch());
+
+            ignoredPlayersTeleportEvent.add(pUID);
+            if (asyncTeleport) {
+                player.teleportAsync(tp);
+            } else {
+                player.teleport(tp);
+            }
+        }
+
+        vehicle.eject();
+
+        // Teleporting the vehicle as well.
+        if (pVehicle == null) {
+            vehicle.setVelocity(zero);
+            if (asyncTeleport) {
+                vehicle.teleportAsync(to);
+            } else {
+                vehicle.teleport(to);
+            }
+        } else {
+            ignoredPlayersTeleportEvent.add(vehicle.getUniqueId()); // Players automatically teleport to new "to" location.
+
+            // If player is in a vehicle, dismount the player while ignoring dismount event and teleport the vehicle to the cancelled location.
+            Entity vehiclesVehicle = pVehicle.getVehicle();
+            if (vehiclesVehicle != null) {
+                ignoredPlayersDismountEvent.add(pVehicle.getUniqueId());
+                vehiclesVehicle.removePassenger(pVehicle);
+                if (asyncTeleport) {
+                    vehiclesVehicle.teleportAsync(to);
+                } else {
+                    vehiclesVehicle.teleport(to);
+                }
+            }
+        }
+    }
+
+    static boolean handleFromTo(@NotNull Location from, @NotNull Location to, @NotNull UUID worldFrom, @NotNull UUID worldTo, @NotNull Player player, @NotNull EnterLeaveReason reason) {
         int fromX = from.getBlockX(), fromY = from.getBlockY(), fromZ = from.getBlockZ();
         int toX = to.getBlockX(), toY = to.getBlockY(), toZ = to.getBlockZ();
 
@@ -258,62 +185,28 @@ public final class EnterLeaveListener extends ToggleableListener {
 
         Set<Terrain> fromTerrains = TerrainManager.terrainsAt(worldFrom, fromX, fromY, fromZ);
         Set<Terrain> toTerrains = TerrainManager.terrainsAt(worldTo, toX, toY, toZ);
+        Set<Terrain> leftTerrains = new HashSet<>(fromTerrains);
+        Set<Terrain> enteredTerrains = new HashSet<>(toTerrains);
 
-        LinkedList<Terrain> callLeaveEvents = null;
-        boolean leaveAllowed = false;
+        leftTerrains.removeIf(enteredTerrains::remove); // Removing the intersection of the sets, leaving only the actual left and entered terrains.
 
-        for (Terrain terrain : fromTerrains) {
-            if (toTerrains.remove(terrain)) continue; // The terrain was in to, so the player didn't really leave it.
+        boolean cancel = callLeave(leftTerrains, fromTerrains, toTerrains, from, to, player, reason);
+        if (cancel) return true;
+        return callEnter(enteredTerrains, fromTerrains, toTerrains, from, to, player, reason);
+    }
 
-            // The terrains to call leave event.
-            if (callLeaveEvents == null) callLeaveEvents = new LinkedList<>();
-            callLeaveEvents.add(terrain);
+    private static boolean callLeave(@NotNull Set<Terrain> terrains, @Nullable Set<Terrain> fromTerrains, @Nullable Set<Terrain> toTerrains, @NotNull Location from, @NotNull Location to, @NotNull Player player, @NotNull EnterLeaveReason reason) {
+        if (terrains.isEmpty()) return false;
+        var leave = new TerrainLeaveEvent(from, to, player, terrains, fromTerrains, toTerrains, reason);
+        Bukkit.getPluginManager().callEvent(leave);
+        return leave.isCancelled();
+    }
 
-            // Leave is allowed, no need to call the event again, just adding the terrain to the list.
-            if (leaveAllowed) continue;
-
-            var leave = new TerrainCanLeaveEvent(from, to, player, terrain, reason);
-
-            Bukkit.getPluginManager().callEvent(leave);
-
-            if (leave.canLeave() == TerrainEvent.CanEnterLeave.DENY) return true;
-            else if (leave.canLeave() == TerrainEvent.CanEnterLeave.ALLOW) leaveAllowed = true;
-        }
-
-        LinkedList<Terrain> callEnterEvents = null;
-        boolean enterAllowed = false;
-
-        for (Terrain terrain : toTerrains) {
-            if (fromTerrains.contains(terrain))
-                continue; // The terrain was in from, so the player didn't really enter it.
-
-            // The terrains to call enter event.
-            if (callEnterEvents == null) callEnterEvents = new LinkedList<>();
-            callEnterEvents.add(terrain);
-
-            // Enter is allowed, no need to call the event again, just adding the terrain to the list.
-            if (enterAllowed) continue;
-
-            var enter = new TerrainCanEnterEvent(from, to, player, terrain, reason);
-
-            Bukkit.getPluginManager().callEvent(enter);
-
-            if (enter.canEnter() == TerrainEvent.CanEnterLeave.DENY) return true;
-            else if (enter.canEnter() == TerrainEvent.CanEnterLeave.ALLOW) enterAllowed = true;
-        }
-
-        // These events will only be called if the CanEnterLeave events were not cancelled.
-        // Ideally they should only be called on MONITOR event priority, because they are for when players really entered/left
-        // terrains, but that would require gathering the terrains again, and it would be bad for performance.
-        if (callLeaveEvents != null) for (Terrain terrain : callLeaveEvents) {
-            var leave = new TerrainLeaveEvent(from, to, player, terrain, reason);
-            Bukkit.getPluginManager().callEvent(leave);
-        }
-        if (callEnterEvents != null) for (Terrain terrain : callEnterEvents) {
-            var enter = new TerrainEnterEvent(from, to, player, terrain, reason);
-            Bukkit.getPluginManager().callEvent(enter);
-        }
-        return false;
+    private static boolean callEnter(@NotNull Set<Terrain> terrains, @Nullable Set<Terrain> fromTerrains, @Nullable Set<Terrain> toTerrains, @NotNull Location from, @NotNull Location to, @NotNull Player player, @NotNull EnterLeaveReason reason) {
+        if (terrains.isEmpty()) return false;
+        var enter = new TerrainEnterEvent(from, to, player, terrains, fromTerrains, toTerrains, reason);
+        Bukkit.getPluginManager().callEvent(enter);
+        return enter.isCancelled();
     }
 
     @EventHandler(priority = EventPriority.LOW, ignoreCancelled = true)
@@ -336,7 +229,7 @@ public final class EnterLeaveListener extends ToggleableListener {
             return;
         }
         Location from = event.getFrom(), to = event.getTo();
-        if (handleFromTo(from, to, from.getWorld().getUID(), to.getWorld().getUID(), event.getPlayer(), TerrainEvent.EnterLeaveReason.TELEPORT)) {
+        if (handleFromTo(from, to, from.getWorld().getUID(), to.getWorld().getUID(), event.getPlayer(), EnterLeaveReason.TELEPORT)) {
             event.setCancelled(true);
         }
     }
@@ -345,36 +238,12 @@ public final class EnterLeaveListener extends ToggleableListener {
     public void onJoin(PlayerJoinEvent event) {
         Player player = event.getPlayer();
         Location loc = player.getLocation();
-        int x = loc.getBlockX(), y = loc.getBlockY(), z = loc.getBlockZ();
-        UUID world = player.getWorld().getUID();
+        Set<Terrain> enteredTerrains = TerrainManager.terrainsAt(player.getWorld().getUID(), loc.getBlockX(), loc.getBlockY(), loc.getBlockZ());
 
-        LinkedList<Terrain> callEnterEvents = null;
-        boolean enterChecked = false;
-
-        for (Terrain terrain : TerrainManager.terrainsAt(world, x, y, z)) {
-            if (callEnterEvents == null) callEnterEvents = new LinkedList<>();
-            callEnterEvents.add(terrain);
-            if (enterChecked) continue;
-            var enter = new TerrainCanEnterEvent(loc, loc, player, terrain, TerrainEvent.EnterLeaveReason.JOIN_SERVER);
-            Bukkit.getPluginManager().callEvent(enter);
-            if (enter.canEnter() == TerrainEvent.CanEnterLeave.DENY) {
-                for (String command : commandsOnEntryCancelled) {
-                    Bukkit.dispatchCommand(Bukkit.getConsoleSender(), command.replace("%p", player.getName()).replace("%t", terrain.id().toString()));
-                }
-                // Even tho TerrainCanEnterEvent is denied, the TerrainEnterEvents should still be called, because
-                // commands are only executed a tick after they're dispatched. So if the command teleported the player
-                // outside the terrain by then, TerrainLeaveEvent should be called and everything should work as intended.
-                // Setting enterChecked so further calls to TerrainCanEnterEvent are ignored and terrains are added to the
-                // list of TerrainEnterEvent call.
-                enterChecked = true;
-            } else if (enter.canEnter() == TerrainEvent.CanEnterLeave.ALLOW) {
-                enterChecked = true;
+        if (callEnter(enteredTerrains, enteredTerrains, enteredTerrains, loc, loc, player, EnterLeaveReason.JOIN_SERVER)) {
+            for (String command : commandsOnEntryCancelled) {
+                Bukkit.dispatchCommand(Bukkit.getConsoleSender(), command.replace("%p", player.getName()));
             }
-        }
-
-        if (callEnterEvents != null) for (Terrain terrain : callEnterEvents) {
-            var enter = new TerrainEnterEvent(loc, loc, player, terrain, TerrainEvent.EnterLeaveReason.JOIN_SERVER);
-            Bukkit.getPluginManager().callEvent(enter);
         }
     }
 
@@ -382,13 +251,9 @@ public final class EnterLeaveListener extends ToggleableListener {
     public void onQuit(PlayerQuitEvent event) {
         Player player = event.getPlayer();
         Location loc = player.getLocation();
-        int x = loc.getBlockX(), y = loc.getBlockY(), z = loc.getBlockZ();
-        UUID world = player.getWorld().getUID();
+        Set<Terrain> leftTerrains = TerrainManager.terrainsAt(player.getWorld().getUID(), loc.getBlockX(), loc.getBlockY(), loc.getBlockZ());
 
-        for (Terrain terrain : TerrainManager.terrainsAt(world, x, y, z)) {
-            var leave = new TerrainLeaveEvent(loc, loc, player, terrain, TerrainEvent.EnterLeaveReason.LEAVE_SERVER);
-            Bukkit.getPluginManager().callEvent(leave);
-        }
+        callLeave(leftTerrains, leftTerrains, leftTerrains, loc, loc, player, EnterLeaveReason.LEAVE_SERVER);
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
@@ -396,39 +261,18 @@ public final class EnterLeaveListener extends ToggleableListener {
         Terrain terrain = event.terrain();
         World world = Bukkit.getWorld(terrain.world());
         if (world == null) return;
-
-        LinkedList<Player> callEnterEvents = null;
-        boolean enterChecked = false;
+        Set<Terrain> singletonTerrain = Collections.singleton(terrain);
 
         for (Player player : world.getPlayers()) {
             Location loc = player.getLocation();
-            int x = loc.getBlockX(), y = loc.getBlockY(), z = loc.getBlockZ();
-            if (!terrain.isWithin(x, y, z)) continue;
-            if (callEnterEvents == null) callEnterEvents = new LinkedList<>();
-            callEnterEvents.add(player);
-            if (enterChecked) continue;
-            var enter = new TerrainCanEnterEvent(loc, loc, player, terrain, TerrainEvent.EnterLeaveReason.CREATE);
-            Bukkit.getPluginManager().callEvent(enter);
-            if (enter.canEnter() == TerrainEvent.CanEnterLeave.DENY) {
+            if (!terrain.isWithin(loc.getBlockX(), loc.getBlockY(), loc.getBlockZ())) continue;
+
+            if (callEnter(singletonTerrain, null, null, loc, loc, player, EnterLeaveReason.CREATE)) {
                 for (String command : commandsOnEntryCancelled) {
-                    Bukkit.dispatchCommand(Bukkit.getConsoleSender(), command.replace("%p", player.getName()).replace("%t", terrain.id().toString()));
+                    Bukkit.dispatchCommand(Bukkit.getConsoleSender(), command.replace("%p", player.getName()));
                 }
-                // Even tho TerrainCanEnterEvent is denied, the TerrainEnterEvents should still be called, because
-                // commands are only executed a tick after they're dispatched. So if the command teleported the player
-                // outside the terrain by then, TerrainLeaveEvent should be called and everything should work as intended.
-                // Setting enterChecked so further calls to TerrainCanEnterEvent are ignored and players are added to the
-                // list of TerrainEnterEvent call.
-                enterChecked = true;
-            } else if (enter.canEnter() == TerrainEvent.CanEnterLeave.ALLOW) {
-                enterChecked = true;
             }
         }
-
-        if (callEnterEvents != null) for (Player player : callEnterEvents) {
-            var enter = new TerrainEnterEvent(player.getLocation(), player.getLocation(), player, terrain, TerrainEvent.EnterLeaveReason.CREATE);
-            Bukkit.getPluginManager().callEvent(enter);
-        }
-
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
@@ -436,14 +280,13 @@ public final class EnterLeaveListener extends ToggleableListener {
         Terrain terrain = event.terrain();
         World world = Bukkit.getWorld(terrain.world());
         if (world == null) return;
+        Set<Terrain> singletonTerrain = Collections.singleton(terrain);
 
         for (Player player : world.getPlayers()) {
             Location loc = player.getLocation();
-            int x = loc.getBlockX(), y = loc.getBlockY(), z = loc.getBlockZ();
-            if (!terrain.isWithin(x, y, z)) continue;
+            if (!terrain.isWithin(loc.getBlockX(), loc.getBlockY(), loc.getBlockZ())) continue;
 
-            var enter = new TerrainLeaveEvent(loc, loc, player, terrain, TerrainEvent.EnterLeaveReason.REMOVE);
-            Bukkit.getPluginManager().callEvent(enter);
+            callLeave(singletonTerrain, null, null, loc, loc, player, EnterLeaveReason.REMOVE);
         }
     }
 
@@ -451,7 +294,8 @@ public final class EnterLeaveListener extends ToggleableListener {
     public void onRespawn(PlayerRespawnEvent event) {
         Player player = event.getPlayer();
         Location from = player.getLocation(), to = event.getRespawnLocation();
-        if (handleFromTo(from, to, player.getWorld().getUID(), to.getWorld().getUID(), player, TerrainEvent.EnterLeaveReason.RESPAWN)) {
+
+        if (handleFromTo(from, to, player.getWorld().getUID(), to.getWorld().getUID(), player, EnterLeaveReason.RESPAWN)) {
             event.setRespawnLocation(from);
         }
     }

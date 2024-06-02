@@ -19,8 +19,7 @@
 package com.epicnicity322.terrainer.core.event.terrain;
 
 import com.epicnicity322.terrainer.core.event.PlayerEvent;
-import com.epicnicity322.terrainer.core.event.TerrainEvent;
-import org.jetbrains.annotations.NotNull;
+import com.epicnicity322.terrainer.core.event.TerrainEnterLeaveEvent;
 
 /**
  * When a player has entered a terrain.
@@ -28,19 +27,5 @@ import org.jetbrains.annotations.NotNull;
  * @param <L> The location class of the platform.
  * @param <P> The player class of the platform.
  */
-public interface ITerrainEnterEvent<L, P> extends TerrainEvent, PlayerEvent<P> {
-    /**
-     * @return The location the player was before entering the terrain.
-     */
-    @NotNull L from();
-
-    /**
-     * @return The location the player entered the terrain.
-     */
-    @NotNull L to();
-
-    /**
-     * @return What caused the enter event.
-     */
-    @NotNull EnterLeaveReason reason();
+public interface ITerrainEnterEvent<L, P> extends TerrainEnterLeaveEvent<L>, PlayerEvent<P> {
 }
