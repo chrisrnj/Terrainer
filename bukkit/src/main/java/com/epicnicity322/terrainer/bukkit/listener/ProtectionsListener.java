@@ -819,7 +819,6 @@ public final class ProtectionsListener extends Protections<Player, CommandSender
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onTerrainLeaveMonitor(TerrainLeaveEvent event) {
-        Location from = event.from();
         Location to = event.to();
         monitorTerrainLeave(event.player(), event.terrains(), event.player().getWorld().getUID(), to.getBlockX(), to.getBlockY(), to.getBlockZ(), event.fromTerrains());
     }
