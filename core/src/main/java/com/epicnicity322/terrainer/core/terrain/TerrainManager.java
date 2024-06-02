@@ -225,16 +225,17 @@ public final class TerrainManager {
         Set<Terrain> worldTerrains = registeredTerrains.get(terrain.world);
         if (worldTerrains == null) return;
         // If the list of world terrains contained the terrain, then add it again at sorted index.
-        if (worldTerrains.remove(terrain)) worldTerrains.add(terrain);
+        // Using removeIf because the terrain will be at a different index for the priority comparator, and it will not be found with a simple TreeSet#remove.
+        if (worldTerrains.removeIf(t -> t == terrain)) worldTerrains.add(terrain);
 
         // Update in each chunk.
         if (terrain.chunks.isEmpty()) {
             Set<Terrain> globalTerrains = chunks.get(new WorldChunk(terrain.world, globalChunk));
-            if (globalTerrains.remove(terrain)) globalTerrains.add(terrain);
+            if (globalTerrains.removeIf(t -> t == terrain)) globalTerrains.add(terrain);
         } else {
             terrain.chunks.forEach(chunk -> {
                 Set<Terrain> chunkTerrains = chunks.get(new WorldChunk(terrain.world, chunk));
-                if (chunkTerrains.remove(terrain)) chunkTerrains.add(terrain);
+                if (chunkTerrains.removeIf(t -> t == terrain)) chunkTerrains.add(terrain);
             });
         }
     }
