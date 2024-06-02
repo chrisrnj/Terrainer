@@ -25,7 +25,6 @@ import com.epicnicity322.terrainer.bukkit.TerrainerPlugin;
 import com.epicnicity322.terrainer.bukkit.util.CommandUtil;
 import com.epicnicity322.terrainer.core.terrain.Terrain;
 import com.epicnicity322.terrainer.core.terrain.TerrainManager;
-import com.epicnicity322.terrainer.core.terrain.WorldTerrain;
 import com.epicnicity322.terrainer.core.util.TerrainerUtil;
 import org.bukkit.Location;
 import org.bukkit.command.CommandSender;
@@ -68,7 +67,7 @@ public final class PriorityCommand extends Command {
             terrains.removeIf(t -> t.id().equals(world));
 
             if (!player.hasPermission("terrainer.priority.others")) {
-                removed = terrains.removeIf(t -> !(t instanceof WorldTerrain) && !player.getUniqueId().equals(t.owner()));
+                removed = terrains.removeIf(t -> !player.getUniqueId().equals(t.owner()));
             }
             if (terrains.isEmpty()) {
                 lang.send(player, lang.get("Priority.Error.No Terrains"));
@@ -89,7 +88,7 @@ public final class PriorityCommand extends Command {
             lang.send(sender, lang.get("Priority.Here"));
 
             for (Terrain t : terrains) {
-                lang.send(sender, lang.get("Priority.Priority").replace("<priority>", Integer.toString(t.priority())).replace("<terrain>", t.name()));
+                lang.send(sender, false, lang.get("Priority.Priority").replace("<priority>", Integer.toString(t.priority())).replace("<terrain>", t.name()));
             }
 
             if (removed) lang.send(sender, lang.get("Priority.Removed"));
@@ -119,7 +118,7 @@ public final class PriorityCommand extends Command {
                 lang.send(sender, lang.get("Priority.Overlapping").replace("<priority>", Integer.toString(terrain.priority())).replace("<terrain>", terrain.name()));
 
                 for (Terrain t : overlappingTerrains) {
-                    lang.send(sender, lang.get("Priority.Priority").replace("<priority>", (showOtherPriorities || Objects.equals(senderID, t.owner())) ? Integer.toString(t.priority()) : lang.get("Priority.Unknown")).replace("<terrain>", terrain.name()));
+                    lang.send(sender, false, lang.get("Priority.Priority").replace("<priority>", (showOtherPriorities || Objects.equals(senderID, t.owner())) ? Integer.toString(t.priority()) : lang.get("Priority.Unknown")).replace("<terrain>", t.name()));
                 }
 
                 return;
