@@ -56,10 +56,21 @@ public final class Configurations {
             # Players who have this permission will have their ability to fly granted back when they leave the terrain.
             Fly Permission: 'essentials.fly'
                         
+            # If TRUE:
+            #   The ability to fly will ONLY be granted back if the player has the 'Fly Permission'.
+            # If FALSE:
+            #   Flying players that entered the terrain WITHOUT the 'Fly Permission', will always have their flight returned when they leave.
+            #   Flying players that entered the terrain WITH the 'Fly Permission', will ONLY have their flight returned if they still have the 'Fly Permission'.
+            # By leaving it false, you can control players that have the fly permission, while also not interfering with admins who can fly using alternate ways.
+            Strict Fly Return: false
+                        
             # List of prohibited terrain names.
             # Bypass permission: 'terrainer.bypass.name-blacklist'
             Blacklisted Names:
             - ''
+                        
+            # Whether to alert if dangerous flags are allowed/unset for global world-terrains.
+            Alert Dangerous Flags: true
                         
             # You can set a group's default block limits through this setting.
             # You can add you own limits and use them in groups through the permission 'terrainer.limit.blocks.<group>'
@@ -145,28 +156,20 @@ public final class Configurations {
               # The total amount of time in ticks to show the border.
               Time: 200
                         
-            Input:
-              # Whether an anvil should be used to get inputs from the player. If disabled, the input will be get from chat.
-              Anvil GUI:
-                Enabled: true
-                Material: FEATHER
-                Glowing: true
-              # The max time in ticks to get inputs from chat, if the player can't answer the input within this time, it will be cancelled.
-              Chat Interval: 400
-                        
-            # The commands to execute when a player joins the server in a terrain, and the TerrainEnterEvent is cancelled.
-            # An example of this happening is if the player had permission to enter a terrain which ENTRY flag is denied,
-            #and when they left the server their permission to the terrain was revoked. So when they join later,
-            #TerrainEnterEvent will be cancelled because the player is not allowed, then these commands will execute.
-            # This is not exclusive to ENTRY flag denied, any hooking plugin might cancel TerrainEnterEvent in any occasion.
-            # It is suggested to teleport the player to a place where entry is always allowed, either that or kick the
-            #player from the server.
-            # Use %p for the player's name, and %t for the terrain's ID.
-            Commands When TerrainEnterEvent Cancelled on Join or Create:
-            - 'tp %p 0 64 0'
-            #- 'spawn %p'
-            #- 'kick %p You tried to join in a terrain where ENTRY is denied.'
-                        
+            # Markers that show up when a player selects a position.
+            Markers:
+              Enabled: true
+              # How long in ticks the marker should be shown.
+              Show Time: 1200
+              Created Color: 55FF55 # Hex
+              Selection Color: FFFF55
+              Terrain Color: FFFFFF
+              # Air blocks can only be colored by regular color codes
+              Selection Block: GLOWSTONE
+              Selection Edge Block: GOLD_BLOCK
+              Terrain Block: DIAMOND_BLOCK
+              Terrain Edge Block: GLASS
+              
             # The item for selecting positions to claim terrains.
             # Can be obtained/bought with '/tr wand'
             Selector Wand:
@@ -194,20 +197,6 @@ public final class Configurations {
                 # The max distance from the player to allow the far selection.
                 Max Distance: 20
                         
-            # Markers that show up when a player selects a position.
-            Markers:
-              Enabled: true
-              # How long in ticks the marker should be shown.
-              Show Time: 1200
-              Created Color: 55FF55 # Hex
-              Selection Color: FFFF55
-              Terrain Color: FFFFFF
-              # Air blocks can only be colored by regular color codes
-              Selection Block: GLOWSTONE
-              Selection Edge Block: GOLD_BLOCK
-              Terrain Block: DIAMOND_BLOCK
-              Terrain Edge Block: GLASS
-                        
             # The item for seeing information about terrains in the location.
             # Can be obtained/bought with '/tr wand info'
             Info Wand:
@@ -222,8 +211,21 @@ public final class Configurations {
               Price: 50
               # Bypass: terrainer.wand.info.nocooldown
               Cooldown: 3600 #seconds
+              
+            # The commands to execute when a player joins the server in a terrain, and the TerrainEnterEvent is cancelled.
+            # An example of this happening is if the player had permission to enter a terrain which ENTRY flag is denied,
+            #and when they left the server their permission to the terrain was revoked. So when they join later,
+            #TerrainEnterEvent will be cancelled because the player is not allowed, then these commands will execute.
+            # This is not exclusive to ENTRY flag denied, any hooking plugin might cancel TerrainEnterEvent in any occasion.
+            # It is suggested to teleport the player to a place where entry is always allowed, either that or kick the
+            #player from the server.
+            # Use %p for the player's name.
+            Commands When TerrainEnterEvent Cancelled on Join or Create:
+            - 'tp %p 0 64 0'
+            #- 'spawn %p'
+            #- 'kick %p You tried to join in a terrain where ENTRY is denied.'
                         
-            Performance:
+            Protections And Performance:
               # There are multiple checks for when the players move. Disabling them can improve performance, but at a
               #cost of features related to terrain entering/leaving.
               Disable Enter Leave Events: false
@@ -240,7 +242,20 @@ public final class Configurations {
               # Creature Spawn Event is responsible for handling Mob Spawn and Spawner Spawn flags. Disabling it can
               #improve performance, but at a cost of losing those flags.
               Disable Creature Spawn Event: false
+              # Players will be able to enter terrains with ENTER flag denied IF there's a higher priority terrain on the
+              #same location with ENTER flag allowed. Disable it to protect the player from leaving a terrain with ENTER
+              #allowed into a terrain with ENTER denied. This will also affect FLIGHT and GLIDE protections.
+              Allow Higher Priority Entrances: false
                         
+            Input:
+              # Whether an anvil should be used to get inputs from the player. If disabled, the input will be get from chat.
+              Anvil GUI:
+                Enabled: true
+                Material: FEATHER
+                Glowing: true
+              # The max time in ticks to get inputs from chat, if the player can't answer the input within this time, it will be cancelled.
+              Chat Interval: 400
+             
             List:
               Chat:
                 Max Per Page: 20
@@ -480,6 +495,8 @@ public final class Configurations {
               Eat: '<cooldown=2000> &4You''re not allowed to consume items here.'
               Enemy Harm: '<cooldown=2000> &4You''re not allowed to harm enemy entities here.'
               Enter: '<cooldown=2000> &4You''re not allowed to enter.'
+              Enter Flying: '<cooldown=2000> &4You''re not allowed to enter while flying.'
+              Enter Gliding: '<cooldown=2000> &4You''re not allowed to enter while gliding.'
               Enter Vehicles: '<cooldown=2000> &4You''re not allowed to enter vehicles here.'
               Entity Harm: '<cooldown=2000> &4You''re not allowed to harm entities here.'
               Entity Interactions: '<cooldown=2000> &4You''re not allowed to interact with entities here.'
@@ -656,11 +673,16 @@ public final class Configurations {
             Priority:
               Error:
                 No Terrains: '<cooldown=1000> &7No terrains could be found.'
+              Here: '&7Priority of terrains in the current location:'
+              Overlapping: '&7Terrain &f<terrain>&7 has priority &f<priority>&7 and is overlapping the following terrains:'
+              Priority: '&8- &f<terrain>&7 = &f<priority>'
+              Removed: '<noprefix> &7Some terrains are not in the list because you don''t own them.'
               Same:
                 Here: '&7All terrains in this location have priority &f<priority>&7: &f<terrains>'
-              Removed: '&7Some terrains are not in the list because you don''t own them.'
               Select: '&cSelect the terrain to edit priority:'
+              Set: '&aPriority set to &f<new>&a for terrain: &f<terrain>&a.'
               Single: '&7Terrain &f<terrain>&7 has &f<priority>&7 priority.'
+              Unknown: 'Unknown' # Unknown priority
                         
             Wand:
               Bought: '&aYou''ve bought a &7<type>&a for &6<price>$&a.'
@@ -756,7 +778,7 @@ public final class Configurations {
                   Lore: |-
                     &8World ID: &7<var1>
                     &8Description: &7<var2>
-                    
+                        
                     &e&lA global terrain of a world
                         
             Matcher:
@@ -790,13 +812,13 @@ public final class Configurations {
                   Display Name: '&x&5&B&5&B&5&B&lAnvils'
                   Lore: |-
                     &7Value: &f<var0>
-                    
+                        
                     &7Whether anvils can be used.
                 Armor Stands:
                   Display Name: '&x&B&3&A&2&9&3&lArmor Stands'
                   Lore: |-
                     &7Value: &f<var0>
-                    
+                        
                     &7Whether armor stands can be used.
                     &7Breaking armor stands is handled by 'Build'
                     &7flag.
@@ -804,7 +826,7 @@ public final class Configurations {
                   Display Name: '&x&D&8&E&7&F&0&lBlock Form'
                   Lore: |-
                     &7Value: &f<var0>
-                    
+                        
                     &7Whether blocks can form, such as: ice, snow,
                     &7cobblestone, obsidian, concrete, etc.
                     &7Blocks forming from outside is handled by
@@ -813,7 +835,7 @@ public final class Configurations {
                   Display Name: '&x&1&D&2&7&3&3&lBlock Spread'
                   Lore: |-
                     &7Value: &f<var0>
-                    
+                        
                     &7Whether blocks can spread, such as: grass,
                     &7mushrooms and sculk.
                     &7Blocks spreading from outside is handled by
@@ -822,38 +844,38 @@ public final class Configurations {
                   Display Name: '&c&lBuild'
                   Lore: |-
                     &7Value: &f<var0>
-                    
+                        
                     &7Whether everyone can build.
                 Build Boats:
                   Display Name: '&x&6&6&4&2&2&8&lBuild Boats'
                   Lore: |-
                     &7Value: &f<var0>
-                    
+                        
                     &7Whether everyone can place and break boats.
                 Build Minecarts:
                   Display Name: '&8&lBuild Minecarts'
                   Lore: |-
                     &7Value: &f<var0>
-                    
+                        
                     &7Whether everyone can place and break minecarts.
                     &7TNT minecarts are handled by 'Build' flag.
                 Buttons:
                   Display Name: '&x&6&6&4&2&2&8&lButtons'
                   Lore: |-
                     &7Value: &f<var0>
-                    
+                        
                     &7Whether everyone can use buttons and levers.
                 Cauldrons:
                   Display Name: '&x&5&B&5&B&5&B&lCauldrons'
                   Lore: |-
                     &7Value: &f<var0>
-                    
+                        
                     &7Whether everyone can use cauldrons.
                 Cauldrons Change Level Naturally:
                   Display Name: '&x&5&B&5&B&5&B&lCauldrons Change Level Naturally'
                   Lore: |-
                     &7Value: &f<var0>
-                    
+                        
                     &7Whether cauldrons can fill or empty naturally.
                     &7Possible causes: rain, dripstone, entities
                     &7extinguishing fire.
@@ -861,7 +883,7 @@ public final class Configurations {
                   Display Name: '&c&lCommand Blacklist'
                   Lore: |-
                     &7Value: &f<var0>
-                    
+                        
                     &7A list of commands, separated by comma, that
                     &7are not allowed to be executed in the terrain.
                     &7Add &2*&7 to the list to make it a whitelist.
@@ -869,31 +891,31 @@ public final class Configurations {
                   Display Name: '&6&lContainers'
                   Lore: |-
                     &7Value: &f<var0>
-                    
+                        
                     &7Whether everyone can use containers.
                 Dispensers:
                   Display Name: '&8&lDispensers'
                   Lore: |-
                     &7Value: &f<var0>
-                    
+                        
                     &7Whether dispensers can fire.
                 Doors:
                   Display Name: '&x&8&B&5&F&2&B&lDoors'
                   Lore: |-
                     &7Value: &f<var0>
-                    
+                        
                     &7Whether everyone can use doors and gates.
                 Eat:
                   Display Name: '&x&A&4&5&5&3&5&lEat'
                   Lore: |-
                     &7Value: &f<var0>
-                    
+                        
                     &7Whether everyone can eat food.
                 Effects:
                   Display Name: '&b&lEffects'
                   Lore: |-
                     &7Value: &f<var0>
-                    
+                        
                     &7A list of effects to set to the players.
                     &7Example:
                     &7  &2speed=0,haste=2
@@ -901,7 +923,7 @@ public final class Configurations {
                   Display Name: '&7&lEnemy Harm'
                   Lore: |-
                     &7Value: &f<var0>
-                    
+                        
                     &7Whether everyone can harm enemy entities.
                     &7Entities inside the terrain will not be harmed
                     &7by entities that spawned outside.
@@ -909,13 +931,13 @@ public final class Configurations {
                   Display Name: '&2&lEnter'
                   Lore: |-
                     &7Value: &f<var0>
-                    
+                        
                     &7Whether players can enter.
                 Enter Console Commands:
                   Display Name: '&d&lEnter Console Commands'
                   Lore: |-
                     &7Value: &f<var0>
-                    
+                        
                     &7A list of commands to execute on console when
                     &7a player enters the terrain.
                     &7Use &2%p&7 for the player's name, &2%t&7 for the
@@ -924,7 +946,7 @@ public final class Configurations {
                   Display Name: '&d&lEnter Player Commands'
                   Lore: |-
                     &7Value: &f<var0>
-                    
+                        
                     &7A list of commands to execute as the player
                     &7when a player enters the terrain.
                     &7Use &2%p&7 for the player's name, &2%t&7 for the
@@ -933,14 +955,14 @@ public final class Configurations {
                   Display Name: '&x&D&7&6&5&2&B&lEnter Vehicles'
                   Lore: |-
                     &7Value: &f<var0>
-                    
+                        
                     &7Whether vehicles can be mounted, such as:
                     &7horses, minecarts, boats, llamas, etc.
                 Entity Harm:
                   Display Name: '&d&lEntity Harm'
                   Lore: |-
                     &7Value: &f<var0>
-                    
+                        
                     &7Whether entities can be harmed.
                     &7Enemy entities are controlled by 'Enemy Harm'
                     &7flag.
@@ -950,7 +972,7 @@ public final class Configurations {
                   Display Name: '&x&A&4&6&6&3&C&lEntity Interactions'
                   Lore: |-
                     &7Value: &f<var0>
-                    
+                        
                     &7Whether everyone can interact with entities.
                     &7Examples of entity interactions: talking
                     &7with villagers, curing zombies, breeding
@@ -959,7 +981,7 @@ public final class Configurations {
                   Display Name: '&4&lExplosion Damage'
                   Lore: |-
                     &7Value: &f<var0>
-                    
+                        
                     &7Whether blocks can be damaged by explosives.
                     &7Explosives from outside will be handled by
                     &7'Build' flag.
@@ -967,7 +989,7 @@ public final class Configurations {
                   Display Name: '&6&lFire Damage'
                   Lore: |-
                     &7Value: &f<var0>
-                    
+                        
                     &7Whether blocks can be damaged by fire.
                     &7Fire from outside will be handled by 'Build'
                     &7flag.
@@ -975,7 +997,7 @@ public final class Configurations {
                   Display Name: '&6&lFire Spread'
                   Lore: |-
                     &7Value: &f<var0>
-                    
+                        
                     &7Whether fire can spread.
                     &7Fire from outside will be handled by 'Build'
                     &7flag.
@@ -983,26 +1005,26 @@ public final class Configurations {
                   Display Name: '&f&lFly'
                   Lore: |-
                     &7Value: &f<var0>
-                    
+                        
                     &7Whether players with fly permission can fly.
                 Frost Walk:
                   Display Name: '&x&B&E&D&3&E&5&lFrost Walk'
                   Lore: |-
                     &7Value: &f<var0>
-                    
+                        
                     &7Whether everyone can form ice using frost walk
                     &7enchanted boots.
                 Glide:
                   Display Name: '&8&lGlide'
                   Lore: |-
                     &7Value: &f<var0>
-                    
+                        
                     &7Whether players can glide with elytras.
                 Interactions:
                   Display Name: '&x&6&6&4&2&2&8&lInteractions'
                   Lore: |-
                     &7Value: &f<var0>
-                    
+                        
                     &7Whether everyone can right click interactable
                     &7blocks.
                     &7Examples of interactions: using flower pots,
@@ -1012,13 +1034,13 @@ public final class Configurations {
                   Display Name: '&8&lItem Drop'
                   Lore: |-
                     &7Value: &f<var0>
-                    
+                        
                     &7Whether everyone can drop items.
                 Item Frames:
                   Display Name: '&e&lItem Frames'
                   Lore: |-
                     &7Value: &f<var0>
-                    
+                        
                     &7Whether everyone can put items on or rotate
                     &7item frames.
                     &7Taking items off is handled by 'Build' flag.
@@ -1026,25 +1048,25 @@ public final class Configurations {
                   Display Name: '&8&lItem Pickup'
                   Lore: |-
                     &7Value: &f<var0>
-                    
+                        
                     &7Whether everyone can pick up items.
                 Leaf Decay:
                   Display Name: '&x&1&F&5&C&1&4&lLeaf Decay'
                   Lore: |-
                     &7Value: &f<var0>
-                    
+                        
                     &7Whether leaves can decay naturally.
                 Leave:
                   Display Name: '&4&lLeave'
                   Lore: |-
                     &7Value: &f<var0>
-                    
+                        
                     &7Whether players can leave.
                 Leave Console Commands:
                   Display Name: '&d&lLeave Console Commands'
                   Lore: |-
                     &7Value: &f<var0>
-                    
+                        
                     &7A list of commands to execute on console when
                     &7a player leaves the terrain.
                     &7Use &2%p&7 for the player's name, &2%t&7 for the
@@ -1053,7 +1075,7 @@ public final class Configurations {
                   Display Name: '&7&lLeave Message'
                   Lore: |-
                     &7Value: &f<var0>
-                    
+                        
                     &7The message shown when someone leaves the
                     &7terrain.
                     &7The location of the message will be the same
@@ -1062,7 +1084,7 @@ public final class Configurations {
                   Display Name: '&d&lLeave Player Commands'
                   Lore: |-
                     &7Value: &f<var0>
-                    
+                        
                     &7A list of commands to execute as the player
                     &7when a player leaves the terrain.
                     &7Use &2%p&7 for the player's name, &2%t&7 for the
@@ -1071,7 +1093,7 @@ public final class Configurations {
                   Display Name: '&8&lLighters'
                   Lore: |-
                     &7Value: &f<var0>
-                    
+                        
                     &7Whether everyone can use lighters such as
                     &7fireballs or flint and steel to light fire,
                     &7campfires and candles.
@@ -1079,7 +1101,7 @@ public final class Configurations {
                   Display Name: '&1&lLiquid Flow'
                   Lore: |-
                     &7Value: &f<var0>
-                    
+                        
                     &7Whether liquids such as lava and water can
                     &7flow.
                     &7Liquids flowing from outside is handled by
@@ -1088,13 +1110,13 @@ public final class Configurations {
                   Display Name: '&7&lMessage Location'
                   Lore: |-
                     &7Value: &f<var0>
-                    
+                        
                     &7The location where the enter and leave
                     &7messages will be.
                     &7Locations:
-                    
+                        
                     &2NONE &7| &2ACTIONBAR &7| &2BOSSBAR &7| &2CHAT &7| &2TITLE
-                    
+                        
                     &7The description of the terrain is used as
                     &7enter message.
                     &7To set a leave message, use the
@@ -1103,7 +1125,7 @@ public final class Configurations {
                   Display Name: '&x&4&D&7&E&3&A&lMob Spawn'
                   Lore: |-
                     &7Value: &f<var0>
-                    
+                        
                     &7Whether mobs can spawn within the terrain.
                     &7Spawner mobs are controlled by 'Spawners'
                     &7flag.
@@ -1111,7 +1133,7 @@ public final class Configurations {
                   Display Name: '&x&6&7&2&6&3&0&lMods Can Edit Flags'
                   Lore: |-
                     &7Value: &f<var0>
-                    
+                        
                     &7Whether moderators can edit terrain flags,
                     &7except those who control moderator
                     &7permissions.
@@ -1119,47 +1141,47 @@ public final class Configurations {
                   Display Name: '&x&6&7&2&6&3&0&lMods Can Manage Mods'
                   Lore: |-
                     &7Value: &f<var0>
-                    
+                        
                     &7Whether moderators can grant or revoke the
                     &7moderator role to/from other players.
                 Outside Dispensers:
                   Display Name: '&7&lOutside Dispensers'
                   Lore: |-
                     &7Value: &f<var0>
-                    
+                        
                     &7Whether dispensers from outside the terrain
                     &7can fire into the terrain.
                 Outside Pistons:
                   Display Name: '&x&8&F&B&F&4&5&lOutside Pistons'
                   Lore: |-
                     &7Value: &f<var0>
-                    
+                        
                     &7Whether pistons from outside the terrain
                     &7can push or pull blocks within.
                 Outside Projectiles:
                   Display Name: '&x&A&0&6&A&4&2&lOutside Projectiles'
                   Lore: |-
                     &7Value: &f<var0>
-                    
+                        
                     &7Whether projectiles from outside can land
                     &7within.
                 Pistons:
                   Display Name: '&e&lPistons'
                   Lore: |-
                     &7Value: &f<var0>
-                    
+                        
                     &7Whether pistons can move.
                 Plant:
                   Display Name: '&a&lPlant'
                   Lore: |-
                     &7Value: &f<var0>
-                    
+                        
                     &7Whether everyone can plant on farmland.
                 Plant Grow:
                   Display Name: '&a&lPlant Grow'
                   Lore: |-
                     &7Value: &f<var0>
-                    
+                        
                     &7Whether crops, grass, saplings can grow using
                     &7bone meal, or naturally.
                     &7Outside plants that grow blocks inside will be
@@ -1168,20 +1190,20 @@ public final class Configurations {
                   Display Name: '&f&lPlow'
                   Lore: |-
                     &7Value: &f<var0>
-                    
+                        
                     &7Whether everyone can use hoes to make
                     &7farmland.
                 Potions:
                   Display Name: '&5&lPotions'
                   Lore: |-
                     &7Value: &f<var0>
-                    
+                        
                     &7Whether everyone can drink or throw potions.
                 Prepare:
                   Display Name: '&x&A&C&6&8&3&B&lPrepare'
                   Lore: |-
                     &7Value: &f<var0>
-                    
+                        
                     &7Whether everyone can use prepare blocks, such
                     &7as: cartography tables, crafting tables,
                     &7enchanting tables, grindstones, looms, smithing
@@ -1190,51 +1212,51 @@ public final class Configurations {
                   Display Name: '&x&8&E&6&6&1&B&lPressure Plates'
                   Lore: |-
                     &7Value: &f<var0>
-                    
+                        
                     &7Whether everyone can step on pressure plates.
                 Projectiles:
                   Display Name: '&x&D&5&D&5&D&5&lProjectiles'
                   Lore: |-
                     &7Value: &f<var0>
-                    
+                        
                     &7Whether everyone can shoot projectiles.
                 PvP:
                   Display Name: '&x&2&A&C&5&A&A&lPvP'
                   Lore: |-
                     &7Value: &f<var0>
-                    
+                        
                     &7Whether players can engage in combat.
                 Show Borders:
                   Display Name: '&6&lShow Borders'
                   Lore: |-
                     &7Value: &f<var0>
-                    
+                        
                     &7Whether particles will show in the borders
                     &7of the terrain.
                 Sign Click:
                   Display Name: '&x&8&E&6&6&1&B&lSign Click'
                   Lore: |-
                     &7Value: &f<var0>
-                    
+                        
                     &7Whether everyone can click on signs.
                 Sign Edit:
                   Display Name: '&x&3&E&2&F&2&3&lSign Edit'
                   Lore: |-
                     &7Value: &f<var0>
-                    
+                        
                     &7Whether everyone can edit signs.
                 Spawners:
                   Display Name: '&x&1&D&2&7&3&3&lSpawners'
                   Lore: |-
                     &7Value: &f<var0>
-                    
+                        
                     &7Whether mobs with spawn reason 'Spawners'
                     &7will spawn.
                 Sponges:
                   Display Name: '&e&lSponges'
                   Lore: |-
                     &7Value: &f<var0>
-                    
+                        
                     &7Whether sponges will soak up water.
                     &7Sponges outside the terrain are handled by
                     &7'Build' flag.
@@ -1242,13 +1264,13 @@ public final class Configurations {
                   Display Name: '&x&A&C&6&8&3&B&lTrample'
                   Lore: |-
                     &7Value: &f<var0>
-                    
+                        
                     &7Whether everyone can trample on farmland.
                 Vulnerability:
                   Display Name: '&x&F&F&C&C&0&0&lVulnerability'
                   Lore: |-
                     &7Value: &f<var0>
-                    
+                        
                     &7Whether players will lose health or
                     &7saturation.
             """.replace("#VERSION#", TerrainerVersion.VERSION_STRING));
