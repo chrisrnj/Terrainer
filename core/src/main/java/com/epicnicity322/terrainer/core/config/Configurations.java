@@ -255,7 +255,13 @@ public final class Configurations {
                 Glowing: true
               # The max time in ticks to get inputs from chat, if the player can't answer the input within this time, it will be cancelled.
               Chat Interval: 400
-             
+                        
+            Teleport:
+              # The delay to wait before teleporting the player.
+              # If the player moves, the teleportation will be cancelled.
+              # Set to 0 to disable, or grant the permission 'terrainer.teleport.nodelay'
+              Movement Check Delay: 3 #seconds
+                        
             List:
               Chat:
                 Max Per Page: 20
@@ -683,6 +689,18 @@ public final class Configurations {
               Set: '&aPriority set to &f<new>&a for terrain: &f<terrain>&a.'
               Single: '&7Terrain &f<terrain>&7 has &f<priority>&7 priority.'
               Unknown: 'Unknown' # Unknown priority
+                        
+            Teleport:
+              Above: '<noprefix> &eYou were teleported ABOVE the terrain, because the location was obstructed.'
+              Delay: '<noprefix> &7You will be teleported in <delay> second(s)...'
+              Error:
+                Already Teleporting: '<noprefix> &4You are already in the process of teleporting to a terrain.'
+                Default: '<noprefix> &4You could not be teleported to &7<terrain>&4.'
+                Moved: '<noprefix> &4The teleportation was cancelled because you moved'
+                Other: '&4<player> could not be teleported to &7<terrain>&4.'
+              Success:
+                Default: '<noprefix> &aYou were teleported to &7<terrain>&a.'
+                Other: '&a<player> was teleported to &7<terrain>&a.'
                         
             Wand:
               Bought: '&aYou''ve bought a &7<type>&a for &6<price>$&a.'

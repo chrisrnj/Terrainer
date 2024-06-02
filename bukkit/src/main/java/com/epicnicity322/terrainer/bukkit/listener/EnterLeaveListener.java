@@ -48,9 +48,9 @@ import java.util.*;
  * A listener for enter leave (movement) events.
  */
 public final class EnterLeaveListener extends ToggleableListener {
+    public static final boolean asyncTeleport = ReflectionUtil.getMethod(Entity.class, "teleportAsync", Location.class) != null;
     static final @NotNull HashSet<UUID> ignoredPlayersTeleportEvent = new HashSet<>(4);
     static final @NotNull HashSet<UUID> ignoredPlayersDismountEvent = new HashSet<>(4);
-    private static final boolean asyncTeleport = ReflectionUtil.getMethod(Entity.class, "teleportAsync", Location.class) != null;
     private static final @NotNull Vector zero = new Vector(0, 0, 0);
     private static @NotNull List<String> commandsOnEntryCancelled = Collections.emptyList();
 
