@@ -958,8 +958,7 @@ public final class Configurations {
                         
                     &7A list of commands to execute on console when
                     &7a player enters the terrain.
-                    &7Use &2%p&7 for the player's name, &2%t&7 for the
-                    &7terrain's ID.
+                    &7Use &2%p&7 for the player's name.
                 Enter Player Commands:
                   Display Name: '&d&lEnter Player Commands'
                   Lore: |-
@@ -967,8 +966,7 @@ public final class Configurations {
                         
                     &7A list of commands to execute as the player
                     &7when a player enters the terrain.
-                    &7Use &2%p&7 for the player's name, &2%t&7 for the
-                    &7terrain's ID.
+                    &7Use &2%p&7 for the player's name.
                 Enter Vehicles:
                   Display Name: '&x&D&7&6&5&2&B&lEnter Vehicles'
                   Lore: |-
@@ -1087,8 +1085,7 @@ public final class Configurations {
                         
                     &7A list of commands to execute on console when
                     &7a player leaves the terrain.
-                    &7Use &2%p&7 for the player's name, &2%t&7 for the
-                    &7terrain's ID.
+                    &7Use &2%p&7 for the player's name.
                 Leave Message:
                   Display Name: '&7&lLeave Message'
                   Lore: |-
@@ -1105,8 +1102,7 @@ public final class Configurations {
                         
                     &7A list of commands to execute as the player
                     &7when a player leaves the terrain.
-                    &7Use &2%p&7 for the player's name, &2%t&7 for the
-                    &7terrain's ID.
+                    &7Use &2%p&7 for the player's name.
                 Lighters:
                   Display Name: '&8&lLighters'
                   Lore: |-
