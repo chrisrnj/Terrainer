@@ -55,6 +55,7 @@ permissions:
     children:
       terrainer.borders.show: true
       terrainer.borders: true
+      terrainer.bypass.overlap.self: true
       terrainer.claim: true
       terrainer.delete: true
       terrainer.description: true
