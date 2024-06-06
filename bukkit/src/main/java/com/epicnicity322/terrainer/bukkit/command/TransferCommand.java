@@ -31,6 +31,7 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
+import java.lang.ref.WeakReference;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.UUID;
@@ -131,6 +132,7 @@ public final class TransferCommand extends Command {
                 terrain.setOwner(newOwnerID);
                 lang.send(sender, lang.get("Transfer.Success").replace("<terrain>", name).replace("<who>", who));
             } else {
+                WeakReference<Terrain> terrainRef = new WeakReference<>(terrain);
                 int confirmationHash = Objects.hash("transfer", terrain.id());
 
                 lang.send(sender, lang.get("Transfer.Requested").replace("<who>", who));
@@ -138,10 +140,18 @@ public final class TransferCommand extends Command {
 
                 ConfirmCommand.requestConfirmation(newOwner, () -> {
                     ConfirmCommand.cancelConfirmations(confirmationHash);
-                    terrain.setOwner(newOwnerID);
-                    lang.send(sender, lang.get("Transfer.Success").replace("<terrain>", name).replace("<who>", who));
-                    lang.send(newOwner, lang.get("Transfer.Success").replace("<terrain>", name).replace("<who>", lang.get("Target.You").toLowerCase(Locale.ROOT)));
-                }, () -> lang.get("Transfer.Confirmation Description").replace("<terrain>", name), confirmationHash);
+
+                    Terrain terrain1 = terrainRef.get();
+                    if (terrain1 == null) return;
+                    String name1 = terrain1.name();
+
+                    terrain1.setOwner(newOwnerID);
+                    lang.send(sender, lang.get("Transfer.Success").replace("<terrain>", name1).replace("<who>", who));
+                    lang.send(newOwner, lang.get("Transfer.Success").replace("<terrain>", name1).replace("<who>", lang.get("Target.You").toLowerCase(Locale.ROOT)));
+                }, () -> {
+                    Terrain terrain1 = terrainRef.get();
+                    return lang.get("Transfer.Confirmation Description").replace("<terrain>", terrain1 == null ? name : terrain1.name());
+                }, confirmationHash);
             }
         });
     }

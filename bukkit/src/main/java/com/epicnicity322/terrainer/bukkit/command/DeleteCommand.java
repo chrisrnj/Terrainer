@@ -30,6 +30,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
 import org.jetbrains.annotations.NotNull;
 
+import java.lang.ref.WeakReference;
 import java.util.Objects;
 
 public final class DeleteCommand extends Command {
@@ -58,20 +59,29 @@ public final class DeleteCommand extends Command {
 
             lang.send(sender, lang.get("Delete." + (worldTerrain ? "World " : "") + "Confirmation").replace("<label>", label).replace("<label2>", lang.get("Commands.Confirm.Confirm")).replace("<name>", terrain.name()));
 
+            String name = terrain.name();
+            WeakReference<Terrain> terrainRef = new WeakReference<>(terrain);
             int confirmationHash = Objects.hash("delete", terrain.id());
 
             ConfirmCommand.requestConfirmation(sender, () -> {
-                if (TerrainManager.remove(terrain) != null) {
-                    boolean isReallyWorldTerrain = terrain instanceof WorldTerrain && Bukkit.getWorlds().stream().anyMatch(world -> world.getUID().equals(terrain.world()));
-                    lang.send(sender, lang.get("Delete." + (isReallyWorldTerrain ? "World " : "") + "Success").replace("<name>", terrain.name()));
-                    if (isReallyWorldTerrain) TerrainManager.loadWorld(terrain.world(), terrain.name());
+                ConfirmCommand.cancelConfirmations(confirmationHash);
+                Terrain terrain1 = terrainRef.get();
+                if (terrain1 == null) return;
+
+                if (TerrainManager.remove(terrain1) != null) {
+                    boolean isReallyWorldTerrain = terrain1 instanceof WorldTerrain && Bukkit.getWorlds().stream().anyMatch(world -> world.getUID().equals(terrain1.world()));
+                    lang.send(sender, lang.get("Delete." + (isReallyWorldTerrain ? "World " : "") + "Success").replace("<name>", terrain1.name()));
+                    if (isReallyWorldTerrain) TerrainManager.loadWorld(terrain1.world(), terrain1.name());
                     // Cancelling all confirmations related to this terrain.
-                    ConfirmCommand.cancelConfirmations(confirmationHash);
-                    ConfirmCommand.cancelConfirmations(Objects.hash("transfer", terrain.id()));
+                    ConfirmCommand.cancelConfirmations(Objects.hash("transfer", terrain1.id()));
+                    ConfirmCommand.cancelConfirmations(Objects.hash("resize", terrain1.id()));
                 } else {
                     lang.send(sender, lang.get("Delete.Error"));
                 }
-            }, () -> lang.getColored("Delete.Confirmation Description").replace("<name>", terrain.name()), confirmationHash);
+            }, () -> {
+                Terrain terrain1 = terrainRef.get();
+                return lang.getColored("Delete.Confirmation Description").replace("<name>", terrain1 == null ? name : terrain1.name());
+            }, confirmationHash);
         });
     }
 }

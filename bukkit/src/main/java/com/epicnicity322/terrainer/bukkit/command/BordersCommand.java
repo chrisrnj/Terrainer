@@ -34,6 +34,7 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.Collection;
 import java.util.UUID;
+import java.util.WeakHashMap;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -77,21 +78,24 @@ public final class BordersCommand extends Command {
         synchronized (viewers) {
             if (viewers.size() >= config.getNumber("Borders.Max Viewing").orElse(20).intValue()) return;
 
+            WeakHashMap<Terrain, Object> terrains1 = new WeakHashMap<>();
+            terrains.forEach(t -> terrains1.put(t, null));
             UUID world = player.getWorld().getUID();
             long startTime = System.currentTimeMillis();
 
             Runnable particleRunnable = () -> {
-                long time = config.getNumber("Borders.Time").orElse(200).longValue() * 50; // A tick has 50ms.
+                Configuration config1 = Configurations.CONFIG.getConfiguration();
+                long time = config1.getNumber("Borders.Time").orElse(200).longValue() * 50; // A tick has 50ms.
 
                 if (System.currentTimeMillis() - startTime >= time || !player.isOnline() || !world.equals(player.getWorld().getUID())) {
                     stopShowingBorders(playerID);
                     return;
                 }
 
-                double yOffSet = config.getNumber("Borders.Y OffSet").orElse(0.5).doubleValue();
+                double yOffSet = config1.getNumber("Borders.Y OffSet").orElse(0.5).doubleValue();
                 double y = player.getLocation().getY() + yOffSet;
 
-                for (Terrain t : terrains) {
+                for (Terrain t : terrains1.keySet()) {
                     double finalY = y;
                     if (finalY > t.maxDiagonal().y() + 1) finalY = t.maxDiagonal().y() + 1;
                     else if (finalY < t.minDiagonal().y()) finalY = t.minDiagonal().y();
