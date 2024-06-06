@@ -38,7 +38,7 @@ public class TerrainListGUI extends ListGUI<WeakReference<Terrain>> {
     private final @NotNull BiConsumer<InventoryClickEvent, Terrain> onClick;
 
     public TerrainListGUI(@NotNull Collection<Terrain> terrains, @NotNull String title, @NotNull BiConsumer<InventoryClickEvent, Terrain> onClick) {
-        super(terrains.stream().map(WeakReference::new).collect(Collectors.toSet()), title);
+        super(terrains.stream().map(WeakReference::new).collect(Collectors.toList()), title);
         this.onClick = onClick;
     }
 
