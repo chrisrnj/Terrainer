@@ -62,7 +62,7 @@ public final class ClaimCommand extends Command {
     @Override
     public void run(@NotNull String label, @NotNull CommandSender sender, @NotNull String[] args) {
         MessageSender lang = TerrainerPlugin.getLanguage();
-        Player player = sender instanceof Player player1 ? player1 : null;
+        Player player = sender instanceof Player p ? p : null;
         UUID owner = player == null ? null : player.getUniqueId();
         WorldCoordinate[] selection = PlayerUtil.selections(owner);
 
@@ -106,7 +106,10 @@ public final class ClaimCommand extends Command {
         } else name = null;
 
         BukkitPlayerUtil util = TerrainerPlugin.getPlayerUtil();
-        var terrain = new Terrain(first, second, world.getUID());
+        Terrain terrain = new Terrain(first, second, world.getUID());
+
+        terrain.setOwner(owner);
+        terrain.setName(terrain.defaultName());
 
         if (name != null) {
             String originalName = terrain.name();

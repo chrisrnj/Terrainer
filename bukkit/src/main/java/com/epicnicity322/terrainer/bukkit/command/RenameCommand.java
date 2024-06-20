@@ -67,7 +67,7 @@ public final class RenameCommand extends Command {
             boolean reset;
 
             if (stripped.isBlank()) {
-                newName = terrain.id().toString().substring(0, terrain.id().toString().indexOf('-'));
+                newName = terrain.defaultName();
                 if (previousName.equals(newName)) {
                     lang.send(sender, lang.get("Rename.Error.Same").replace("<name>", newName));
                     return;
