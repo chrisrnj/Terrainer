@@ -43,6 +43,13 @@ import java.util.concurrent.*;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
 
+/**
+ * A utility class that contains methods used for terrain protection.
+ * <p>
+ * TerrainManager is the core class of Terrainer, responsible for handling terrain-related operations.
+ * It includes methods for registering terrains, loading terrains from disk, and deleting terrains.
+ * Additionally, it provides utility methods for protection operations, such as {@link #isFlagAllowedAt(Flag, WorldCoordinate)}.
+ */
 public final class TerrainManager {
     /**
      * The folder where terrains are saved at. Terrain are saved in files with '.terrain' extension.
