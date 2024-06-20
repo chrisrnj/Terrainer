@@ -475,6 +475,9 @@ public final class Configurations {
                 World No Longer Exists: '&4The world in your selections no longer exists.'
               Success: '&2Terrain ''&a<name>&2'' claimed successfully! Used block limit: &7<used>&f/&7<max>'
               Define: '&2Terrain ''&a<name>&2'' defined successfully with all protection flags!'
+              # <owner> for the terrain owner's name.
+              # <number> for the next available terrain name number.
+              Default Name: '<owner>_<number>'
                         
             Delete:
               Confirmation: '&7Are you sure you want to delete &e<name>&7? Please confirm the deletion with &f&n/<label> <label2>&7.'

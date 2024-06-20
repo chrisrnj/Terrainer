@@ -50,7 +50,7 @@ public class Terrain implements Serializable {
      */
     public static final int MAX_CHUNK_AMOUNT = 8398404;
     @Serial
-    private static final long serialVersionUID = 8919189004221598446L;
+    private static final long serialVersionUID = 7427059289387648133L;
     final @NotNull UUID world;
     final @NotNull UUID id;
     final @NotNull ZonedDateTime creationDate;
@@ -63,7 +63,7 @@ public class Terrain implements Serializable {
     @NotNull Coordinate maxDiagonal;
     @NotNull Set<Coordinate> borders;
     @NotNull Set<Chunk> chunks;
-    @NotNull String name;
+    @Nullable String name;
     @Nullable String description;
     int priority;
     /**
@@ -89,7 +89,7 @@ public class Terrain implements Serializable {
      * @param second       The second diagonal of this terrain.
      * @param world        The world this terrain is located.
      * @param id           The id of this terrain.
-     * @param name         The color-code-formatted name of this terrain.
+     * @param name         The name of this terrain, null to use the default name.
      * @param description  The description of this terrain, null to use the default description.
      * @param creationDate The date this terrain was created.
      * @param owner        The current owner of this terrain, null for CONSOLE.
@@ -98,7 +98,7 @@ public class Terrain implements Serializable {
      * @param flags        The set of active flags in this terrain.
      * @param memberFlags  The map of flags each specific player can have.
      */
-    public Terrain(@NotNull Coordinate first, @NotNull Coordinate second, @NotNull UUID world, @NotNull UUID id, @NotNull String name, @Nullable String description, @NotNull ZonedDateTime creationDate, @Nullable UUID owner, int priority, @Nullable Collection<UUID> moderators, @Nullable Collection<UUID> members, @Nullable HashMap<String, Object> flags, @Nullable HashMap<UUID, HashMap<String, Object>> memberFlags) {
+    public Terrain(@NotNull Coordinate first, @NotNull Coordinate second, @NotNull UUID world, @NotNull UUID id, @Nullable String name, @Nullable String description, @NotNull ZonedDateTime creationDate, @Nullable UUID owner, int priority, @Nullable Collection<UUID> moderators, @Nullable Collection<UUID> members, @Nullable HashMap<String, Object> flags, @Nullable HashMap<UUID, HashMap<String, Object>> memberFlags) {
         this.minDiagonal = findMinMax(first, second, true);
         this.maxDiagonal = findMinMax(first, second, false);
         this.borders = findBorders(minDiagonal, maxDiagonal);
@@ -130,7 +130,7 @@ public class Terrain implements Serializable {
      * @param second       The second diagonal of this terrain.
      * @param world        The world this terrain is located.
      * @param id           The id of this terrain.
-     * @param name         The color-code-formatted name of this terrain.
+     * @param name         The name of this terrain, null to use the default name.
      * @param description  The description of this terrain, null to use the default description.
      * @param owner        The current owner of this terrain, null for CONSOLE.
      * @param creationDate The date this terrain was created.
@@ -139,7 +139,7 @@ public class Terrain implements Serializable {
      * @param flags        The set of active flags in this terrain.
      * @param memberFlags  The map of flags each specific player can have.
      */
-    public Terrain(@NotNull Coordinate first, @NotNull Coordinate second, @NotNull UUID world, @NotNull UUID id, @NotNull String name, @Nullable String description, @Nullable UUID owner, @NotNull ZonedDateTime creationDate, int priority, @Nullable PrivateSet<UUID> moderators, @Nullable PrivateSet<UUID> members, @Nullable FlagMap flags, @Nullable MemberFlagMap memberFlags) {
+    public Terrain(@NotNull Coordinate first, @NotNull Coordinate second, @NotNull UUID world, @NotNull UUID id, @Nullable String name, @Nullable String description, @Nullable UUID owner, @NotNull ZonedDateTime creationDate, int priority, @Nullable PrivateSet<UUID> moderators, @Nullable PrivateSet<UUID> members, @Nullable FlagMap flags, @Nullable MemberFlagMap memberFlags) {
         this.minDiagonal = findMinMax(first, second, true);
         this.maxDiagonal = findMinMax(first, second, false);
         this.borders = findBorders(minDiagonal, maxDiagonal);
@@ -165,8 +165,7 @@ public class Terrain implements Serializable {
      * @param world  The world this terrain is located.
      */
     public Terrain(@NotNull Coordinate first, @NotNull Coordinate second, @NotNull UUID world) {
-        this(first, second, world, UUID.randomUUID(), "", null, ZonedDateTime.now(), null, 0, null, null, null, null);
-        this.name = defaultName();
+        this(first, second, world, UUID.randomUUID(), null, null, ZonedDateTime.now(), null, 0, null, null, null, null);
     }
 
     /**
@@ -177,6 +176,35 @@ public class Terrain implements Serializable {
      */
     public Terrain(@NotNull Terrain terrain) {
         this(terrain.minDiagonal, terrain.maxDiagonal, terrain.world, terrain.id, terrain.name, terrain.description, terrain.owner, terrain.creationDate, terrain.priority, terrain.moderators, terrain.members, terrain.flags, terrain.memberFlags);
+    }
+
+
+    /**
+     * Gets the name the specified terrain should have by default.
+     * <p>
+     * This will make checks to the {@link #owner()}'s other terrains, and name the terrain after their name plus a
+     * number. If the terrain is owned by CONSOLE ({@link #owner()} is <code>null</code>), the default name is the
+     * Time-low of the terrain's {@link #id()}.
+     *
+     * @return The default name of this terrain.
+     */
+    public static @NotNull String defaultName(@NotNull UUID terrainID, @Nullable UUID owner) {
+        if (owner == null) return terrainID.toString().substring(0, terrainID.toString().indexOf('-'));
+
+        List<Terrain> ownerTerrains = TerrainManager.terrainsOf(owner);
+        PlayerUtil<?, ?> playerUtil = Terrainer.playerUtil();
+        String nameFormat = Terrainer.lang().get("Create.Default Name").replace("<owner>", (playerUtil == null ? owner.toString() : playerUtil.getOwnerName(owner)));
+        int size = 1;
+
+        if (ownerTerrains.stream().anyMatch(t -> t.id.equals(terrainID))) {
+            Set<String> ownerTerrainNames = ownerTerrains.stream().filter(t -> !t.id.equals(terrainID)).map(Terrain::name).collect(Collectors.toSet());
+            // Find next available name.
+            while (ownerTerrainNames.contains(nameFormat.replace("<number>", Integer.toString(size)))) size++;
+        } else {
+            size = ownerTerrains.size() + 1;
+        }
+
+        return nameFormat.replace("<number>", Integer.toString(size));
     }
 
     /**
@@ -273,7 +301,7 @@ public class Terrain implements Serializable {
                 }
             }
 
-            return new Terrain(min, max, UUID.fromString(terrain.getString("world").orElseThrow()), terrainId, terrain.getString("name").orElseThrow(), terrain.getString("description").orElse(null), terrain.getString("creation-date").map(ZonedDateTime::parse).orElseThrow(), owner == null ? null : UUID.fromString(owner), terrain.getNumber("priority").orElse(0).intValue(), moderators, members, flagMap, memberFlags);
+            return new Terrain(min, max, UUID.fromString(terrain.getString("world").orElseThrow()), terrainId, terrain.getString("name").orElse(null), terrain.getString("description").orElse(null), terrain.getString("creation-date").map(ZonedDateTime::parse).orElseThrow(), owner == null ? null : UUID.fromString(owner), terrain.getNumber("priority").orElse(0).intValue(), moderators, members, flagMap, memberFlags);
         } catch (Exception e) {
             throw new IllegalArgumentException("The provided file is not a valid terrain file:", e);
         }
@@ -508,35 +536,7 @@ public class Terrain implements Serializable {
      * @return The display name of this terrain.
      */
     public @NotNull String name() {
-        return name;
-    }
-
-    /**
-     * Gets the name this terrain should have by default.
-     * <p>
-     * This will make checks to the {@link #owner()}'s other terrains, and name the terrain after their name plus a
-     * number. If the terrain is owned by CONSOLE ({@link #owner()} is <code>null</code>), the default name is the
-     * Time-low of the terrain's {@link #id()}.
-     *
-     * @return The default name of this terrain.
-     */
-    public @NotNull String defaultName() {
-        if (owner == null) return id.toString().substring(0, id.toString().indexOf('-'));
-
-        List<Terrain> ownerTerrains = TerrainManager.terrainsOf(owner);
-        PlayerUtil<?, ?> playerUtil = Terrainer.playerUtil();
-        String ownerName = (playerUtil == null ? owner.toString() : playerUtil.getOwnerName(owner)) + "_";
-        int size = 1;
-
-        if (ownerTerrains.contains(this)) {
-            Set<String> ownerTerrainNames = ownerTerrains.stream().filter(t -> t != this).map(Terrain::name).collect(Collectors.toSet());
-            // Find next available name.
-            while (ownerTerrainNames.contains(ownerName + size)) size++;
-        } else {
-            size = ownerTerrains.size() + 1;
-        }
-
-        return ownerName + size;
+        return name == null ? defaultName(id, owner) : name;
     }
 
     /**
@@ -546,10 +546,10 @@ public class Terrain implements Serializable {
      * parameter, as there is no guarantee the display name will be formatted in all messages sent to the player.
      *
      * @param name The display name of this terrain.
-     * @see #defaultName()
+     * @see #defaultName(UUID, UUID)
      */
-    public void setName(@NotNull String name) {
-        if (name.equals(this.name)) return; // Don't mark terrain as changed.
+    public void setName(@Nullable String name) {
+        if (Objects.equals(this.name, name)) return; // Don't mark terrain as changed.
         this.name = name;
         markAsChanged();
     }
@@ -763,7 +763,7 @@ public class Terrain implements Serializable {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         Terrain terrain = (Terrain) o;
-        return id.equals(terrain.id) && world.equals(terrain.world) && minDiagonal.equals(terrain.minDiagonal) && maxDiagonal.equals(terrain.maxDiagonal) && Objects.equals(owner, terrain.owner) && creationDate.equals(terrain.creationDate) && name.equals(terrain.name) && Objects.equals(description, terrain.description) && priority == terrain.priority && moderators.equals(terrain.moderators) && members.equals(terrain.members) && flags.equals(terrain.flags) && memberFlags.equals(terrain.memberFlags);
+        return id.equals(terrain.id) && world.equals(terrain.world) && minDiagonal.equals(terrain.minDiagonal) && maxDiagonal.equals(terrain.maxDiagonal) && Objects.equals(owner, terrain.owner) && creationDate.equals(terrain.creationDate) && Objects.equals(name, terrain.name) && Objects.equals(description, terrain.description) && priority == terrain.priority && moderators.equals(terrain.moderators) && members.equals(terrain.members) && flags.equals(terrain.flags) && memberFlags.equals(terrain.memberFlags);
     }
 
     @Override

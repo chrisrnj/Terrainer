@@ -63,18 +63,19 @@ public final class RenameCommand extends Command {
 
             String previousName = terrain.name();
             String newName = ChatColor.translateAlternateColorCodes('&', CommandUtil.join(arguments.preceding(), 0)).trim();
+            String defaultName = null;
             String stripped = ChatColor.stripColor(newName);
             boolean reset;
 
             if (stripped.isBlank()) {
-                newName = terrain.defaultName();
-                if (previousName.equals(newName)) {
-                    lang.send(sender, lang.get("Rename.Error.Same").replace("<name>", newName));
+                newName = null;
+                if (previousName.equals(defaultName = Terrain.defaultName(terrain.id(), terrain.owner()))) {
+                    lang.send(sender, lang.get("Rename.Error.Same").replace("<name>", defaultName));
                     return;
                 }
                 reset = true;
             } else {
-                if (previousName.equals(newName)) {
+                if (ChatColor.translateAlternateColorCodes('&', previousName).equals(newName)) {
                     lang.send(sender, lang.get("Rename.Error.Same").replace("<name>", newName));
                     return;
                 }
@@ -91,12 +92,12 @@ public final class RenameCommand extends Command {
                 reset = false;
             }
 
-            var event = new UserNameTerrainEvent(terrain, sender, previousName, newName, IUserNameTerrainEvent.NameReason.RENAME);
+            var event = new UserNameTerrainEvent(terrain, sender, previousName, newName == null ? defaultName : newName, IUserNameTerrainEvent.NameReason.RENAME);
             Bukkit.getPluginManager().callEvent(event);
 
             if (!event.isCancelled()) {
                 terrain.setName(event.newName());
-                lang.send(sender, lang.get("Rename.Re" + (reset ? "set" : "named")).replace("<new>", newName).replace("<old>", previousName));
+                lang.send(sender, lang.get("Rename.Re" + (reset ? "set" : "named")).replace("<new>", newName == null ? defaultName : newName).replace("<old>", previousName));
             }
         });
     }

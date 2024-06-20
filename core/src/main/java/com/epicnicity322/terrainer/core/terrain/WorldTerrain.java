@@ -36,7 +36,7 @@ public final class WorldTerrain extends Terrain {
     static final @NotNull Coordinate min = new Coordinate(Integer.MIN_VALUE, Integer.MIN_VALUE, Integer.MIN_VALUE);
     static final @NotNull Coordinate max = new Coordinate(Integer.MAX_VALUE, Integer.MAX_VALUE, Integer.MAX_VALUE);
     @Serial
-    private static final long serialVersionUID = 4143636588732215131L;
+    private static final long serialVersionUID = 9074390861672161118L;
 
     public WorldTerrain(@NotNull UUID world, @NotNull String name) {
         // The ID of the terrain is the same as of the world's.
@@ -90,7 +90,7 @@ public final class WorldTerrain extends Terrain {
     }
 
     @Override
-    public void setName(@NotNull String name) {
+    public void setName(@Nullable String name) {
         throw new UnsupportedOperationException("World terrains can not be renamed.");
     }
 
@@ -106,7 +106,7 @@ public final class WorldTerrain extends Terrain {
 
     @Override
     public @NotNull String description() {
-        if (description == null) return Terrainer.lang().get("Description.World Terrain").replace("<world>", name);
+        if (description == null) return Terrainer.lang().get("Description.World Terrain").replace("<world>", name());
         return description;
     }
 
@@ -120,7 +120,7 @@ public final class WorldTerrain extends Terrain {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         WorldTerrain terrain = (WorldTerrain) o;
-        return id.equals(terrain.id) && world.equals(terrain.world) && creationDate.equals(terrain.creationDate) && name.equals(terrain.name) && Objects.equals(description, terrain.description) && priority == terrain.priority && moderators.equals(terrain.moderators) && members.equals(terrain.members) && flags.equals(terrain.flags) && memberFlags.equals(terrain.memberFlags);
+        return id.equals(terrain.id) && world.equals(terrain.world) && creationDate.equals(terrain.creationDate) && Objects.equals(name, terrain.name) && Objects.equals(description, terrain.description) && priority == terrain.priority && moderators.equals(terrain.moderators) && members.equals(terrain.members) && flags.equals(terrain.flags) && memberFlags.equals(terrain.memberFlags);
     }
 
     @Override
