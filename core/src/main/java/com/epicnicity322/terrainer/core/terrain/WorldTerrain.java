@@ -100,12 +100,7 @@ public final class WorldTerrain extends Terrain {
     }
 
     @Override
-    public void setMaxDiagonal(@NotNull Coordinate second) {
-        throw new UnsupportedOperationException("World terrains can not have their boundaries changed.");
-    }
-
-    @Override
-    public void setMinDiagonal(@NotNull Coordinate first) {
+    public void setDiagonals(@NotNull Coordinate first, @NotNull Coordinate second) {
         throw new UnsupportedOperationException("World terrains can not have their boundaries changed.");
     }
 

@@ -25,6 +25,7 @@ import com.epicnicity322.terrainer.core.Coordinate;
 import com.epicnicity322.terrainer.core.Terrainer;
 import com.epicnicity322.terrainer.core.WorldCoordinate;
 import com.epicnicity322.terrainer.core.config.Configurations;
+import com.epicnicity322.terrainer.core.util.PlayerUtil;
 import com.epicnicity322.yamlhandler.Configuration;
 import com.epicnicity322.yamlhandler.ConfigurationSection;
 import com.epicnicity322.yamlhandler.YamlConfigurationLoader;
@@ -49,7 +50,7 @@ public class Terrain implements Serializable {
      */
     public static final int MAX_CHUNK_AMOUNT = 8398404;
     @Serial
-    private static final long serialVersionUID = 7286549863789463530L;
+    private static final long serialVersionUID = 8919189004221598446L;
     final @NotNull UUID world;
     final @NotNull UUID id;
     final @NotNull ZonedDateTime creationDate;
@@ -165,7 +166,7 @@ public class Terrain implements Serializable {
      */
     public Terrain(@NotNull Coordinate first, @NotNull Coordinate second, @NotNull UUID world) {
         this(first, second, world, UUID.randomUUID(), "", null, ZonedDateTime.now(), null, 0, null, null, null, null);
-        this.name = id.toString().substring(0, id.toString().indexOf('-'));
+        this.name = defaultName();
     }
 
     /**
@@ -371,7 +372,7 @@ public class Terrain implements Serializable {
     /**
      * Finds the chunks of this terrain, used for finding where the terrain is located.
      * <p>
-     * This will be called on instantiation and when the methods {@link #setMinDiagonal(Coordinate)} and {@link #setMaxDiagonal(Coordinate)} are called.
+     * This will be called on instantiation and when the method {@link #setDiagonals(Coordinate, Coordinate)} is called.
      *
      * @param minDiagonal The min edge of the terrain.
      * @param maxDiagonal The max edge of the terrain.
@@ -440,28 +441,6 @@ public class Terrain implements Serializable {
     }
 
     /**
-     * Sets the diagonal with minimum coordinates of this terrain.
-     * <p>
-     * Both min and max diagonals are updated by calling this method. This is to make sure both diagonals are truly
-     * minimum and maximum.
-     *
-     * @param first The first diagonal this terrain should be.
-     */
-    public void setMinDiagonal(@NotNull Coordinate first) {
-        // Coordinates the same, avoid redundant call.
-        if (first.equals(minDiagonal)) return;
-        minDiagonal = findMinMax(first, maxDiagonal, true);
-        maxDiagonal = findMinMax(first, maxDiagonal, false);
-        borders = findBorders(minDiagonal, maxDiagonal);
-
-        Set<Chunk> previousChunks = chunks;
-        chunks = findChunks(minDiagonal, maxDiagonal);
-        chunkUpdate(previousChunks);
-
-        markAsChanged();
-    }
-
-    /**
      * @return The diagonal with min coordinates of this terrain.
      */
     public @NotNull Coordinate maxDiagonal() {
@@ -469,22 +448,27 @@ public class Terrain implements Serializable {
     }
 
     /**
-     * Sets the diagonal with maximum coordinates of this terrain.
+     * Sets the min and max diagonal coordinates of this terrain.
      * <p>
-     * Both min and max diagonals are updated by calling this method. This is to make sure both diagonals are truly
+     * Both min and max diagonals are updated by calling this method. This is to ensure both diagonals are truly
      * minimum and maximum.
      *
-     * @param second The second diagonal this terrain should be.
+     * @param first  The new first diagonal of this terrain.
+     * @param second The new second diagonal of this terrain.
      */
-    public void setMaxDiagonal(@NotNull Coordinate second) {
-        // Coordinates the same, avoid redundant call.
-        if (second.equals(maxDiagonal)) return;
-        minDiagonal = findMinMax(minDiagonal, second, true);
-        maxDiagonal = findMinMax(minDiagonal, second, false);
-        borders = findBorders(minDiagonal, maxDiagonal);
+    public void setDiagonals(@NotNull Coordinate first, @NotNull Coordinate second) {
+        Coordinate minDiagonal = findMinMax(first, second, true);
+        Coordinate maxDiagonal = findMinMax(first, second, false);
+        // Avoid unnecessary computations and don't mark terrain as changed.
+        if (minDiagonal.equals(this.minDiagonal) && maxDiagonal.equals(this.maxDiagonal)) return;
+
+        this.minDiagonal = minDiagonal;
+        this.maxDiagonal = maxDiagonal;
+
+        borders = findBorders(this.minDiagonal, this.maxDiagonal);
 
         Set<Chunk> previousChunks = chunks;
-        chunks = findChunks(minDiagonal, maxDiagonal);
+        chunks = findChunks(this.minDiagonal, this.maxDiagonal);
         chunkUpdate(previousChunks);
 
         markAsChanged();
@@ -528,15 +512,44 @@ public class Terrain implements Serializable {
     }
 
     /**
+     * Gets the name this terrain should have by default.
+     * <p>
+     * This will make checks to the {@link #owner()}'s other terrains, and name the terrain after their name plus a
+     * number. If the terrain is owned by CONSOLE ({@link #owner()} is <code>null</code>), the default name is the
+     * Time-low of the terrain's {@link #id()}.
+     *
+     * @return The default name of this terrain.
+     */
+    public @NotNull String defaultName() {
+        if (owner == null) return id.toString().substring(0, id.toString().indexOf('-'));
+
+        List<Terrain> ownerTerrains = TerrainManager.terrainsOf(owner);
+        PlayerUtil<?, ?> playerUtil = Terrainer.playerUtil();
+        String ownerName = (playerUtil == null ? owner.toString() : playerUtil.getOwnerName(owner)) + "_";
+        int size = 1;
+
+        if (ownerTerrains.contains(this)) {
+            Set<String> ownerTerrainNames = ownerTerrains.stream().filter(t -> t != this).map(Terrain::name).collect(Collectors.toSet());
+            // Find next available name.
+            while (ownerTerrainNames.contains(ownerName + size)) size++;
+        } else {
+            size = ownerTerrains.size() + 1;
+        }
+
+        return ownerName + size;
+    }
+
+    /**
      * Sets the display name of this terrain.
      * <p>
      * Color codes are not formatted by this method, but it's recommended that you format all color codes of the name
      * parameter, as there is no guarantee the display name will be formatted in all messages sent to the player.
      *
      * @param name The display name of this terrain.
+     * @see #defaultName()
      */
     public void setName(@NotNull String name) {
-        if (name.equals(this.name)) return;
+        if (name.equals(this.name)) return; // Don't mark terrain as changed.
         this.name = name;
         markAsChanged();
     }
@@ -576,7 +589,7 @@ public class Terrain implements Serializable {
      * @param owner The ID of the new owner, or null for CONSOLE.
      */
     public void setOwner(@Nullable UUID owner) {
-        if (Objects.equals(this.owner, owner)) return;
+        if (Objects.equals(this.owner, owner)) return; // Don't mark terrain as changed.
         this.owner = owner;
         markAsChanged();
     }
@@ -603,7 +616,7 @@ public class Terrain implements Serializable {
      * @param priority The new priority of this terrain.
      */
     public void setPriority(int priority) {
-        if (this.priority == priority) return;
+        if (this.priority == priority) return; // Don't mark terrain as changed.
         this.priority = priority;
         priorityUpdate();
         markAsChanged();
@@ -652,7 +665,7 @@ public class Terrain implements Serializable {
      * @param description The new description of this terrain, null to use the default one.
      */
     public void setDescription(@Nullable String description) {
-        if (Objects.equals(this.description, description)) return;
+        if (Objects.equals(this.description, description)) return; // Don't mark terrain as changed.
         this.description = description;
         markAsChanged();
     }
