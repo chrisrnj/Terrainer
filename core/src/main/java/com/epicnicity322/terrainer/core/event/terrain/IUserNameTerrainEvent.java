@@ -21,6 +21,7 @@ package com.epicnicity322.terrainer.core.event.terrain;
 import com.epicnicity322.terrainer.core.config.Configurations;
 import com.epicnicity322.terrainer.core.event.SenderEvent;
 import com.epicnicity322.terrainer.core.event.TerrainEvent;
+import com.epicnicity322.terrainer.core.terrain.Terrain;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -55,10 +56,26 @@ public interface IUserNameTerrainEvent<T> extends TerrainEvent, SenderEvent<T> {
     String previousName();
 
     /**
+     * @return Whether the terrain had no name and is being assigned a new one.
+     */
+    default boolean isPreviousNameDefault() {
+        Terrain terrain = terrain();
+        return previousName().equals(Terrain.defaultName(terrain.id(), terrain.owner()));
+    }
+
+    /**
      * @return The new name of the terrain.
      */
     @NotNull
     String newName();
+
+    /**
+     * @return Whether the terrain is having its name set to default.
+     */
+    default boolean isNewNameDefault() {
+        Terrain terrain = terrain();
+        return newName().equals(Terrain.defaultName(terrain.id(), terrain.owner()));
+    }
 
     /**
      * The reason that caused this name event.
