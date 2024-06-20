@@ -109,6 +109,7 @@ public final class ClaimCommand extends Command {
         Terrain terrain = new Terrain(first, second, world.getUID());
 
         terrain.setOwner(owner);
+        terrain.setName(Terrain.defaultName(terrain.id(), owner));
 
         if (name != null) {
             String originalName = terrain.name();

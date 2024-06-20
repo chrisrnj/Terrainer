@@ -63,7 +63,7 @@ public class Terrain implements Serializable {
     @NotNull Coordinate maxDiagonal;
     @NotNull Set<Coordinate> borders;
     @NotNull Set<Chunk> chunks;
-    @Nullable String name;
+    @NotNull String name;
     @Nullable String description;
     int priority;
     /**
@@ -103,7 +103,7 @@ public class Terrain implements Serializable {
         this.maxDiagonal = findMinMax(first, second, false);
         this.borders = findBorders(minDiagonal, maxDiagonal);
         this.chunks = findChunks(minDiagonal, maxDiagonal);
-        this.name = name;
+        this.name = name == null ? defaultName(id, owner) : name;
         this.id = id;
         this.world = world;
         this.owner = owner;
@@ -144,7 +144,7 @@ public class Terrain implements Serializable {
         this.maxDiagonal = findMinMax(first, second, false);
         this.borders = findBorders(minDiagonal, maxDiagonal);
         this.chunks = findChunks(minDiagonal, maxDiagonal);
-        this.name = name;
+        this.name = name == null ? defaultName(id, owner) : name;
         this.id = id;
         this.world = world;
         this.owner = owner;
@@ -536,7 +536,7 @@ public class Terrain implements Serializable {
      * @return The display name of this terrain.
      */
     public @NotNull String name() {
-        return name == null ? defaultName(id, owner) : name;
+        return name;
     }
 
     /**
@@ -548,8 +548,8 @@ public class Terrain implements Serializable {
      * @param name The display name of this terrain.
      * @see #defaultName(UUID, UUID)
      */
-    public void setName(@Nullable String name) {
-        if (Objects.equals(this.name, name)) return; // Don't mark terrain as changed.
+    public void setName(@NotNull String name) {
+        if (name.equals(this.name)) return; // Don't mark terrain as changed.
         this.name = name;
         markAsChanged();
     }
@@ -763,7 +763,7 @@ public class Terrain implements Serializable {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         Terrain terrain = (Terrain) o;
-        return id.equals(terrain.id) && world.equals(terrain.world) && minDiagonal.equals(terrain.minDiagonal) && maxDiagonal.equals(terrain.maxDiagonal) && Objects.equals(owner, terrain.owner) && creationDate.equals(terrain.creationDate) && Objects.equals(name, terrain.name) && Objects.equals(description, terrain.description) && priority == terrain.priority && moderators.equals(terrain.moderators) && members.equals(terrain.members) && flags.equals(terrain.flags) && memberFlags.equals(terrain.memberFlags);
+        return id.equals(terrain.id) && world.equals(terrain.world) && minDiagonal.equals(terrain.minDiagonal) && maxDiagonal.equals(terrain.maxDiagonal) && Objects.equals(owner, terrain.owner) && creationDate.equals(terrain.creationDate) && name.equals(terrain.name) && Objects.equals(description, terrain.description) && priority == terrain.priority && moderators.equals(terrain.moderators) && members.equals(terrain.members) && flags.equals(terrain.flags) && memberFlags.equals(terrain.memberFlags);
     }
 
     @Override
