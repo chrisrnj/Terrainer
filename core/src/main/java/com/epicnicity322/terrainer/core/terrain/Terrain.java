@@ -196,13 +196,9 @@ public class Terrain implements Serializable {
         String nameFormat = Terrainer.lang().get("Create.Default Name").replace("<owner>", (playerUtil == null ? owner.toString() : playerUtil.getOwnerName(owner)));
         int size = 1;
 
-        if (ownerTerrains.stream().anyMatch(t -> t.id.equals(terrainID))) {
-            Set<String> ownerTerrainNames = ownerTerrains.stream().filter(t -> !t.id.equals(terrainID)).map(Terrain::name).collect(Collectors.toSet());
-            // Find next available name.
-            while (ownerTerrainNames.contains(nameFormat.replace("<number>", Integer.toString(size)))) size++;
-        } else {
-            size = ownerTerrains.size() + 1;
-        }
+        Set<String> ownerTerrainNames = ownerTerrains.stream().filter(t -> !t.id.equals(terrainID)).map(Terrain::name).collect(Collectors.toSet());
+        // Find next available name.
+        while (ownerTerrainNames.contains(nameFormat.replace("<number>", Integer.toString(size)))) size++;
 
         return nameFormat.replace("<number>", Integer.toString(size));
     }
