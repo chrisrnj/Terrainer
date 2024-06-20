@@ -62,7 +62,7 @@ public final class TerrainManager {
      */
     private static final @NotNull Map<WorldChunk, TreeSet<Terrain>> chunks = new ConcurrentHashMap<>();
     /**
-     * A dummy chunk used in chunks map as the one that holds global/huge terrains.
+     * A dummy chunk used in chunks map as the one that holds global/extremely huge terrains.
      */
     private static final @NotNull Chunk globalChunk = new Chunk(Integer.MAX_VALUE, Integer.MAX_VALUE);
     /**
@@ -84,14 +84,14 @@ public final class TerrainManager {
     }
 
     /**
-     * Registers a terrain object to {@link #allTerrains()}. Registered terrain objects are saved, loaded, and have their
-     * protections enforced. They also are saved automatically once any changes to the instance are made.
+     * Registers a terrain instance to {@link #allTerrains()}. Registered terrain instances are saved, loaded, and have their
+     * protections enforced. They also are saved automatically once any changes to its values are made.
      * <p>
      * If a different terrain instance with same {@link Terrain#id()} is present, it is removed and replaced by the
      * specified one.
      * <p>
-     * The terrain is not added if it is already present in {@link #allTerrains()}, or if the {@link ITerrainAddEvent} was
-     * cancelled.
+     * The terrain is not added if an equal instance is already present in {@link #allTerrains()}, or if the {@link ITerrainAddEvent}
+     * was cancelled.
      *
      * @param terrain The terrain to save.
      * @return Whether the terrain was added or not.
@@ -127,7 +127,7 @@ public final class TerrainManager {
         registeredTerrains.computeIfAbsent(terrain.world, k -> new TreeSet<>(PRIORITY_COMPARATOR)).add(terrain);
 
         // Adding the instance to chunks map, so it can be found with #terrainsAt map.
-        if (terrain.chunks.isEmpty()) { // Chunks are empty when the terrain is global/huge.
+        if (terrain.chunks.isEmpty()) { // Chunks are empty when the terrain is global/extremely huge.
             chunks.computeIfAbsent(new WorldChunk(terrain.world, globalChunk), k -> new TreeSet<>(PRIORITY_COMPARATOR)).add(terrain);
         } else {
             terrain.chunks.forEach(chunk -> chunks.computeIfAbsent(new WorldChunk(terrain.world, chunk), k -> new TreeSet<>(PRIORITY_COMPARATOR)).add(terrain));
@@ -154,7 +154,7 @@ public final class TerrainManager {
         Terrain removed = remove(terrain.id);
 
         if (removed != null) {
-            // The terrain that has this ID might be a different instance, making sure the terrain is set to not save.
+            // The terrain that had this ID might've been a different instance, making sure the terrain is set to not save.
             terrain.save = false;
             terrain.changed = true;
         }
@@ -289,10 +289,12 @@ public final class TerrainManager {
     }
 
     /**
-     * Gets the terrains of a specific world. The provided list has the terrains sorted based on {@link Terrain#priority}.
+     * Gets the terrains of a specific world.
+     * <p>
+     * The provided set has the terrains sorted based on {@link #PRIORITY_COMPARATOR}.
      *
      * @param world The world of the terrains.
-     * @return An unmodifiable list with the terrains located in this world.
+     * @return An unmodifiable set with the terrains located in this world.
      */
     public static @NotNull Set<Terrain> terrains(@NotNull UUID world) {
         Set<Terrain> worldTerrains = registeredTerrains.get(world);
@@ -301,7 +303,7 @@ public final class TerrainManager {
     }
 
     /**
-     * Gets the terrain with matching ID from the list of registered terrains. The provided list has the terrains sorted based on {@link Terrain#priority}.
+     * Gets the terrain with matching ID from the list of registered terrains.
      *
      * @param id The ID of the terrain.
      * @return The terrain with matching ID or null if not found.
@@ -319,12 +321,12 @@ public final class TerrainManager {
     }
 
     /**
-     * Searches for terrains that have the provided coordinate within.
+     * Searches for terrains that have the specified coordinate within.
      * <p>
-     * The provided list has the terrains sorted based on {@link #PRIORITY_COMPARATOR}.
+     * The provided set has the terrains sorted based on {@link #PRIORITY_COMPARATOR}.
      *
      * @param worldCoordinate The coordinate to get the terrains at.
-     * @return A {@link Collections#emptyList()} if there are no terrains, or a mutable list with the terrains containing the location.
+     * @return A {@link Collections#emptySet()} if no terrains were found, or a mutable set with the terrains containing the location.
      */
     public static @NotNull Set<Terrain> terrainsAt(@NotNull WorldCoordinate worldCoordinate) {
         return terrainsAt(worldCoordinate.world(), (int) worldCoordinate.coordinate().x(), (int) worldCoordinate.coordinate().y(), (int) worldCoordinate.coordinate().z());
@@ -333,13 +335,13 @@ public final class TerrainManager {
     /**
      * Searches for terrains that have the provided coordinate within.
      * <p>
-     * The provided list has the terrains sorted based on {@link #PRIORITY_COMPARATOR}.
+     * The provided set has the terrains sorted based on {@link #PRIORITY_COMPARATOR}.
      *
      * @param world The UUID of the world where the location resides.
      * @param x     The X coordinate of the block.
      * @param y     The Y coordinate of the block.
      * @param z     The Z coordinate of the block.
-     * @return A {@link Collections#emptyList()} if there are no terrains, or a mutable list with the terrains containing the location.
+     * @return A {@link Collections#emptySet()} if no terrains were found, or a mutable set with the terrains containing the location.
      */
     public static @NotNull Set<Terrain> terrainsAt(@NotNull UUID world, int x, int y, int z) {
         Set<Terrain> chunkTerrains = chunks.get(new WorldChunk(world, Chunk.fromBlockCoordinates(x, z)));
@@ -492,6 +494,7 @@ public final class TerrainManager {
      * @param flag            The flag to be tested at the location.
      * @param worldCoordinate The location where to test the flag.
      * @return {@code true} if the flag is allowed at the specified location; {@code false} otherwise.
+     * @see #isFlagAllowedAt(Flag, UUID, WorldCoordinate) Flags related to player actions should use this method instead, because it checks the member-specific data and the members list.
      */
     public static boolean isFlagAllowedAt(@NotNull Flag<Boolean> flag, @NotNull WorldCoordinate worldCoordinate) {
         return isFlagAllowedAt(flag, worldCoordinate.world(), (int) worldCoordinate.coordinate().x(), (int) worldCoordinate.coordinate().y(), (int) worldCoordinate.coordinate().z());
@@ -506,6 +509,7 @@ public final class TerrainManager {
      * @param y     The Y coordinate of the block.
      * @param z     The Z coordinate of the block.
      * @return {@code true} if the flag is allowed at the specified location; {@code false} otherwise.
+     * @see #isFlagAllowedAt(Flag, UUID, UUID, int, int, int) Flags related to player actions should use this method instead, because it checks the member-specific data and the members list.
      */
     public static boolean isFlagAllowedAt(@NotNull Flag<Boolean> flag, @NotNull UUID world, int x, int y, int z) {
         // Terrain list is sorted by priority.
@@ -597,6 +601,7 @@ public final class TerrainManager {
      * @param worldCoordinate The coordinate to get the collections at.
      * @param <E>             The type of element in the collection.
      * @return The data of the flags concatenated in a single collection.
+     * @see #getCollectionFlagDataAt(Flag, UUID, WorldCoordinate, boolean) Flags related to player actions should use this method instead, because it checks the member-specific data.
      */
     public static <E> @NotNull List<E> getCollectionFlagDataAt(@NotNull Flag<? extends Collection<E>> flag, @NotNull WorldCoordinate worldCoordinate) {
         return getCollectionFlagDataAt(flag, worldCoordinate.world(), (int) worldCoordinate.coordinate().x(), (int) worldCoordinate.coordinate().y(), (int) worldCoordinate.coordinate().z());
@@ -615,6 +620,7 @@ public final class TerrainManager {
      * @param z     The Z coordinate of the block.
      * @param <E>   The type of element in the collection.
      * @return The data of the flags concatenated in a single collection.
+     * @see #getCollectionFlagDataAt(Flag, UUID, UUID, int, int, int, boolean) Flags related to player actions should use this method instead, because it checks the member-specific data.
      */
     public static <E> @NotNull List<E> getCollectionFlagDataAt(@NotNull Flag<? extends Collection<E>> flag, @NotNull UUID world, int x, int y, int z) {
         List<E> collectionData = null;
@@ -709,6 +715,7 @@ public final class TerrainManager {
      * @param <K>             The type of keys in the map.
      * @param <V>             The type of mapped values in the map.
      * @return The data of the flags concatenated in a single map.
+     * @see #getMapFlagDataAt(Flag, UUID, WorldCoordinate, boolean) Flags related to player actions should use this method instead, because it checks the member-specific data.
      */
     public static <K, V> @NotNull Map<K, V> getMapFlagDataAt(@NotNull Flag<? extends Map<K, V>> flag, @NotNull WorldCoordinate worldCoordinate) {
         return getMapFlagDataAt(flag, worldCoordinate.world(), (int) worldCoordinate.coordinate().x(), (int) worldCoordinate.coordinate().y(), (int) worldCoordinate.coordinate().z());
@@ -728,6 +735,7 @@ public final class TerrainManager {
      * @param <K>   The type of keys in the map.
      * @param <V>   The type of mapped values in the map.
      * @return The data of the flags concatenated in a single map.
+     * @see #getMapFlagDataAt(Flag, UUID, UUID, int, int, int, boolean) Flags related to player actions should use this method instead, because it checks the member-specific data.
      */
     public static <K, V> @NotNull Map<K, V> getMapFlagDataAt(@NotNull Flag<? extends Map<K, V>> flag, @NotNull UUID world, int x, int y, int z) {
         Map<K, V> mapData = null;
