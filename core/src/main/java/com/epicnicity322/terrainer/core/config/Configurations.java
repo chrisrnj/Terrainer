@@ -465,7 +465,7 @@ public final class Configurations {
               Error:
                 Different Worlds: '&4Terrain could not be created because the selections are in different worlds!'
                 Dimensions: '&4Terrains must have at least &6<min>&4 blocks in &7width&4 and &7length&4!'
-                No Block Limit: '&4This terrain has an area of &6<area>&4 blocks and you have only &6<used>&c blocks left! To increase your block limit, buy in the &7&n/tr shop&4.'
+                No Block Limit: '&4This terrain has an area of &6<area>&4 blocks and you have &6<free>&c blocks left! To increase your block limit, buy in the &7&n/tr shop&4.'
                 No Claim Limit: '&4You can''t create more than &6<max>&4 terrains! To increase your claim limit, buy in the &7&n/tr shop&4.'
                 Not Selected: '&eYou need to make a selection before creating a terrain. You can select with the command &f&n/<label> pos1&e and &f&n/<label> pos2&e or with the selection wand: &f&n/<label> wand&e.'
                 Overlap: '&4Unable to claim because this terrain would overlap &7<other>&4 terrain!'
@@ -537,7 +537,7 @@ public final class Configurations {
               Error:
                 Blacklisted: '&4You can''t name the terrain that.'
                 Name Length: '&4Terrain names must have at least 1 character and &7<max>&4 characters max!'
-                Same: '&7Nothing changed. Terrain was already named &f<name>&7.'
+                Same: '&7Nothing changed. Terrain is already named &f<name>&7.'
                 World Terrain: '&4Global world terrains can not be renamed!'
               Reset: '&aTerrain &7<old>&a had its name reset to default: &7<new>'
               Renamed: '&aTerrain &7<old>&a was successfully renamed to &7<new>&a.'
@@ -676,6 +676,12 @@ public final class Configurations {
               Select: '&cSelect the terrain to transfer:'
               Success: '&aTerrain &7<terrain>&a was transferred successfully to &7<who>&a.'
                         
+            Resize:
+              Confirmation Description: 'Resize terrain <terrain>'
+              Error:
+                World Terrain: '&4Global world terrains can not be resized!'
+              Select: '&eTo resize the terrain, grab your selection wand and mark the new diagonals, then type &7&n/<label> confirm&e to confirm.'
+                        
             Priority:
               Error:
                 No Terrains: '<cooldown=1000> &7No terrains could be found.'
@@ -698,6 +704,7 @@ public final class Configurations {
                 Default: '<noprefix> &4You could not be teleported to &7<terrain>&4.'
                 Moved: '<noprefix> &4The teleportation was cancelled because you moved'
                 Other: '&4<player> could not be teleported to &7<terrain>&4.'
+              Select: '&cSelect the terrain to teleport to:'
               Success:
                 Default: '<noprefix> &aYou were teleported to &7<terrain>&a.'
                 Other: '&a<player> was teleported to &7<terrain>&a.'
