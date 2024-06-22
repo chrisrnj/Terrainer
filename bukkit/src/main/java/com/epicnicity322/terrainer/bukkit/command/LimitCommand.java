@@ -24,6 +24,8 @@ import com.epicnicity322.epicpluginlib.bukkit.lang.MessageSender;
 import com.epicnicity322.terrainer.bukkit.TerrainerPlugin;
 import com.epicnicity322.terrainer.bukkit.util.BukkitPlayerUtil;
 import com.epicnicity322.terrainer.bukkit.util.CommandUtil;
+import com.epicnicity322.terrainer.core.config.Configurations;
+import com.epicnicity322.yamlhandler.Configuration;
 import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -82,10 +84,16 @@ public final class LimitCommand extends Command {
                 return;
             }
 
-            lang.send(sender, lang.get("Limits.Info.Header." + (you ? "You" : "Other")).replace("<other>", who.getName()));
+            Configuration config = Configurations.CONFIG.getConfiguration();
+            if (config.getBoolean("Limits.Per World Block Limit").orElse(false) || config.getBoolean("Limits.Per World Claim Limit").orElse(false)) {
+                lang.send(sender, lang.get("Limits.Info.Header In This World." + (you ? "You" : "Other")).replace("<world>", who.getWorld().getName()).replace("<other>", who.getName()));
+            } else {
+                lang.send(sender, lang.get("Limits.Info.Header." + (you ? "You" : "Other")).replace("<other>", who.getName()));
+            }
+
             BukkitPlayerUtil pUtil = TerrainerPlugin.getPlayerUtil();
-            lang.send(sender, lang.get("Limits.Info.Blocks").replace("<used>", Long.toString(pUtil.getUsedBlockLimit(who.getUniqueId()))).replace("<max>", Long.toString(pUtil.getMaxBlockLimit(who))));
-            lang.send(sender, lang.get("Limits.Info.Claims").replace("<used>", Integer.toString(pUtil.getUsedClaimLimit(who.getUniqueId()))).replace("<max>", Integer.toString(pUtil.getMaxClaimLimit(who))));
+            lang.send(sender, lang.get("Limits.Info.Blocks").replace("<used>", Long.toString(pUtil.claimedBlocks(who.getUniqueId(), who.getWorld().getUID()))).replace("<max>", Long.toString(pUtil.blockLimit(who))));
+            lang.send(sender, lang.get("Limits.Info.Claims").replace("<used>", Integer.toString(pUtil.claimedTerrains(who.getUniqueId(), who.getWorld().getUID()))).replace("<max>", Integer.toString(pUtil.claimLimit(who))));
             lang.send(sender, lang.get("Limits.Info.Footer").replace("<label>", label));
         } else {
             String operation = args[2];
@@ -113,7 +121,7 @@ public final class LimitCommand extends Command {
                     }
 
                     BukkitPlayerUtil util = TerrainerPlugin.getPlayerUtil();
-                    long current = blocksType ? util.getAdditionalMaxBlockLimit(who) : util.getAdditionalMaxClaimLimit(who);
+                    long current = blocksType ? util.boughtBlockLimit(who) : util.boughtClaimLimit(who);
                     long finalValue;
 
                     if (operation.equalsIgnoreCase("give")) {
@@ -144,12 +152,12 @@ public final class LimitCommand extends Command {
                     if (finalValue < 0) finalValue = 0;
 
                     if (blocksType) {
-                        util.setAdditionalMaxBlockLimit(who, finalValue);
-                        lang.send(sender, lang.get("Limits.Edit.Blocks").replace("<player>", who.getName()).replace("<value>", Long.toString(util.getMaxBlockLimit(who))));
+                        util.setBoughtBlockLimit(who, finalValue);
+                        lang.send(sender, lang.get("Limits.Edit.Blocks").replace("<player>", who.getName()).replace("<value>", Long.toString(util.blockLimit(who))));
                     } else {
                         if (finalValue > Integer.MAX_VALUE) finalValue = Integer.MAX_VALUE;
-                        util.setAdditionalMaxClaimLimit(who, (int) finalValue);
-                        lang.send(sender, lang.get("Limits.Edit.Claims").replace("<player>", who.getName()).replace("<value>", Long.toString(util.getMaxClaimLimit(who))));
+                        util.setBoughtClaimLimit(who, (int) finalValue);
+                        lang.send(sender, lang.get("Limits.Edit.Claims").replace("<player>", who.getName()).replace("<value>", Long.toString(util.claimLimit(who))));
                     }
                     return;
                 }

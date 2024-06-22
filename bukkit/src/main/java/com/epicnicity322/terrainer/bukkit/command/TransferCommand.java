@@ -102,7 +102,7 @@ public final class TransferCommand extends Command {
                 BukkitPlayerUtil util = TerrainerPlugin.getPlayerUtil();
 
                 if (Objects.equals(terrain.owner(), newOwnerID)) {
-                    lang.send(sender, lang.get("Transfer.Error.Nothing Changed").replace("<player>", util.getOwnerName(newOwnerID)));
+                    lang.send(sender, lang.get("Transfer.Error.Nothing Changed").replace("<player>", util.ownerName(newOwnerID)));
                     return;
                 }
 
@@ -115,11 +115,11 @@ public final class TransferCommand extends Command {
                         lang.send(sender, lang.get("Transfer.Error.Not Online").replace("<player>", who));
                         return;
                     }
-                    if (!newOwner.hasPermission("terrain.bypass.limit.blocks") && util.getMaxBlockLimit(newOwner) - util.getUsedBlockLimit(newOwnerID) < terrain.area()) {
+                    if (!newOwner.hasPermission("terrain.bypass.limit.blocks") && util.blockLimit(newOwner) - util.claimedBlocks(newOwnerID, terrain.world()) < terrain.area()) {
                         lang.send(sender, lang.get("Transfer.Error.Low Block Limit").replace("<player>", who));
                         return;
                     }
-                    if (!newOwner.hasPermission("terrain.bypass.limit.claims") && util.getMaxClaimLimit(newOwner) - util.getUsedClaimLimit(newOwnerID) < 1) {
+                    if (!newOwner.hasPermission("terrain.bypass.limit.claims") && util.claimLimit(newOwner) - util.claimedTerrains(newOwnerID, terrain.world()) < 1) {
                         lang.send(sender, lang.get("Transfer.Error.Low Claim Limit").replace("<player>", who));
                         return;
                     }
