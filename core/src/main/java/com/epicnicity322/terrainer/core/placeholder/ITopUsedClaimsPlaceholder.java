@@ -19,12 +19,15 @@
 package com.epicnicity322.terrainer.core.placeholder;
 
 import com.epicnicity322.terrainer.core.Terrainer;
-import com.epicnicity322.terrainer.core.placeholder.formatter.PriorityPlaceholderFormatter;
+import com.epicnicity322.terrainer.core.config.Configurations;
+import com.epicnicity322.terrainer.core.placeholder.formatter.PerWorldRankPlaceholderFormatter;
 import com.epicnicity322.terrainer.core.util.PlayerUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-public interface ITopUsedClaimsPlaceholder<O, P extends O> extends PriorityPlaceholderFormatter<O, P> {
+import java.util.UUID;
+
+public interface ITopUsedClaimsPlaceholder<O, P extends O> extends PerWorldRankPlaceholderFormatter<O, P> {
     @Override
     default @NotNull String name() {
         return "top-used-claims";
@@ -43,9 +46,13 @@ public interface ITopUsedClaimsPlaceholder<O, P extends O> extends PriorityPlace
 
     @Override
     @Nullable
-    default String formatPlaceholder(@Nullable O player, @NotNull String params, int priority) {
-        PlayerUtil<P, ? super P> playerUtil = playerUtil();
-        return ITopAssociatedTerrainsPlaceholder.getTop(priority, uuid -> (long) playerUtil.getUsedClaimLimit(uuid)).map(playerUtil::getOwnerName).orElseGet(() -> Terrainer.lang().get("Placeholder Values.No One Top"));
+    default String formatPlaceholder(@Nullable O player, @NotNull String params, @Nullable UUID world, int position) {
+        if (world == null && Configurations.CONFIG.getConfiguration().getBoolean("Limits.Per World Block Limit").orElse(false)) {
+            return null;
+        }
+
+        PlayerUtil<P, ? super P> util = playerUtil();
+        return ITopAssociatedTerrainsPlaceholder.getTop(position, p -> (long) util.claimedTerrains(p, world)).map(util::ownerName).orElseGet(() -> Terrainer.lang().get("Placeholder Values.No One Top"));
     }
 
     @Override

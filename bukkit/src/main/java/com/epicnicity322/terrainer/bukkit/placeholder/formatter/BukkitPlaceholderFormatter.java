@@ -23,6 +23,7 @@ import com.epicnicity322.terrainer.core.Coordinate;
 import com.epicnicity322.terrainer.core.WorldCoordinate;
 import com.epicnicity322.terrainer.core.placeholder.formatter.PlaceholderFormatter;
 import com.epicnicity322.terrainer.core.util.PlayerUtil;
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.World;
@@ -51,6 +52,19 @@ public abstract class BukkitPlaceholderFormatter implements PlaceholderFormatter
         World world = loc.getWorld();
         if (world == null) return null;
         return new WorldCoordinate(world.getUID(), new Coordinate(loc.getBlockX(), loc.getBlockY(), loc.getBlockZ()));
+    }
+
+    @Override
+    public @Nullable UUID world(@NotNull OfflinePlayer offlinePlayer) {
+        Location loc = offlinePlayer.getLocation();
+        if (loc == null) return null;
+        return loc.getWorld().getUID();
+    }
+
+    @Override
+    public @Nullable UUID world(@NotNull String name) {
+        World world = Bukkit.getWorld(name);
+        return world == null ? null : world.getUID();
     }
 
     @Override

@@ -21,9 +21,7 @@ package com.epicnicity322.terrainer.bukkit.hook.placeholderapi;
 import com.epicnicity322.terrainer.bukkit.placeholder.*;
 import com.epicnicity322.terrainer.bukkit.util.CommandUtil;
 import com.epicnicity322.terrainer.core.TerrainerVersion;
-import com.epicnicity322.terrainer.core.placeholder.formatter.PlaceholderFormatter;
-import com.epicnicity322.terrainer.core.placeholder.formatter.PriorityPlaceholderFormatter;
-import com.epicnicity322.terrainer.core.placeholder.formatter.TerrainPlaceholderFormatter;
+import com.epicnicity322.terrainer.core.placeholder.formatter.*;
 import me.clip.placeholderapi.expansion.PlaceholderExpansion;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
@@ -52,6 +50,9 @@ public class TerrainerPlaceholderExpansion extends PlaceholderExpansion {
             }
             if (placeholder instanceof TerrainPlaceholderFormatter<OfflinePlayer, Player>) {
                 placeholderTabCompleteValues.add(prefix + name + TerrainPlaceholderFormatter.TERRAIN_NAMESPACE + "<terrain>%");
+            }
+            if (placeholder instanceof WorldPlaceholderFormatter<OfflinePlayer, Player> || placeholder instanceof PerWorldRankPlaceholderFormatter<OfflinePlayer, Player>) {
+                placeholderTabCompleteValues.add(prefix + name + WorldPlaceholderFormatter.WORLD_NAMESPACE + "<world>%");
             }
             if (placeholder instanceof PriorityPlaceholderFormatter<OfflinePlayer, Player> priorityPlaceholder) {
                 if (priorityPlaceholder.namespace().startsWith(priorityPlaceholder.name())) {

@@ -18,11 +18,14 @@
 
 package com.epicnicity322.terrainer.core.placeholder;
 
-import com.epicnicity322.terrainer.core.placeholder.formatter.PlaceholderFormatter;
+import com.epicnicity322.terrainer.core.config.Configurations;
+import com.epicnicity322.terrainer.core.placeholder.formatter.WorldPlaceholderFormatter;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-public interface IUsedBlocksPlaceholder<O, P extends O> extends PlaceholderFormatter<O, P> {
+import java.util.UUID;
+
+public interface IUsedBlocksPlaceholder<O, P extends O> extends WorldPlaceholderFormatter<O, P> {
     @Override
     default @NotNull String name() {
         return "used-blocks";
@@ -30,7 +33,11 @@ public interface IUsedBlocksPlaceholder<O, P extends O> extends PlaceholderForma
 
     @Override
     @Nullable
-    default String formatPlaceholder(@Nullable O player, @NotNull String params) {
-        return Long.toString(playerUtil().getUsedBlockLimit(player == null ? null : uuid(player)));
+    default String formatPlaceholder(@Nullable O player, @NotNull String params, @Nullable UUID world) {
+        if (world == null && Configurations.CONFIG.getConfiguration().getBoolean("Limits.Per World Block Limit").orElse(false)) {
+            return null;
+        }
+
+        return Long.toString(playerUtil().claimedBlocks(player == null ? null : uuid(player), world));
     }
 }

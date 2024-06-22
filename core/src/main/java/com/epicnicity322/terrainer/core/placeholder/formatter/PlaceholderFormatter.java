@@ -57,6 +57,12 @@ public interface PlaceholderFormatter<O, P extends O> {
     @Nullable
     WorldCoordinate location(@NotNull O player);
 
+    @Nullable
+    UUID world(@NotNull O offlinePlayer);
+
+    @Nullable
+    UUID world(@NotNull String name);
+
     @NotNull
     PlayerUtil<P, ? super P> playerUtil();
 }

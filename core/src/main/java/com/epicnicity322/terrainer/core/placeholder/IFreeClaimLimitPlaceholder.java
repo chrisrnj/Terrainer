@@ -19,12 +19,15 @@
 package com.epicnicity322.terrainer.core.placeholder;
 
 import com.epicnicity322.terrainer.core.Terrainer;
-import com.epicnicity322.terrainer.core.placeholder.formatter.PlaceholderFormatter;
+import com.epicnicity322.terrainer.core.config.Configurations;
+import com.epicnicity322.terrainer.core.placeholder.formatter.WorldPlaceholderFormatter;
 import com.epicnicity322.terrainer.core.util.PlayerUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-public interface IFreeClaimLimitPlaceholder<O, P extends O> extends PlaceholderFormatter<O, P> {
+import java.util.UUID;
+
+public interface IFreeClaimLimitPlaceholder<O, P extends O> extends WorldPlaceholderFormatter<O, P> {
     @Override
     default @NotNull String name() {
         return "free-claimlimit";
@@ -32,13 +35,17 @@ public interface IFreeClaimLimitPlaceholder<O, P extends O> extends PlaceholderF
 
     @Override
     @Nullable
-    default String formatOnlinePlaceholder(@Nullable P player, @NotNull String params) {
-        PlayerUtil<P, ? super P> playerUtil;
+    default String formatOnlinePlaceholder(@Nullable P player, @NotNull String params, @Nullable UUID world) {
+        if (world == null && Configurations.CONFIG.getConfiguration().getBoolean("Limits.Per World Claim Limit").orElse(false)) {
+            return null;
+        }
 
-        if (player == null || (playerUtil = playerUtil()).hasPermission(player, "terrainer.bypass.limit.claims")) {
+        PlayerUtil<P, ? super P> util;
+
+        if (player == null || (util = playerUtil()).hasPermission(player, "terrainer.bypass.limit.claims")) {
             return Terrainer.lang().get("Placeholder Values.Infinite Limit");
         }
 
-        return Integer.toString(playerUtil.getMaxClaimLimit(player) - playerUtil.getUsedClaimLimit(playerUtil.getUniqueId(player)));
+        return Integer.toString(util.claimLimit(player) - util.claimedTerrains(uuid(player), world));
     }
 }
