@@ -31,6 +31,7 @@ import com.epicnicity322.terrainer.core.WorldCoordinate;
 import com.epicnicity322.terrainer.core.config.Configurations;
 import com.epicnicity322.terrainer.core.event.terrain.IUserNameTerrainEvent;
 import com.epicnicity322.terrainer.core.terrain.Terrain;
+import com.epicnicity322.terrainer.core.terrain.TerrainManager;
 import com.epicnicity322.terrainer.core.util.PlayerUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
@@ -118,10 +119,12 @@ public final class ClaimCommand extends Command {
             if (!event.isCancelled()) terrain.setName(event.newName());
         }
 
-        if (util.claimTerrain(player, terrain)) {
+        if (util.performClaimChecks(player, terrain) && TerrainManager.add(terrain)) {
             var create = new UserCreateTerrainEvent(terrain, sender, false);
             Bukkit.getPluginManager().callEvent(create);
             if (player != null) util.updateSelectionMarkersToTerrainMarkers(player);
+
+            lang.send(sender, lang.get("Create.Success").replace("<name>", terrain.name()).replace("<used>", Long.toString(util.claimedBlocks(owner, terrain.world()))).replace("<max>", player == null ? lang.get("Placeholder Values.Infinite Limit") : Long.toString(util.blockLimit(player))));
         } else if (player != null) util.removeMarkers(player);
 
         // Clearing selections.
