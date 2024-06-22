@@ -112,7 +112,7 @@ public final class WorldTerrain extends Terrain {
 
     @Override
     public double area() {
-        return Double.MAX_VALUE;
+        return 3_599_996_160_001_024.0; // Very big number.
     }
 
     @Override
