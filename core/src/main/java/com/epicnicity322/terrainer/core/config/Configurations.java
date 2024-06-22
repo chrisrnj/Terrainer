@@ -72,6 +72,25 @@ public final class Configurations {
             # Whether to alert if dangerous flags are allowed/unset for global world-terrains.
             Alert Dangerous Flags: true
                         
+            # Settings for how limits are calculated.
+            Limits:
+              # Set to false to make so when there's two or more terrains claiming the same block, the block will only
+              #count as one towards the used block limit.
+              # Set to true to make so the used block limit is simply the sum of the areas of all terrains the player owns.
+              Nested Terrains Count Towards Block Limit: false
+              
+              # Set to false to use the sum of terrains from all worlds as used limit.
+              # Set to true to make so the limit doesn't count terrains from different worlds.
+              Per World Block Limit: false
+              # Check above.
+              Per World Claim Limit: false
+              
+              # If the player has more than one limit permission, add the value of each permission to the player's total limit.
+              # Set to false to only use the greatest value as limit.
+              Sum If Theres Multiple Block Limit Permissions: true
+              # Check above.
+              Sum If Theres Multiple Claim Limit Permissions: true
+                        
             # You can set a group's default block limits through this setting.
             # You can add you own limits and use them in groups through the permission 'terrainer.limit.blocks.<group>'
             # For unlimited blocks, use 'terrainer.bypass.limit.blocks' permission.
@@ -607,6 +626,9 @@ public final class Configurations {
                 Header:
                   You: '&8Your limits:'
                   Other: '&8<other>''s limits:'
+                Header In This World:
+                  You: '&8Your limits in this world:'
+                  Other: '&8<other>''s limits in the world <world>:'
                 Blocks: '<noprefix> &7Blocks: &f<used>/<max>'
                 Claims: '<noprefix> &7Terrains: &f<used>/<max>'
                 Footer: '<noprefix> &7Obtain more blocks and claims with &n/<label> shop&7!'
