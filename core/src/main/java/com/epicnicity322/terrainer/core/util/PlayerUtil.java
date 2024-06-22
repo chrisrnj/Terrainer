@@ -25,15 +25,17 @@ import com.epicnicity322.terrainer.core.Terrainer;
 import com.epicnicity322.terrainer.core.WorldChunk;
 import com.epicnicity322.terrainer.core.WorldCoordinate;
 import com.epicnicity322.terrainer.core.config.Configurations;
-import com.epicnicity322.terrainer.core.event.terrain.ITerrainAddEvent;
-import com.epicnicity322.terrainer.core.terrain.Flags;
 import com.epicnicity322.terrainer.core.terrain.Terrain;
 import com.epicnicity322.terrainer.core.terrain.TerrainManager;
 import com.epicnicity322.terrainer.core.terrain.WorldTerrain;
+import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.UnknownNullability;
 
+import java.lang.ref.WeakReference;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * All sorts of utility methods for claiming and testing terrains.
@@ -44,36 +46,43 @@ import java.util.*;
 public abstract class PlayerUtil<P extends R, R> {
     protected static final @NotNull HashMap<UUID, HashMap<SpawnedMarker, Boolean>> markers = new HashMap<>();
     /**
-     * The default permission based block limits set up on config.
-     */
-    private static final @NotNull HashMap<String, Long> defaultBlockLimits = new HashMap<>(8);
-    /**
-     * The default permission based claim limits set up on config.
-     */
-    private static final @NotNull HashMap<String, Integer> defaultClaimLimits = new HashMap<>(8);
-    /**
      * The selected diagonals of players. Key as the player's ID and value as an array with size 2 containing the diagonals.
      */
     private static final @NotNull HashMap<UUID, WorldCoordinate[]> selections = new HashMap<>();
+    /**
+     * The terrains being resized.
+     */
+    private static final @NotNull HashMap<UUID, WeakReference<Terrain>> resizingTerrains = new HashMap<>();
     /**
      * The ID to use in the selection map as placeholder for the console player.
      */
     private static final @NotNull UUID consoleUUID = UUID.randomUUID();
 
     private final @NotNull LanguageHolder<?, R> lang;
+    /**
+     * The default permission based block limits set up on config.
+     */
+    private final @NotNull TreeSet<Map.Entry<String, Long>> defaultBlockLimits;
+    /**
+     * The default permission based claim limits set up on config.
+     */
+    private final @NotNull TreeSet<Map.Entry<String, Integer>> defaultClaimLimits;
+    // TODO:
+    private final @NotNull AtomicBoolean nestedTerrainsCountTowardsBlockLimit;
+    private final @NotNull AtomicBoolean perWorldBlockLimit;
+    private final @NotNull AtomicBoolean perWorldClaimLimit;
+    private final @NotNull AtomicBoolean sumIfTheresMultipleBlockLimitPermissions;
+    private final @NotNull AtomicBoolean sumIfTheresMultipleClaimLimitPermissions;
 
-    protected PlayerUtil(@NotNull LanguageHolder<?, R> lang) {
+    protected PlayerUtil(@NotNull LanguageHolder<?, R> lang, @NotNull TreeSet<Map.Entry<String, Long>> defaultBlockLimits, @NotNull TreeSet<Map.Entry<String, Integer>> defaultClaimLimits, @NotNull AtomicBoolean nestedTerrainsCountTowardsBlockLimit, @NotNull AtomicBoolean perWorldBlockLimit, @NotNull AtomicBoolean perWorldClaimLimit, @NotNull AtomicBoolean sumIfTheresMultipleBlockLimitPermissions, @NotNull AtomicBoolean sumIfTheresMultipleClaimLimitPermissions) {
         this.lang = lang;
-    }
-
-    public static void setDefaultBlockLimits(@NotNull Map<String, Long> blockLimits) {
-        defaultBlockLimits.clear();
-        defaultBlockLimits.putAll(blockLimits);
-    }
-
-    public static void setDefaultClaimLimits(@NotNull Map<String, Integer> claimLimits) {
-        defaultClaimLimits.clear();
-        defaultClaimLimits.putAll(claimLimits);
+        this.defaultBlockLimits = defaultBlockLimits;
+        this.defaultClaimLimits = defaultClaimLimits;
+        this.perWorldBlockLimit = perWorldBlockLimit;
+        this.perWorldClaimLimit = perWorldClaimLimit;
+        this.nestedTerrainsCountTowardsBlockLimit = nestedTerrainsCountTowardsBlockLimit;
+        this.sumIfTheresMultipleBlockLimitPermissions = sumIfTheresMultipleBlockLimitPermissions;
+        this.sumIfTheresMultipleClaimLimitPermissions = sumIfTheresMultipleClaimLimitPermissions;
     }
 
     /**
@@ -87,6 +96,36 @@ public abstract class PlayerUtil<P extends R, R> {
     public static @Nullable WorldCoordinate @NotNull [] selections(@Nullable UUID player) {
         if (player == null) player = consoleUUID;
         return selections.computeIfAbsent(player, k -> new WorldCoordinate[2]);
+    }
+
+    /**
+     * Gets the terrain the player is currently resizing. The new diagonals will be determined by the selections of the
+     * player obtained by {@link #selections(UUID)}.
+     *
+     * @param player The UUID of the player to get the resizing terrain, or null to get from CONSOLE.
+     * @return The terrain the player is resizing, null if the player is not resizing.
+     */
+    public static @Nullable Terrain currentlyResizing(@Nullable UUID player) {
+        if (player == null) player = consoleUUID;
+
+        WeakReference<Terrain> terrainReference = resizingTerrains.get(player);
+        if (terrainReference == null) return null;
+
+        Terrain terrain = terrainReference.get();
+        if (terrain == null) resizingTerrains.remove(player);
+
+        return terrain;
+    }
+
+    /**
+     * Sets a terrain to be resized by the player. Their selections will be set to the terrain's diagonals, and they will
+     * be able to assign new diagonals to this existing terrain.
+     *
+     * @param player  The UUID of the player to set the resizing terrain, or null to set as CONSOLE.
+     * @param terrain The terrain the player will resize.
+     */
+    public static void setCurrentlyResizing(@Nullable UUID player, @NotNull Terrain terrain) {
+        resizingTerrains.put(player == null ? consoleUUID : player, new WeakReference<>(terrain));
     }
 
     public abstract boolean canFly(@NotNull P player);
@@ -105,15 +144,23 @@ public abstract class PlayerUtil<P extends R, R> {
 
     public abstract void setGliding(@NotNull P player, boolean glide);
 
-    public abstract boolean hasPermission(@NotNull P player, @NotNull String permission);
-
     public abstract void applyEffect(@NotNull P player, @NotNull String effect, int power);
 
     public abstract void removeEffect(@NotNull P player, @NotNull String effect);
 
     public abstract void dispatchCommand(@Nullable P executor, @NotNull String command);
 
-    public abstract @NotNull String getName(@NotNull P player);
+    public abstract boolean hasPermission(@NotNull P player, @NotNull String permission);
+
+    public abstract boolean hasPermission(@NotNull UUID player, @NotNull String permission);
+
+    public abstract @NotNull String playerName(@NotNull P player);
+
+    public abstract @NotNull UUID playerUUID(@NotNull P player);
+
+    public abstract @NotNull WorldCoordinate playerLocation(@NotNull P player);
+
+    public abstract @NotNull UUID playerWorld(@NotNull P player);
 
     /**
      * Finds the name of the proprietary of this UUID. {@code null} is used to find the name of console.
@@ -121,148 +168,183 @@ public abstract class PlayerUtil<P extends R, R> {
      * @param uuid The UUID to find the display name of.
      * @return The name ready to be used in messages.
      */
-    public abstract @NotNull String getOwnerName(@Nullable UUID uuid);
+    public abstract @NotNull String ownerName(@Nullable UUID uuid);
 
-    public abstract @NotNull UUID getUniqueId(@NotNull P player);
-
-    protected abstract @NotNull R getConsoleRecipient();
+    protected abstract @NotNull R consoleRecipient();
 
     /**
-     * Attempts to claim a terrain with the player as owner.
+     * Performs several checks to verify if a player is allowed to claim a terrain, and sends messages to the player in
+     * case they're not.
      * <p>
-     * This will do checks in the player's limits and update them, to make sure the player is allowed to claim terrains.
-     * If the player is allowed to claim, the player is set as owner of the terrain and the terrain is registered using
-     * {@link TerrainManager#add(Terrain)}.
-     * <p>
-     * This method also fires the implementation of {@link ITerrainAddEvent}
-     * in your platform.
+     * This will check the player's limits and if the terrain is overlapping another terrain.
      *
      * @param player  The player claiming the terrain, <code>null</code> for console.
      * @param terrain The terrain to be claimed by this player.
      * @return Whether the terrain was claimed or not.
      */
-    public boolean claimTerrain(@Nullable P player, @NotNull Terrain terrain) {
-        R receiver;
-        long usedBlocks = -1;
-        long maxBlocks = -1;
+    @Contract("null,_ -> true")
+    public boolean performClaimChecks(@Nullable P player, @NotNull Terrain terrain) {
+        if (player == null) return true;
 
-        if (player != null) {
-            UUID playerID = getUniqueId(player);
-            int maxClaims;
+        return performClaimChecks(player, terrain, false);
+    }
 
-            if (!hasPermission(player, "terrainer.bypass.limit.claims") && getUsedClaimLimit(playerID) >= (maxClaims = getMaxClaimLimit(player))) {
-                lang.send(player, lang.get("Create.Error.No Claim Limit").replace("<max>", Integer.toString(maxClaims)));
-                return false;
-            }
+    private boolean performClaimChecks(@NotNull P receiver, @NotNull Terrain terrain, boolean resize) {
+        UUID ownerID = terrain.owner();
+        if (resize && ownerID == null) return true;
 
-            Set<Terrain> overlapping = null;
+        int maxClaims;
+        UUID world = terrain.world();
+        UUID terrainOwner = resize ? ownerID : playerUUID(receiver);
 
-            if (!hasPermission(player, "terrainer.bypass.overlap") && !(overlapping = getOverlapping(terrain)).isEmpty()) {
-                if (!hasPermission(player, "terrainer.bypass.overlap.self")) {
-                    if (overlapping.stream().anyMatch(t -> !hasInfoPermission(player, t))) {
-                        lang.send(player, lang.get("Create.Error.Overlap Several"));
+        if (!resize && !hasPermission(terrainOwner, "terrainer.bypass.limit.claims") && claimedTerrains(terrainOwner, world) >= (maxClaims = claimLimit(receiver))) {
+            lang.send(receiver, lang.get("Create.Error.No Claim Limit").replace("<max>", Integer.toString(maxClaims)));
+            return false;
+        }
+
+        if (!hasPermission(terrainOwner, "terrainer.bypass.overlap")) {
+            Set<Terrain> overlapping = overlappingTerrains(terrain);
+
+            if (!overlapping.isEmpty()) {
+                if (!hasPermission(receiver, "terrainer.bypass.overlap.self")) {
+                    // Send generic message if player not allowed to see the overlapping terrains names.
+                    if (overlapping.stream().anyMatch(t -> !hasInfoPermission(receiver, t))) {
+                        lang.send(receiver, lang.get("Create.Error.Overlap Several"));
                     } else {
-                        lang.send(player, lang.get("Create.Error.Overlap").replace("<other>", TerrainerUtil.listToString(overlapping, Terrain::name)));
+                        lang.send(receiver, lang.get("Create.Error.Overlap").replace("<other>", TerrainerUtil.listToString(overlapping, Terrain::name)));
                     }
                     return false;
                 } else {
                     for (Terrain t1 : overlapping) {
                         // Terrains can overlap if they are owned by the same person.
-                        if (playerID.equals(t1.owner())) continue;
+                        if (terrainOwner.equals(t1.owner())) continue;
 
-                        if (!hasInfoPermission(player, t1)) {
-                            lang.send(player, lang.get("Create.Error.Overlap Several"));
+                        if (!hasInfoPermission(receiver, t1)) { // Player not allowed to see terrain name.
+                            lang.send(receiver, lang.get("Create.Error.Overlap Several"));
                         } else {
-                            lang.send(player, lang.get("Create.Error.Overlap").replace("<other>", t1.name()));
+                            lang.send(receiver, lang.get("Create.Error.Overlap").replace("<other>", t1.name()));
                         }
                         return false;
                     }
                 }
             }
+        }
 
-            if (!hasPermission(player, "terrainer.bypass.limit.blocks")) {
-                double area = terrain.area();
-                double minArea = Configurations.CONFIG.getConfiguration().getNumber("Min Area").orElse(25.0).doubleValue();
-                double minDimensions = Configurations.CONFIG.getConfiguration().getNumber("Min Dimensions").orElse(5.0).doubleValue();
-                Coordinate max = terrain.maxDiagonal();
-                Coordinate min = terrain.minDiagonal();
+        if (!hasPermission(terrainOwner, "terrainer.bypass.limit.blocks")) {
+            long maxBlocks;
+            double area = terrain.area();
+            double minArea = Configurations.CONFIG.getConfiguration().getNumber("Min Area").orElse(25.0).doubleValue();
+            double minDimensions = Configurations.CONFIG.getConfiguration().getNumber("Min Dimensions").orElse(5.0).doubleValue();
+            Coordinate max = terrain.maxDiagonal();
+            Coordinate min = terrain.minDiagonal();
 
-                if (area < minArea) {
-                    lang.send(player, lang.get("Create.Error.Too Small").replace("<min>", Double.toString(minArea)));
-                    return false;
-                }
-                if (max.x() - (min.x() - 1) < minDimensions || max.z() - (min.z() - 1) < minDimensions) {
-                    lang.send(player, lang.get("Create.Error.Dimensions").replace("<min>", Double.toString(minDimensions)));
-                    return false;
-                }
-                area = subtractIntersection(terrain, overlapping == null ? getOverlapping(terrain) : overlapping);
-                if ((area + (usedBlocks = getUsedBlockLimit(playerID))) > (maxBlocks = getMaxBlockLimit(player))) {
-                    lang.send(player, lang.get("Create.Error.No Block Limit").replace("<area>", Double.toString(area)).replace("<used>", Long.toString(usedBlocks)));
-                    return false;
-                }
+            if (area < minArea) {
+                lang.send(receiver, lang.get("Create.Error.Too Small").replace("<min>", Double.toString(minArea)));
+                return false;
             }
-
-            receiver = player;
-        } else {
-            receiver = getConsoleRecipient();
+            if (max.x() - (min.x() - 1) < minDimensions || max.z() - (min.z() - 1) < minDimensions) {
+                lang.send(receiver, lang.get("Create.Error.Dimensions").replace("<min>", Double.toString(minDimensions)));
+                return false;
+            }
+            // Checking whether the terrain's area plus the player's used blocks will be greater than the player's limit.
+            if (claimedBlocks(terrainOwner, world, terrain) > (maxBlocks = blockLimit(receiver))) {
+                lang.send(receiver, lang.get("Create.Error.No Block Limit").replace("<area>", Double.toString(area)).replace("<free>", Long.toString(Math.max(maxBlocks - claimedBlocks(terrainOwner, world), 0))));
+                return false;
+            }
         }
 
-        // TODO: Add flags set on config on claim.
+        return true;
+    }
 
-        terrain.setOwner(player == null ? null : getUniqueId(player));
-        if (TerrainManager.add(terrain)) {
-            lang.send(receiver, lang.get("Create.Success").replace("<name>", terrain.name()).replace("<used>", Long.toString(usedBlocks)).replace("<max>", Long.toString(maxBlocks)));
-            return true;
+    public boolean resizeTerrain(@Nullable P receiver, @NotNull Terrain terrain, @NotNull WorldCoordinate first, @NotNull WorldCoordinate second) {
+        if (!first.world().equals(second.world()) || !first.world().equals(terrain.world())) {
+            lang.send(receiver == null ? consoleRecipient() : receiver, lang.get("Create.Error.Different Worlds").replace("<label>", "tr"));
+            return false;
         }
-        return false;
+
+        Terrain tempTerrain = new Terrain(terrain); // Creating safe terrain clone.
+        tempTerrain.setDiagonals(first.coordinate(), second.coordinate());
+
+        if (receiver != null && !performClaimChecks(receiver, tempTerrain, true)) {
+
+            return false; // Checking resize.
+        }
+
+        terrain.setDiagonals(tempTerrain.minDiagonal(), tempTerrain.maxDiagonal());
+        return true;
     }
 
-    //TODO: subtract intersection
-    private long subtractIntersection(@NotNull Terrain terrain, @NotNull Set<Terrain> overlapping) {
-        return (long) terrain.area();
-    }
-
-    private @NotNull Set<Terrain> getOverlapping(@NotNull Terrain terrain) {
+    private @NotNull Set<Terrain> overlappingTerrains(@NotNull Terrain terrain) {
         if (terrain.chunks().isEmpty()) return Collections.emptySet();
 
         HashSet<Terrain> overlapping = new HashSet<>();
 
         terrain.chunks().forEach(chunk -> TerrainManager.terrainsAtChunk(terrain.world(), chunk.x(), chunk.z()).forEach(t -> {
-            if (t.isOverlapping(terrain)) overlapping.add(t);
+            if (!t.id().equals(terrain.id()) && t.isOverlapping(terrain)) overlapping.add(t);
         }));
         return overlapping;
     }
 
     /**
-     * Gets the sum of the areas of all terrains owned by the specified player.
+     * Gets the amount of blocks a player has claimed using terrains.
+     * <p>
+     * If there's two or more terrains covering the same block, the block will not be counted multiple times.
      *
-     * @param player The player to get the used block limit.
+     * @param player The player to get the used block limit, null for CONSOLE.
+     * @param world  The world to get the limit. Irrelevant if Per World Block Limit is disabled in config, but it's recommended to always provide a world.
      * @return The amount of blocks this player has claimed.
      */
-    public long getUsedBlockLimit(@Nullable UUID player) {
-        // TODO: Check if terrain is intersecting another and remove intersection area from used blocks. Switch ON/OFF in config.
+    public long claimedBlocks(@Nullable UUID player, @UnknownNullability UUID world) {
+        return claimedBlocks(player, world, null);
+    }
+
+    /**
+     * Gets the sum of the areas of all terrains owned by the specified player.
+     * <p>
+     * If there's an intersection of multiple terrains, it will count as a single area, in order to accurately return
+     * the amount of claimed blocks.
+     * <p>
+     * This method allows the specification of a terrain that is not in the {@link TerrainManager#allTerrains()}
+     * collection to take into account when checking intersections. Useful for checking limits when a terrain is being
+     * claimed.
+     *
+     * @param player          The player to get the used block limit.
+     * @param world           The world to get the limit. Irrelevant if Per World Block Limit is disabled in config, but it's recommended to always provide a world.
+     * @param claimingTerrain The terrain to take into account when checking intersections.
+     * @return The amount of blocks this player has claimed.
+     */
+    private long claimedBlocks(@Nullable UUID player, @UnknownNullability UUID world, @Nullable Terrain claimingTerrain) {
         long usedBlocks = 0;
-        for (Terrain terrain : TerrainManager.allTerrains()) {
+        Iterable<Terrain> terrains = perWorldBlockLimit.get() ? TerrainManager.terrains(Objects.requireNonNull(world)) : TerrainManager.allTerrains();
+
+        for (Terrain terrain : terrains) {
             if (!Objects.equals(terrain.owner(), player)) continue;
+            if (claimingTerrain != null && terrain.id().equals(claimingTerrain.id()))
+                continue; // Let specified instance take priority.
+            // TODO: Check if terrain is intersecting another and remove intersection area from used blocks. Switch ON/OFF in config.
             usedBlocks += (long) terrain.area();
         }
+
+        if (claimingTerrain != null) usedBlocks += (long) claimingTerrain.area();
 
         return usedBlocks;
     }
 
     /**
-     * Gets the max amount of blocks a player can claim. This takes into account the block limit from permissions and
-     * from the player's additional block limit ({@link #getAdditionalMaxBlockLimit(Object)}).
+     * Gets the max amount of blocks a player can claim. This takes into account the block limit from permissions AND
+     * from the player's additional block limit ({@link #boughtBlockLimit(Object)}).
      *
      * @param player The player to get the block limit.
      * @return The max amount of blocks this player can claim.
      */
-    public long getMaxBlockLimit(@NotNull P player) {
-        long blockLimit = getAdditionalMaxBlockLimit(player);
+    public long blockLimit(@NotNull P player) {
+        long blockLimit = boughtBlockLimit(player);
+        boolean onlyFirst = !sumIfTheresMultipleBlockLimitPermissions.get();
 
-        for (Map.Entry<String, Long> defaultLimit : defaultBlockLimits.entrySet()) {
+        for (Map.Entry<String, Long> defaultLimit : defaultBlockLimits) {
             if (hasPermission(player, "terrainer.limit.blocks." + defaultLimit.getKey())) {
                 blockLimit += defaultLimit.getValue();
+                if (onlyFirst) break;
             }
         }
 
@@ -275,9 +357,9 @@ public abstract class PlayerUtil<P extends R, R> {
      *
      * @param player The player to get the block limit.
      * @return The max amount of blocks this player can claim (without taking permissions into account).
-     * @see #getMaxBlockLimit(Object)
+     * @see #blockLimit(Object)
      */
-    public abstract long getAdditionalMaxBlockLimit(@NotNull P player);
+    public abstract long boughtBlockLimit(@NotNull P player);
 
     /**
      * Sets this player's additional block limit.
@@ -285,37 +367,41 @@ public abstract class PlayerUtil<P extends R, R> {
      * @param player     The player to add or remove block limit from.
      * @param blockLimit The new additional block limit.
      */
-    public abstract void setAdditionalMaxBlockLimit(@NotNull P player, long blockLimit);
+    public abstract void setBoughtBlockLimit(@NotNull P player, long blockLimit);
 
     /**
      * Gets the number of terrains the specified player owns.
      *
      * @param player The player to get the used claim limit.
+     * @param world  The world to get the limit. Irrelevant if Per World Claim Limit is disabled in config, but it's recommended to always provide a world.
      * @return The amount of terrains this player has claimed.
      */
-    public int getUsedClaimLimit(@Nullable UUID player) {
-        int used = 0;
-        for (Terrain terrain : TerrainManager.allTerrains()) {
-            if (Objects.equals(terrain.owner(), player)) {
-                used++;
-            }
+    public int claimedTerrains(@Nullable UUID player, @UnknownNullability UUID world) {
+        int claimed = 0;
+        Iterable<Terrain> terrains = perWorldClaimLimit.get() ? TerrainManager.terrains(Objects.requireNonNull(world)) : TerrainManager.allTerrains();
+
+        for (Terrain terrain : terrains) {
+            if (Objects.equals(terrain.owner(), player)) claimed++;
         }
-        return used;
+
+        return claimed;
     }
 
     /**
      * Gets the max amount of terrains a player can claim. This takes into account the claim limit from permissions and
-     * from the player's additional claim limit ({@link #getAdditionalMaxClaimLimit(Object)}).
+     * from the player's additional claim limit ({@link #boughtClaimLimit(Object)}).
      *
      * @param player The player to get the claim limit.
      * @return The max amount of terrains this player can claim.
      */
-    public int getMaxClaimLimit(@NotNull P player) {
-        int claimLimit = getAdditionalMaxClaimLimit(player);
+    public int claimLimit(@NotNull P player) {
+        int claimLimit = boughtClaimLimit(player);
+        boolean onlyFirst = !sumIfTheresMultipleClaimLimitPermissions.get();
 
-        for (Map.Entry<String, Integer> defaultLimit : defaultClaimLimits.entrySet()) {
+        for (Map.Entry<String, Integer> defaultLimit : defaultClaimLimits) {
             if (hasPermission(player, "terrainer.limit.claims." + defaultLimit.getKey())) {
                 claimLimit += defaultLimit.getValue();
+                if (onlyFirst) break;
             }
         }
 
@@ -328,9 +414,9 @@ public abstract class PlayerUtil<P extends R, R> {
      *
      * @param player The player to get the claim limit.
      * @return The max amount of terrains this player can claim (without taking permissions into account).
-     * @see #getMaxClaimLimit(Object)
+     * @see #claimLimit(Object)
      */
-    public abstract int getAdditionalMaxClaimLimit(@NotNull P player);
+    public abstract int boughtClaimLimit(@NotNull P player);
 
     /**
      * Sets this player's additional claim limit.
@@ -338,7 +424,27 @@ public abstract class PlayerUtil<P extends R, R> {
      * @param player     The player to add or remove claim limit from.
      * @param claimLimit The new additional claim limit.
      */
-    public abstract void setAdditionalMaxClaimLimit(@NotNull P player, int claimLimit);
+    public abstract void setBoughtClaimLimit(@NotNull P player, int claimLimit);
+
+    /**
+     * Checks whether the specified player has permission to see information of the terrain.
+     * <p>
+     * The permission varies whether the terrain is global, is owned by console, or if the player has any relations to
+     * it.
+     *
+     * @param player  The player to check permission.
+     * @param terrain The terrain to check if the player can see information about it.
+     * @return Whether the player can see the terrain's info.
+     */
+    public boolean hasInfoPermission(@NotNull P player, @NotNull Terrain terrain) {
+        if (terrain instanceof WorldTerrain) {
+            return hasPermission(player, "terrainer.info.world");
+        } else if (terrain.owner() == null) {
+            return hasPermission(player, "terrainer.info.console");
+        } else if (!playerUUID(player).equals(terrain.owner()) && !hasAnyRelations(player, terrain)) {
+            return hasPermission(player, "terrainer.info.others");
+        } else return true;
+    }
 
     /**
      * Whether a player has any relations with a terrain.
@@ -356,7 +462,7 @@ public abstract class PlayerUtil<P extends R, R> {
      * @see #hasAnyRelations(UUID, Terrain)
      */
     public boolean hasAnyRelations(@NotNull P player, @NotNull Terrain terrain) {
-        return hasAnyRelations(getUniqueId(player), terrain);
+        return hasAnyRelations(playerUUID(player), terrain);
     }
 
     /**
@@ -376,39 +482,6 @@ public abstract class PlayerUtil<P extends R, R> {
     public boolean hasAnyRelations(@NotNull UUID player, @NotNull Terrain terrain) {
         return player.equals(terrain.owner()) || terrain.members().view().contains(player) || terrain.moderators().view().contains(player);
     }
-
-    /**
-     * Whether the player is allowed to select in the specified coordinate.
-     * <p>
-     * The player is only allowed if:
-     * <ul>
-     *     <li>there are no terrains in the coordinate;</li>
-     *     <li>the world terrain has {@link Flags#BUILD} as undefined or allowed;</li>
-     *     <li>there are terrains and the player owns them;</li>
-     *     <li>the player has 'terrainer.bypass.overlap'.</li>
-     * </ul>
-     *
-     * @param player     The player to check if is allowed to select in the coordinate.
-     * @param coordinate The coordinate to check for terrains.
-     * @return If the player is allowed to select in the coordinate.
-     */
-    public boolean isAllowedToSelect(@NotNull P player, @NotNull WorldCoordinate coordinate) {
-        if (hasPermission(player, "terrainer.bypass.overlap")) return true;
-
-        for (Terrain terrain : TerrainManager.allTerrains()) {
-            Boolean state;
-            if (terrain instanceof WorldTerrain && (state = terrain.flags().getData(Flags.BUILD)) != null && !state) {
-                continue;
-            }
-            if (!Objects.equals(terrain.owner(), player) && terrain.isWithin(coordinate)) {
-                return false;
-            }
-        }
-
-        return true;
-    }
-
-    public abstract @NotNull WorldCoordinate location(@NotNull P player);
 
     private void spawnAtY(@NotNull Coordinate min, @NotNull Coordinate max, @NotNull P player, int y, @NotNull HashMap<SpawnedMarker, Boolean> ids, boolean fromSelection) throws Throwable {
         // Left Bottom Corner
@@ -438,7 +511,7 @@ public abstract class PlayerUtil<P extends R, R> {
 
     private void spawnMarkersAtBorders(@Nullable Coordinate min, @Nullable Coordinate max, @NotNull P player, int y, boolean fromSelection) {
         try {
-            UUID uuid = getUniqueId(player);
+            UUID uuid = playerUUID(player);
 
             if (min != null && max != null) {
                 Coordinate tempMin = min, tempMax = max;
@@ -473,19 +546,19 @@ public abstract class PlayerUtil<P extends R, R> {
             if (min == null) return;
             markers.computeIfAbsent(uuid, k -> new HashMap<>()).put(spawnMarker(player, (int) min.x(), y, (int) min.z(), false, fromSelection), fromSelection);
         } catch (Throwable t) {
-            Terrainer.logger().log("Failed to spawn marker entity for player " + getOwnerName(getUniqueId(player)), ConsoleLogger.Level.WARN);
+            Terrainer.logger().log("Failed to spawn marker entity for player " + ownerName(playerUUID(player)), ConsoleLogger.Level.WARN);
             t.printStackTrace();
         }
     }
 
     public final void showMarkers(@NotNull P player) {
-        showMarkers(player, (int) location(player).coordinate().y() - 1, null);
+        showMarkers(player, (int) playerLocation(player).coordinate().y() - 1, null);
     }
 
     public void showMarkers(@NotNull P player, int y, @Nullable Coordinate location) {
         removeMarkers(player);
 
-        var terrains = getTerrainsToShowBorders(player, location == null ? location(player).coordinate() : location);
+        var terrains = terrainsToShowBorders(player, location == null ? playerLocation(player).coordinate() : location);
         terrains.removeIf(t -> t.chunks().isEmpty()); // Removing global terrains.
 
         for (Terrain terrain : terrains) { // Terrains to show borders.
@@ -497,17 +570,17 @@ public abstract class PlayerUtil<P extends R, R> {
             spawnMarkersAtBorders(terrain.minDiagonal(), terrain.maxDiagonal(), player, terrainY, false);
         }
 
-        WorldCoordinate[] selections = selections(getUniqueId(player)); // Showing borders to selections.
+        WorldCoordinate[] selections = selections(playerUUID(player)); // Showing borders to selections.
         spawnMarkersAtBorders(selections[0] == null ? null : selections[0].coordinate(), selections[1] == null ? null : selections[1].coordinate(), player, y, true);
     }
 
-    public @NotNull Set<Terrain> getTerrainsToShowBorders(@NotNull P player, @Nullable Coordinate location) {
+    public @NotNull Set<Terrain> terrainsToShowBorders(@NotNull P player, @Nullable Coordinate location) {
         Set<Terrain> terrains;
 
         if (location != null) {
-            terrains = TerrainManager.terrainsAt(location(player).world(), (int) location.x(), (int) location.y(), (int) location.z());
+            terrains = TerrainManager.terrainsAt(playerLocation(player).world(), (int) location.x(), (int) location.y(), (int) location.z());
         } else {
-            terrains = TerrainManager.terrainsAt(location(player));
+            terrains = TerrainManager.terrainsAt(playerLocation(player));
         }
 
         if (terrains.isEmpty()) return terrains;
@@ -523,31 +596,22 @@ public abstract class PlayerUtil<P extends R, R> {
         return terrains;
     }
 
-    public boolean hasInfoPermission(@NotNull P player, @NotNull Terrain terrain) {
-        if (terrain instanceof WorldTerrain) {
-            return hasPermission(player, "terrainer.info.world");
-        } else if (terrain.owner() == null) {
-            return hasPermission(player, "terrainer.info.console");
-        } else if (!getUniqueId(player).equals(terrain.owner()) && !hasAnyRelations(player, terrain)) {
-            return hasPermission(player, "terrainer.info.others");
-        } else return true;
-    }
 
     public void removeMarkers(@NotNull P player) {
-        HashMap<SpawnedMarker, Boolean> ids = markers.remove(getUniqueId(player));
+        HashMap<SpawnedMarker, Boolean> ids = markers.remove(playerUUID(player));
         if (ids == null) return;
         ids.keySet().forEach(marker -> {
             try {
                 killMarker(player, marker);
             } catch (Throwable t) {
-                Terrainer.logger().log("Failed to kill marker entity " + marker + " for player " + getOwnerName(getUniqueId(player)), ConsoleLogger.Level.WARN);
+                Terrainer.logger().log("Failed to kill marker entity " + marker + " for player " + ownerName(playerUUID(player)), ConsoleLogger.Level.WARN);
                 t.printStackTrace();
             }
         });
     }
 
     public void updateSelectionMarkersToTerrainMarkers(@NotNull P player) {
-        HashMap<SpawnedMarker, Boolean> ids = markers.get(getUniqueId(player));
+        HashMap<SpawnedMarker, Boolean> ids = markers.get(playerUUID(player));
         if (ids == null) return;
 
         ids.forEach((marker, fromSelection) -> {
@@ -555,7 +619,7 @@ public abstract class PlayerUtil<P extends R, R> {
             try {
                 updateSelectionMarkerToTerrainMarker(marker, player);
             } catch (Throwable t) {
-                Terrainer.logger().log("Failed to update marker entity " + marker + " for player " + getOwnerName(getUniqueId(player)), ConsoleLogger.Level.WARN);
+                Terrainer.logger().log("Failed to update marker entity " + marker + " for player " + ownerName(playerUUID(player)), ConsoleLogger.Level.WARN);
                 t.printStackTrace();
             }
         });

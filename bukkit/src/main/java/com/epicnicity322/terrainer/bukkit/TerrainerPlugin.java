@@ -58,10 +58,15 @@ import java.io.IOException;
 import java.lang.reflect.Field;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.ToIntFunction;
+import java.util.function.ToLongFunction;
 
 public final class TerrainerPlugin extends JavaPlugin {
     private static final @NotNull MessageSender lang = new MessageSender(() -> Configurations.CONFIG.getConfiguration().getString("Language").orElse("EN_US"), Configurations.LANG_EN_US.getDefaultConfiguration());
     private static final @NotNull Logger logger = new Logger(Terrainer.logger().getPrefix());
+    private static final @NotNull TreeSet<Map.Entry<String, Long>> defaultBlockLimits = new TreeSet<>(Comparator.comparingLong((ToLongFunction<Map.Entry<String, Long>>) Map.Entry::getValue).reversed().thenComparing(Map.Entry::getKey));
+    private static final @NotNull TreeSet<Map.Entry<String, Integer>> defaultClaimLimits = new TreeSet<>(Comparator.comparingInt((ToIntFunction<Map.Entry<String, Integer>>) Map.Entry::getValue).reversed().thenComparing(Map.Entry::getKey));
+    private static final @NotNull AtomicBoolean nestedTerrainsCountTowardsBlockLimit = new AtomicBoolean(false), perWorldBlockLimit = new AtomicBoolean(false), perWorldClaimLimit = new AtomicBoolean(false), sumIfTheresMultipleBlockLimitPermissions = new AtomicBoolean(true), sumIfTheresMultipleClaimLimitPermissions = new AtomicBoolean(true);
     private static @Nullable TerrainerPlugin instance;
     private static @Nullable EconomyHandler economyHandler;
     private static @NotNull NMSHandler nmsHandler = new NMSHandler() {
@@ -93,12 +98,12 @@ public final class TerrainerPlugin extends JavaPlugin {
         lang.addLanguage("ES_LA", Configurations.LANG_EN_US);
     }
 
+    private final @NotNull BukkitPlayerUtil playerUtil = new BukkitPlayerUtil(this, defaultBlockLimits, defaultClaimLimits, nestedTerrainsCountTowardsBlockLimit, perWorldBlockLimit, perWorldClaimLimit, sumIfTheresMultipleBlockLimitPermissions, sumIfTheresMultipleClaimLimitPermissions);
     private final @NotNull NamespacedKey selectorWandKey = new NamespacedKey(this, "selector-wand");
     private final @NotNull NamespacedKey infoWandKey = new NamespacedKey(this, "info-wand");
     private final @NotNull BordersCommand bordersCommand = new BordersCommand(this);
     private final @NotNull InfoCommand infoCommand = new InfoCommand(bordersCommand);
     private final @NotNull Set<Command> commands = Set.of(bordersCommand, new ClaimCommand(), new ConfirmCommand(), new DefineCommand(), new DeleteCommand(), new DescriptionCommand(), new FlagCommand(), new PermissionCommand.GrantCommand(), new PermissionCommand.RevokeCommand(), infoCommand, new LimitCommand(), new ListCommand(), new PosCommand.Pos1Command(), new PosCommand.Pos2Command(), new Pos3DCommand.Pos13DCommand(), new Pos3DCommand.Pos23DCommand(), new PriorityCommand(), new ReloadCommand(), new RenameCommand(), new ShopCommand(), new TeleportCommand(this), new TransferCommand(), new WandCommand(selectorWandKey, infoWandKey));
-    private final @NotNull BukkitPlayerUtil playerUtil = new BukkitPlayerUtil(this);
     private final @NotNull PreLoginListener preLoginListener = new PreLoginListener();
     private final @NotNull TaskFactory taskFactory = new TaskFactory(this);
     private final @NotNull AtomicBoolean enterLeaveEvents = new AtomicBoolean(true);
@@ -159,36 +164,39 @@ public final class TerrainerPlugin extends JavaPlugin {
         EnterLeaveListener.setCommandsOnEntryCancelled(config.getCollection("Commands When TerrainEnterEvent Cancelled on Join or Create", Object::toString));
 
         // Block Limits
-        Map<String, Long> defaultBlockLimits = Collections.emptyMap();
+        defaultBlockLimits.clear();
         ConfigurationSection blockLimits = config.getConfigurationSection("Block Limits");
         if (blockLimits != null) {
             Map<String, Object> nodes = blockLimits.getNodes();
-            defaultBlockLimits = new HashMap<>((int) (nodes.size() / .75f) + 1);
             for (Map.Entry<String, Object> node : nodes.entrySet()) {
                 try {
-                    defaultBlockLimits.put(node.getKey(), Long.parseLong(node.getValue().toString()));
+                    defaultBlockLimits.add(Map.entry(node.getKey(), Long.parseLong(node.getValue().toString())));
                 } catch (NumberFormatException ignored) {
                 }
             }
         }
-        PlayerUtil.setDefaultBlockLimits(defaultBlockLimits);
 
         // Claim Limits
-        Map<String, Integer> defaultClaimLimits = Collections.emptyMap();
+        defaultClaimLimits.clear();
         ConfigurationSection claimLimits = config.getConfigurationSection("Claim Limits");
         if (claimLimits != null) {
             Map<String, Object> nodes = claimLimits.getNodes();
-            defaultClaimLimits = new HashMap<>((int) (nodes.size() / .75f) + 1);
             for (Map.Entry<String, Object> node : nodes.entrySet()) {
                 try {
-                    defaultClaimLimits.put(node.getKey(), Integer.parseInt(node.getValue().toString()));
+                    defaultClaimLimits.add(Map.entry(node.getKey(), Integer.parseInt(node.getValue().toString())));
                 } catch (NumberFormatException ignored) {
                 }
             }
         }
-        PlayerUtil.setDefaultClaimLimits(defaultClaimLimits);
 
-        // Marker options.
+        // Limit Options
+        nestedTerrainsCountTowardsBlockLimit.set(config.getBoolean("Limits.Nested Terrains Count Towards Block Limit").orElse(false));
+        perWorldBlockLimit.set(config.getBoolean("Limits.Per World Block Limit").orElse(false));
+        perWorldClaimLimit.set(config.getBoolean("Limits.Per World Claim Limit").orElse(false));
+        sumIfTheresMultipleBlockLimitPermissions.set(config.getBoolean("Limits.Sum If Theres Multiple Block Limit Permissions").orElse(true));
+        sumIfTheresMultipleClaimLimitPermissions.set(config.getBoolean("Limits.Sum If Theres Multiple Claim Limit Permissions").orElse(true));
+
+        // Marker options
         try {
             ReflectionHook.setMarkerColors(Integer.parseInt(config.getString("Markers.Selection Color").orElse("FFFF55"), 16), Integer.parseInt(config.getString("Markers.Terrain Color").orElse("FFFFFF"), 16), Integer.parseInt(config.getString("Markers.Created Color").orElse("55FF55"), 16));
         } catch (NumberFormatException e) {
