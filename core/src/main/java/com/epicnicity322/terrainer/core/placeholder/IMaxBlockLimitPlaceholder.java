@@ -37,6 +37,6 @@ public interface IMaxBlockLimitPlaceholder<O, P extends O> extends PlaceholderFo
 
         if (player == null || (playerUtil = playerUtil()).hasPermission(player, "terrainer.bypass.limit.blocks")) {
             return Terrainer.lang().get("Placeholder Values.Infinite Limit");
-        } else return Long.toString(playerUtil.getMaxBlockLimit(player));
+        } else return Long.toString(playerUtil.blockLimit(player));
     }
 }

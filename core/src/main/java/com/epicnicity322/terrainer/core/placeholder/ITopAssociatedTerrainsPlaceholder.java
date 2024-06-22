@@ -58,7 +58,7 @@ public interface ITopAssociatedTerrainsPlaceholder<O, P extends O> extends Prior
     @Nullable
     default String formatPlaceholder(@Nullable O player, @NotNull String params, int priority) {
         PlayerUtil<P, ? super P> playerUtil = playerUtil();
-        return getTop(priority, uuid -> StreamSupport.stream(TerrainManager.allTerrains().spliterator(), false).filter(t -> IAssociatedTerrainsPlaceholder.hasAnyRelations(uuid, t)).count()).map(playerUtil::getOwnerName).orElseGet(() -> Terrainer.lang().get("Placeholder Values.No One Top"));
+        return getTop(priority, uuid -> StreamSupport.stream(TerrainManager.allTerrains().spliterator(), false).filter(t -> IAssociatedTerrainsPlaceholder.hasAnyRelations(uuid, t)).count()).map(playerUtil::ownerName).orElseGet(() -> Terrainer.lang().get("Placeholder Values.No One Top"));
     }
 
     @Override

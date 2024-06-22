@@ -46,7 +46,7 @@ public class TerrainListGUI extends ListGUI<WeakReference<Terrain>> {
     protected @NotNull ItemStack item(@NotNull WeakReference<Terrain> obj) {
         Terrain t = obj.get();
         if (t == null) return new ItemStack(Material.AIR);
-        return InventoryUtils.getItemStack("Terrain List.GUI." + (t instanceof WorldTerrain ? "World " : "") + "Terrain Item", Configurations.CONFIG.getConfiguration(), TerrainerPlugin.getLanguage(), t.name(), t.id().toString(), t.description(), Double.toString(t.area()), TerrainerPlugin.getPlayerUtil().getOwnerName(t.owner()));
+        return InventoryUtils.getItemStack("Terrain List.GUI." + (t instanceof WorldTerrain ? "World " : "") + "Terrain Item", Configurations.CONFIG.getConfiguration(), TerrainerPlugin.getLanguage(), t.name(), t.id().toString(), t.description(), Double.toString(t.area()), TerrainerPlugin.getPlayerUtil().ownerName(t.owner()));
     }
 
     @Override

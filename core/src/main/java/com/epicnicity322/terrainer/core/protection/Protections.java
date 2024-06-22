@@ -125,7 +125,7 @@ public abstract class Protections<P extends R, R, M, B, E> {
 
     public boolean handleProtection(@NotNull P player, @NotNull UUID world, int x, int y, int z, @NotNull Flag<Boolean> flag, boolean message) {
         if (playerUtil.hasPermission(player, flag.bypassPermission())) return true;
-        boolean allow = TerrainManager.isFlagAllowedAt(flag, playerUtil.getUniqueId(player), world, x, y, z);
+        boolean allow = TerrainManager.isFlagAllowedAt(flag, playerUtil.playerUUID(player), world, x, y, z);
         if (!allow && message) lang.send(player, lang.get("Protections." + flag.id()));
         return allow;
     }
@@ -147,7 +147,7 @@ public abstract class Protections<P extends R, R, M, B, E> {
             // player has relations for the priority, then return immediately.
 
             if (!state1Found) {
-                Boolean state1 = terrain.memberFlags().getData(playerUtil.getUniqueId(player), flag1);
+                Boolean state1 = terrain.memberFlags().getData(playerUtil.playerUUID(player), flag1);
                 if (state1 == null) state1 = terrain.flags().getData(flag1);
 
                 if (state1 != null) {
@@ -160,7 +160,7 @@ public abstract class Protections<P extends R, R, M, B, E> {
                 }
             }
             if (!state2Found) {
-                Boolean state2 = terrain.memberFlags().getData(playerUtil.getUniqueId(player), flag2);
+                Boolean state2 = terrain.memberFlags().getData(playerUtil.playerUUID(player), flag2);
                 if (state2 == null) state2 = terrain.flags().getData(flag2);
 
                 if (state2 != null) {
@@ -611,7 +611,7 @@ public abstract class Protections<P extends R, R, M, B, E> {
     public boolean command(@NotNull UUID world, int x, int y, int z, @NotNull P player, @NotNull String command) {
         if (playerUtil.hasPermission(player, Flags.COMMAND_BLACKLIST.bypassPermission())) return true;
 
-        List<String> blockedCommands = TerrainManager.getCollectionFlagDataAt(Flags.COMMAND_BLACKLIST, playerUtil.getUniqueId(player), world, x, y, z, true);
+        List<String> blockedCommands = TerrainManager.getCollectionFlagDataAt(Flags.COMMAND_BLACKLIST, playerUtil.playerUUID(player), world, x, y, z, true);
         if (blockedCommands.isEmpty()) return true;
 
         command = command.toLowerCase(Locale.ROOT);
@@ -635,7 +635,7 @@ public abstract class Protections<P extends R, R, M, B, E> {
     }
 
     public boolean terrainEnter(@NotNull P player, @NotNull Set<Terrain> enteredTerrains, @NotNull Set<Terrain> toTerrains, @NotNull TerrainEnterLeaveEvent.EnterLeaveReason reason) {
-        var pUID = playerUtil.getUniqueId(player);
+        var pUID = playerUtil.playerUUID(player);
         Boolean enter = playerUtil.hasPermission(player, Flags.ENTER.bypassPermission()) ? true : null;
         // Prevent player from moving into the terrain while flying.
         Boolean flight = reason != TerrainEnterLeaveEvent.EnterLeaveReason.MOVE || !playerUtil.isFlying(player) || playerUtil.hasPermission(player, Flags.FLY.bypassPermission()) ? true : null;
@@ -679,7 +679,7 @@ public abstract class Protections<P extends R, R, M, B, E> {
 
     public void monitorTerrainEnter(@NotNull P player, @NotNull Set<Terrain> enteredTerrains, @NotNull Set<Terrain> toTerrains) {
         Configuration config = Configurations.CONFIG.getConfiguration();
-        var pUID = playerUtil.getUniqueId(player);
+        var pUID = playerUtil.playerUUID(player);
 
         // Removing fly ability of player when entering terrains with FLY denied.
         Boolean flyFound = !playerUtil.canFly(player) || playerUtil.hasPermission(player, Flags.FLY.bypassPermission()) ? true : null;
@@ -778,12 +778,12 @@ public abstract class Protections<P extends R, R, M, B, E> {
 
         // Dispatching console commands.
         if (consoleCommandsFound != null) {
-            consoleCommandsFound.forEach(command -> playerUtil.dispatchCommand(null, command.replace("%p", playerUtil.getName(player))));
+            consoleCommandsFound.forEach(command -> playerUtil.dispatchCommand(null, command.replace("%p", playerUtil.playerName(player))));
         }
 
         // Dispatching player commands.
         if (playerCommandsFound != null) {
-            playerCommandsFound.forEach(command -> playerUtil.dispatchCommand(player, command.replace("%p", playerUtil.getName(player))));
+            playerCommandsFound.forEach(command -> playerUtil.dispatchCommand(player, command.replace("%p", playerUtil.playerName(player))));
         }
 
         // Showing terrain borders.
@@ -803,7 +803,7 @@ public abstract class Protections<P extends R, R, M, B, E> {
 
     public boolean terrainLeave(@NotNull P player, @NotNull Set<Terrain> leftTerrains, @NotNull Set<Terrain> fromTerrains, @NotNull Set<Terrain> toTerrains) {
         if (!playerUtil.hasPermission(player, Flags.LEAVE.bypassPermission())) {
-            var pUID = playerUtil.getUniqueId(player);
+            var pUID = playerUtil.playerUUID(player);
 
             for (Terrain terrain : fromTerrains) {
                 if (playerUtil.hasAnyRelations(player, terrain)) break;
@@ -833,7 +833,7 @@ public abstract class Protections<P extends R, R, M, B, E> {
     }
 
     public void monitorTerrainLeave(@NotNull P player, @NotNull Set<Terrain> leftTerrains, UUID world, int x, int y, int z, @NotNull Set<Terrain> fromTerrains) {
-        var pUID = playerUtil.getUniqueId(player);
+        var pUID = playerUtil.playerUUID(player);
 
         Integer effectsPriority = null;
         List<String> consoleCommandsFound = null;
@@ -896,16 +896,16 @@ public abstract class Protections<P extends R, R, M, B, E> {
         }
 
         // Re-apply effects, in case the player had their effects removed, and remained in a terrain that had similar effects.
-        TerrainManager.getMapFlagDataAt(Flags.EFFECTS, playerUtil.getUniqueId(player), world, x, y, z, false).forEach((effect, amplifier) -> playerUtil.applyEffect(player, effect, amplifier));
+        TerrainManager.getMapFlagDataAt(Flags.EFFECTS, playerUtil.playerUUID(player), world, x, y, z, false).forEach((effect, amplifier) -> playerUtil.applyEffect(player, effect, amplifier));
 
         // Dispatching console commands.
         if (consoleCommandsFound != null) {
-            consoleCommandsFound.forEach(command -> playerUtil.dispatchCommand(null, command.replace("%p", playerUtil.getName(player))));
+            consoleCommandsFound.forEach(command -> playerUtil.dispatchCommand(null, command.replace("%p", playerUtil.playerName(player))));
         }
 
         // Dispatching player commands.
         if (playerCommandsFound != null) {
-            playerCommandsFound.forEach(command -> playerUtil.dispatchCommand(player, command.replace("%p", playerUtil.getName(player))));
+            playerCommandsFound.forEach(command -> playerUtil.dispatchCommand(player, command.replace("%p", playerUtil.playerName(player))));
         }
 
         // Setting fly back if the player had a return flight tag.

@@ -24,7 +24,6 @@ import com.epicnicity322.terrainer.core.WorldCoordinate;
 import com.epicnicity322.terrainer.core.config.Configurations;
 import com.epicnicity322.terrainer.core.util.PlayerUtil;
 import com.epicnicity322.yamlhandler.Configuration;
-import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.NamespacedKey;
 import org.bukkit.Registry;
@@ -38,7 +37,10 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.HashMap;
+import java.util.Map;
+import java.util.TreeSet;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public final class BukkitPlayerUtil extends PlayerUtil<Player, CommandSender> {
     private static final @NotNull HashMap<UUID, TaskFactory.CancellableTask> markerKillTasks = new HashMap<>();
@@ -47,8 +49,9 @@ public final class BukkitPlayerUtil extends PlayerUtil<Player, CommandSender> {
     private final @NotNull NamespacedKey claimLimitKey;
     private final @NotNull NamespacedKey resetFlyKey;
 
-    public BukkitPlayerUtil(@NotNull TerrainerPlugin plugin) {
-        super(TerrainerPlugin.getLanguage());
+    public BukkitPlayerUtil(@NotNull TerrainerPlugin plugin, @NotNull TreeSet<Map.Entry<String, Long>> defaultBlockLimits, @NotNull TreeSet<Map.Entry<String, Integer>> defaultClaimLimits, @NotNull AtomicBoolean nestedTerrainsCountTowardsBlockLimit, @NotNull AtomicBoolean perWorldBlockLimit, @NotNull AtomicBoolean perWorldClaimLimit, @NotNull AtomicBoolean sumIfTheresMultipleBlockLimitPermissions, @NotNull AtomicBoolean sumIfTheresMultipleClaimLimitPermissions) {
+        super(TerrainerPlugin.getLanguage(), defaultBlockLimits, defaultClaimLimits, nestedTerrainsCountTowardsBlockLimit, perWorldBlockLimit, perWorldClaimLimit, sumIfTheresMultipleBlockLimitPermissions, sumIfTheresMultipleClaimLimitPermissions);
+
         this.plugin = plugin;
         blockLimitKey = new NamespacedKey(plugin, "block-limit");
         claimLimitKey = new NamespacedKey(plugin, "claim-limit");
@@ -69,9 +72,11 @@ public final class BukkitPlayerUtil extends PlayerUtil<Player, CommandSender> {
     public boolean shouldResetFly(@NotNull Player player) {
         Integer resetFly = player.getPersistentDataContainer().get(resetFlyKey, PersistentDataType.INTEGER);
         if (resetFly == null) return false;
+        boolean hadFlightPermissionBefore = resetFly == 1;
         Configuration config = Configurations.CONFIG.getConfiguration();
 
-        return resetFly == 1 ? player.hasPermission(config.getString("Fly Permission").orElse("essentials.fly")) : !config.getBoolean("Strict Fly Return").orElse(false);
+        // If they had the permission, only reset flight if they still have it. Otherwise, always reset flight unless Strict Fly Return is true.
+        return hadFlightPermissionBefore ? player.hasPermission(config.getString("Fly Permission").orElse("essentials.fly")) : !config.getBoolean("Strict Fly Return").orElse(false);
     }
 
     @Override
@@ -80,9 +85,9 @@ public final class BukkitPlayerUtil extends PlayerUtil<Player, CommandSender> {
 
         if (value) {
             Configuration config = Configurations.CONFIG.getConfiguration();
-            int checkPermissionToReset = player.hasPermission(config.getString("Fly Permission").orElse("essentials.fly")) ? 1 : 0;
+            int hasFlightPermission = player.hasPermission(config.getString("Fly Permission").orElse("essentials.fly")) ? 1 : 0;
 
-            container.set(resetFlyKey, PersistentDataType.INTEGER, checkPermissionToReset);
+            container.set(resetFlyKey, PersistentDataType.INTEGER, hasFlightPermission);
         } else {
             container.remove(resetFlyKey);
         }
@@ -128,7 +133,7 @@ public final class BukkitPlayerUtil extends PlayerUtil<Player, CommandSender> {
 
     @Override
     public void dispatchCommand(@Nullable Player executor, @NotNull String command) {
-        plugin.getServer().dispatchCommand(executor == null ? plugin.getServer().getConsoleSender() : executor, command);
+        plugin.getServer().dispatchCommand(executor == null ? consoleRecipient() : executor, command);
     }
 
     @Override
@@ -137,37 +142,43 @@ public final class BukkitPlayerUtil extends PlayerUtil<Player, CommandSender> {
     }
 
     @Override
-    public @NotNull String getName(@NotNull Player player) {
+    public boolean hasPermission(@NotNull UUID player, @NotNull String permission) {
+        Player p = plugin.getServer().getPlayer(player);
+        return p != null && p.hasPermission(permission);
+    }
+
+    @Override
+    public @NotNull String playerName(@NotNull Player player) {
         return player.getName();
     }
 
     @Override
-    public @NotNull String getOwnerName(@Nullable UUID uuid) {
+    public @NotNull String ownerName(@Nullable UUID uuid) {
         if (uuid == null) {
             return TerrainerPlugin.getLanguage().get("Target.Console");
         } else {
-            String name = Bukkit.getOfflinePlayer(uuid).getName();
+            String name = plugin.getServer().getOfflinePlayer(uuid).getName();
             return name == null ? uuid.toString() : name;
         }
     }
 
     @Override
-    public @NotNull UUID getUniqueId(@NotNull Player player) {
+    public @NotNull UUID playerUUID(@NotNull Player player) {
         return player.getUniqueId();
     }
 
     @Override
-    protected @NotNull CommandSender getConsoleRecipient() {
-        return Bukkit.getConsoleSender();
+    protected @NotNull CommandSender consoleRecipient() {
+        return plugin.getServer().getConsoleSender();
     }
 
     @Override
-    public long getAdditionalMaxBlockLimit(@NotNull Player player) {
+    public long boughtBlockLimit(@NotNull Player player) {
         return player.getPersistentDataContainer().getOrDefault(blockLimitKey, PersistentDataType.LONG, 0L);
     }
 
     @Override
-    public void setAdditionalMaxBlockLimit(@NotNull Player player, long blockLimit) {
+    public void setBoughtBlockLimit(@NotNull Player player, long blockLimit) {
         if (blockLimit <= 0) {
             player.getPersistentDataContainer().remove(blockLimitKey);
         } else {
@@ -176,12 +187,12 @@ public final class BukkitPlayerUtil extends PlayerUtil<Player, CommandSender> {
     }
 
     @Override
-    public int getAdditionalMaxClaimLimit(@NotNull Player player) {
+    public int boughtClaimLimit(@NotNull Player player) {
         return player.getPersistentDataContainer().getOrDefault(claimLimitKey, PersistentDataType.INTEGER, 0);
     }
 
     @Override
-    public void setAdditionalMaxClaimLimit(@NotNull Player player, int claimLimit) {
+    public void setBoughtClaimLimit(@NotNull Player player, int claimLimit) {
         if (claimLimit <= 0) {
             player.getPersistentDataContainer().remove(claimLimitKey);
         } else {
@@ -190,9 +201,14 @@ public final class BukkitPlayerUtil extends PlayerUtil<Player, CommandSender> {
     }
 
     @Override
-    public @NotNull WorldCoordinate location(@NotNull Player player) {
+    public @NotNull WorldCoordinate playerLocation(@NotNull Player player) {
         Location loc = player.getLocation();
-        return new WorldCoordinate(player.getWorld().getUID(), new Coordinate(loc.getBlockX(), loc.getBlockY(), loc.getBlockZ()));
+        return new WorldCoordinate(playerWorld(player), new Coordinate(loc.getBlockX(), loc.getBlockY(), loc.getBlockZ()));
+    }
+
+    @Override
+    public @NotNull UUID playerWorld(@NotNull Player player) {
+        return player.getWorld().getUID();
     }
 
     @Override

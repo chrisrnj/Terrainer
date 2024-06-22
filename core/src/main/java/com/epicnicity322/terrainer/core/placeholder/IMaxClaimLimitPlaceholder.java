@@ -37,6 +37,6 @@ public interface IMaxClaimLimitPlaceholder<O, P extends O> extends PlaceholderFo
 
         if (player == null || (playerUtil = playerUtil()).hasPermission(player, "terrainer.bypass.limit.claims")) {
             return Terrainer.lang().get("Placeholder Values.Infinite Limit");
-        } else return Integer.toString(playerUtil.getMaxClaimLimit(player));
+        } else return Integer.toString(playerUtil.claimLimit(player));
     }
 }

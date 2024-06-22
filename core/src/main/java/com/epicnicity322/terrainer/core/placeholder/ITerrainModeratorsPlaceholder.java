@@ -41,6 +41,6 @@ public interface ITerrainModeratorsPlaceholder<O, P extends O> extends TerrainPl
     @Nullable
     default String formatPlaceholder(@Nullable O player, @NotNull String params, @Nullable Terrain terrain) {
         if (terrain == null) return Terrainer.lang().get("Placeholder Values.Unknown Terrain");
-        return TerrainerUtil.listToString(terrain.moderators().view(), uuid -> playerUtil().getOwnerName(uuid));
+        return TerrainerUtil.listToString(terrain.moderators().view(), uuid -> playerUtil().ownerName(uuid));
     }
 }

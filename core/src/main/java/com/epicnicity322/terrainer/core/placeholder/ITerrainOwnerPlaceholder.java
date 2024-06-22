@@ -44,6 +44,6 @@ public interface ITerrainOwnerPlaceholder<O, P extends O> extends TerrainPlaceho
         if (terrain == null) return Terrainer.lang().get("Placeholder Values.Unknown Terrain");
         UUID owner = terrain.owner();
         if (owner == null) return Terrainer.lang().get("Placeholder Values.Console Owner");
-        return playerUtil().getOwnerName(owner);
+        return playerUtil().ownerName(owner);
     }
 }

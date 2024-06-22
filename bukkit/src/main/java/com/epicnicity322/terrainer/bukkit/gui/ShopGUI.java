@@ -104,9 +104,9 @@ public class ShopGUI {
                 BukkitPlayerUtil util = TerrainerPlugin.getPlayerUtil();
 
                 if (claims) {
-                    util.setAdditionalMaxClaimLimit(whoCLicked, util.getAdditionalMaxClaimLimit(whoCLicked) + amount);
+                    util.setBoughtClaimLimit(whoCLicked, util.boughtClaimLimit(whoCLicked) + amount);
                 } else {
-                    util.setAdditionalMaxBlockLimit(whoCLicked, util.getAdditionalMaxBlockLimit(whoCLicked) + amount);
+                    util.setBoughtBlockLimit(whoCLicked, util.boughtBlockLimit(whoCLicked) + amount);
                 }
 
                 lang.send(whoCLicked, lang.get("Shop.Success." + (claims ? "Claims" : "Blocks")).replace("<amount>", Integer.toString(amount)).replace("<price>", Double.toString(finalPrice)));
@@ -127,7 +127,7 @@ public class ShopGUI {
         if (divide < 1) divide = 1;
         double multiplier = config.getNumber(section + "Multiplier").orElse(0).doubleValue();
 
-        double inflation = ((claims ? TerrainerPlugin.getPlayerUtil().getAdditionalMaxClaimLimit(player) : TerrainerPlugin.getPlayerUtil().getAdditionalMaxBlockLimit(player)) / divide) * multiplier;
+        double inflation = ((claims ? TerrainerPlugin.getPlayerUtil().boughtClaimLimit(player) : TerrainerPlugin.getPlayerUtil().boughtBlockLimit(player)) / divide) * multiplier;
         return (inflation * amount) / divide;
     }
 }

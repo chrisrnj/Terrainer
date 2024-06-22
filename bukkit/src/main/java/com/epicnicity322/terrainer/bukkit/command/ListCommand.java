@@ -130,7 +130,7 @@ public final class ListCommand extends Command {
                         .replace("<id>", t.id().toString())
                         .replace("<desc>", ObjectUtils.getOrDefault(t.description(), "null"))
                         .replace("<area>", Double.toString(t.area()))
-                        .replace("<owner>", TerrainerPlugin.getPlayerUtil().getOwnerName(t.owner())))));
+                        .replace("<owner>", TerrainerPlugin.getPlayerUtil().ownerName(t.owner())))));
                 entry.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/tr info " + t.id()));
                 component.addExtra(entry);
                 if (i != currentPage.size()) component.addExtra(lang.getColored("Terrain List.Chat.Separator"));
@@ -155,7 +155,7 @@ public final class ListCommand extends Command {
                 Coordinate max = t.maxDiagonal();
                 World w = Bukkit.getWorld(t.world());
                 String worldName = w == null ? t.world().toString() : w.getName();
-                lang.send(p, lang.get("Info.Text").replace("<name>", t.name()).replace("<id>", t.id().toString()).replace("<owner>", TerrainerPlugin.getPlayerUtil().getOwnerName(t.owner())).replace("<desc>", t.description()).replace("<date>", t.creationDate().format(DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm:ss"))).replace("<area>", Double.toString(t.area())).replace("<world>", worldName).replace("<x1>", Double.toString(min.x())).replace("<y1>", Double.toString(min.y())).replace("<z1>", Double.toString(min.z())).replace("<x2>", Double.toString(max.x())).replace("<y2>", Double.toString(max.y())).replace("<z2>", Double.toString(max.z())).replace("<mods>", TerrainerUtil.listToString(t.moderators().view(), TerrainerPlugin.getPlayerUtil()::getOwnerName)).replace("<members>", TerrainerUtil.listToString(t.members().view(), TerrainerPlugin.getPlayerUtil()::getOwnerName)).replace("<flags>", TerrainerUtil.listToString(t.flags().view().keySet(), id -> id)).replace("<priority>", Integer.toString(t.priority())));
+                lang.send(p, lang.get("Info.Text").replace("<name>", t.name()).replace("<id>", t.id().toString()).replace("<owner>", TerrainerPlugin.getPlayerUtil().ownerName(t.owner())).replace("<desc>", t.description()).replace("<date>", t.creationDate().format(DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm:ss"))).replace("<area>", Double.toString(t.area())).replace("<world>", worldName).replace("<x1>", Double.toString(min.x())).replace("<y1>", Double.toString(min.y())).replace("<z1>", Double.toString(min.z())).replace("<x2>", Double.toString(max.x())).replace("<y2>", Double.toString(max.y())).replace("<z2>", Double.toString(max.z())).replace("<mods>", TerrainerUtil.listToString(t.moderators().view(), TerrainerPlugin.getPlayerUtil()::ownerName)).replace("<members>", TerrainerUtil.listToString(t.members().view(), TerrainerPlugin.getPlayerUtil()::ownerName)).replace("<flags>", TerrainerUtil.listToString(t.flags().view().keySet(), id -> id)).replace("<priority>", Integer.toString(t.priority())));
             }).open(player);
         }
     }

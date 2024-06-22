@@ -193,7 +193,7 @@ public class Terrain implements Serializable {
 
         List<Terrain> ownerTerrains = TerrainManager.terrainsOf(owner);
         PlayerUtil<?, ?> playerUtil = Terrainer.playerUtil();
-        String nameFormat = Terrainer.lang().get("Create.Default Name").replace("<owner>", (playerUtil == null ? owner.toString() : playerUtil.getOwnerName(owner)));
+        String nameFormat = Terrainer.lang().get("Create.Default Name").replace("<owner>", (playerUtil == null ? owner.toString() : playerUtil.ownerName(owner)));
         int size = 1;
 
         if (ownerTerrains.stream().anyMatch(t -> t.id.equals(terrainID))) {
