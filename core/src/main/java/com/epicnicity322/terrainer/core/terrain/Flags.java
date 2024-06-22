@@ -102,12 +102,10 @@ public final class Flags {
     /**
      * A list of commands to execute on console when a player enters the terrain. Use %p for the player's name, %t for the terrain's ID.
      */
-    //TODO:
     public static final @NotNull Flag<List<String>> ENTER_CONSOLE_COMMANDS = Flag.newListFlag("Enter Console Commands", null);
     /**
      * A list of commands to execute as the player when a player enters the terrain. Use %p for the player's name, %t for the terrain's ID.
      */
-    //TODO:
     public static final @NotNull Flag<List<String>> ENTER_PLAYER_COMMANDS = Flag.newListFlag("Enter Player Commands", null);
     /**
      * Allows everyone to enter vehicles.
@@ -173,7 +171,6 @@ public final class Flags {
     /**
      * A list of commands to execute on console when a player leaves the terrain. Use %p for the player's name, %t for the terrain's ID.
      */
-    //TODO:
     public static final @NotNull Flag<List<String>> LEAVE_CONSOLE_COMMANDS = Flag.newListFlag("Leave Console Commands", null);
     /**
      * Sends a leave message to the player leaving the terrain. When this flag has no data, the default farewell message
@@ -189,7 +186,6 @@ public final class Flags {
     /**
      * A list of commands to execute as the player when a player leaves the terrain. Use %p for the player's name, %t for the terrain's ID.
      */
-    //TODO:
     public static final @NotNull Flag<List<String>> LEAVE_PLAYER_COMMANDS = Flag.newListFlag("Leave Player Commands", null);
     /**
      * Allows everyone to use lighters such as fireballs or flint and steel.
