@@ -41,6 +41,7 @@ import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Locale;
+import java.util.Objects;
 import java.util.UUID;
 
 public final class ClaimCommand extends Command {
@@ -125,6 +126,14 @@ public final class ClaimCommand extends Command {
             if (player != null) util.updateSelectionMarkersToTerrainMarkers(player);
 
             lang.send(sender, lang.get("Create.Success").replace("<name>", terrain.name()).replace("<used>", Long.toString(util.claimedBlocks(owner, terrain.world()))).replace("<max>", player == null ? lang.get("Placeholder Values.Infinite Limit") : Long.toString(util.blockLimit(player))));
+
+            // Removing resizing in case there was any.
+            Terrain resizing = PlayerUtil.currentlyResizing(owner);
+            if (resizing != null) {
+                lang.send(sender, lang.get("Resize.Cancelled").replace("<terrain>", resizing.name()));
+                ConfirmCommand.cancelConfirmation(owner, Objects.hash("resize", resizing.id()));
+                PlayerUtil.setCurrentlyResizing(owner, null);
+            }
         } else if (player != null) util.removeMarkers(player);
 
         // Clearing selections.

@@ -572,7 +572,8 @@ public final class Configurations {
               Success:
                 First: '&6First position selected in world &7<world>&6 at &7<coord>&6.'
                 Second: '&6Second position selected in world &7<world>&6 at &7<coord>&6.'
-                Suggest: '<cooldown=30000> &ePositions were selected successfully. Now, to create a terrain, use the command &7&n/<label> claim [name]&e.'
+                Suggest: '<cooldown=30000> &ePositions were selected successfully. Now to create a terrain, use the command &7&n/<label> claim [name]&e.'
+                Suggest Resize: '<cooldown=30000> &ePositions were selected successfully. Confirm the new size of &f<terrain>&e with the command &7&n/<label> confirm&e.'
                         
             Selector Wand:
               Display Name: '&6&l&nClaim Selection Wand'
@@ -702,10 +703,12 @@ public final class Configurations {
               Success: '&aTerrain &7<terrain>&a was transferred successfully to &7<who>&a.'
                         
             Resize:
+              Cancelled: '&7The resize operation of &f<terrain>&7 was cancelled because you claimed a new terrain.'
               Confirmation Description: 'Resize terrain <terrain>'
               Error:
                 World Terrain: '&4Global world terrains can not be resized!'
               Select: '&eTo resize the terrain, grab your selection wand and mark the new diagonals, then type &7&n/<label> confirm&e to confirm.'
+              Success: '&2Terrain ''&a<terrain>&2'' resized successfully! Used block limit: &7<used>&f/&7<max>'
                         
             Priority:
               Error:

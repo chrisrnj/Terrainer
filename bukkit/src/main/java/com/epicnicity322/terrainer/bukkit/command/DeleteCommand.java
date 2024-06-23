@@ -26,6 +26,7 @@ import com.epicnicity322.terrainer.bukkit.util.CommandUtil;
 import com.epicnicity322.terrainer.core.terrain.Terrain;
 import com.epicnicity322.terrainer.core.terrain.TerrainManager;
 import com.epicnicity322.terrainer.core.terrain.WorldTerrain;
+import com.epicnicity322.terrainer.core.util.PlayerUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
 import org.jetbrains.annotations.NotNull;
@@ -74,7 +75,7 @@ public final class DeleteCommand extends Command {
                     if (isReallyWorldTerrain) TerrainManager.loadWorld(terrain1.world(), terrain1.name());
                     // Cancelling all confirmations related to this terrain.
                     ConfirmCommand.cancelConfirmations(Objects.hash("transfer", terrain1.id()));
-                    ConfirmCommand.cancelConfirmations(Objects.hash("resize", terrain1.id()));
+                    ConfirmCommand.cancelConfirmations(Objects.hash("resize", terrain1.id()), foundPlayer -> PlayerUtil.setCurrentlyResizing(foundPlayer, null));
                 } else {
                     lang.send(sender, lang.get("Delete.Error"));
                 }

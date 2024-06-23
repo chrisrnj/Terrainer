@@ -26,6 +26,7 @@ import com.epicnicity322.terrainer.bukkit.util.BukkitPlayerUtil;
 import com.epicnicity322.terrainer.core.Coordinate;
 import com.epicnicity322.terrainer.core.WorldCoordinate;
 import com.epicnicity322.terrainer.core.config.Configurations;
+import com.epicnicity322.terrainer.core.terrain.Terrain;
 import com.epicnicity322.terrainer.core.terrain.TerrainManager;
 import com.epicnicity322.terrainer.core.util.PlayerUtil;
 import com.epicnicity322.yamlhandler.Configuration;
@@ -156,12 +157,17 @@ public final class SelectionListener implements Listener {
                 selections[first ? 0 : 1] = new WorldCoordinate(world.getUID(), new Coordinate(x, y, z));
 
                 // Showing markers.
-                util.showMarkers(player, block.getY(), null);
+                util.showMarkers(player, block.getY(), true, null);
 
                 lang.send(player, lang.get("Select.Success." + (first ? "First" : "Second")).replace("<world>", block.getWorld().getName()).replace("<coord>", "X: " + x + ", Z: " + z));
 
                 if (selections[0] != null && selections[1] != null) {
-                    lang.send(player, lang.get("Select.Success.Suggest").replace("<label>", "tr"));
+                    Terrain resizing;
+                    if ((resizing = PlayerUtil.currentlyResizing(player.getUniqueId())) != null) {
+                        lang.send(player, lang.get("Select.Success.Suggest Resize").replace("<label>", "tr").replace("<terrain>", resizing.name()));
+                    } else {
+                        lang.send(player, lang.get("Select.Success.Suggest").replace("<label>", "tr"));
+                    }
                 }
             }
         }
