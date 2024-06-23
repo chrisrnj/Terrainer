@@ -212,8 +212,8 @@ public final class BukkitPlayerUtil extends PlayerUtil<Player, CommandSender> {
     }
 
     @Override
-    public void showMarkers(@NotNull Player player, int y, @Nullable Coordinate location) {
-        super.showMarkers(player, y, location);
+    public void showMarkers(@NotNull Player player, int y, boolean terrainMarkers, @Nullable Coordinate location) {
+        super.showMarkers(player, y, terrainMarkers, location);
         long showTime = Configurations.CONFIG.getConfiguration().getNumber("Markers.Show Time").orElse(1200).longValue();
 
         if (showTime != 0) {

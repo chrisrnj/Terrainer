@@ -137,7 +137,7 @@ public final class InfoCommand extends Command {
             terrains = util.terrainsToShowBorders(player, coord);
             terrains.removeIf(t -> t.borders().isEmpty());
             bordersCommand.showBorders(player, terrains);
-            util.showMarkers(player, player.getLocation().getBlockY() - 1, coord);
+            util.showMarkers(player, player.getLocation().getBlockY() - 1, true, coord);
         }
     }
 }
