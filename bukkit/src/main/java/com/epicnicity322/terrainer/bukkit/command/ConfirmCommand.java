@@ -36,6 +36,7 @@ import org.jetbrains.annotations.Nullable;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.UUID;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 public final class ConfirmCommand extends Command {
@@ -87,8 +88,20 @@ public final class ConfirmCommand extends Command {
      * @param hash The hash to cancel confirmations.
      */
     public static void cancelConfirmations(int hash) {
+        cancelConfirmations(hash, null);
+    }
+
+    /**
+     * Cancels all confirmations that have this hash from all players.
+     *
+     * @param hash           The hash to cancel confirmations.
+     * @param playerConsumer A consumer to run for each player found that had the confirmation.
+     */
+    public static void cancelConfirmations(int hash, @Nullable Consumer<UUID> playerConsumer) {
         requests.entrySet().removeIf(entry -> {
-            entry.getValue().removeIf(confirmation -> confirmation.hash == hash);
+            if (entry.getValue().removeIf(confirmation -> confirmation.hash == hash)) {
+                if (playerConsumer != null) playerConsumer.accept(entry.getKey() == console ? null : entry.getKey());
+            }
             return entry.getValue().isEmpty();
         });
     }
