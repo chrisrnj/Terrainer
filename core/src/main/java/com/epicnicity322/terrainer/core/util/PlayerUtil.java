@@ -67,7 +67,6 @@ public abstract class PlayerUtil<P extends R, R> {
      * The default permission based claim limits set up on config.
      */
     private final @NotNull TreeSet<Map.Entry<String, Integer>> defaultClaimLimits;
-    // TODO:
     private final @NotNull AtomicBoolean nestedTerrainsCountTowardsBlockLimit;
     private final @NotNull AtomicBoolean perWorldBlockLimit;
     private final @NotNull AtomicBoolean perWorldClaimLimit;
@@ -122,10 +121,14 @@ public abstract class PlayerUtil<P extends R, R> {
      * be able to assign new diagonals to this existing terrain.
      *
      * @param player  The UUID of the player to set the resizing terrain, or null to set as CONSOLE.
-     * @param terrain The terrain the player will resize.
+     * @param terrain The terrain the player will resize, null to remove a currently resizing.
      */
-    public static void setCurrentlyResizing(@Nullable UUID player, @NotNull Terrain terrain) {
-        resizingTerrains.put(player == null ? consoleUUID : player, new WeakReference<>(terrain));
+    public static void setCurrentlyResizing(@Nullable UUID player, @Nullable Terrain terrain) {
+        if (terrain == null) {
+            resizingTerrains.remove(player == null ? consoleUUID : player);
+        } else {
+            resizingTerrains.put(player == null ? consoleUUID : player, new WeakReference<>(terrain));
+        }
     }
 
     public abstract boolean canFly(@NotNull P player);
@@ -265,10 +268,8 @@ public abstract class PlayerUtil<P extends R, R> {
         Terrain tempTerrain = new Terrain(terrain); // Creating safe terrain clone.
         tempTerrain.setDiagonals(first.coordinate(), second.coordinate());
 
-        if (receiver != null && !performClaimChecks(receiver, tempTerrain, true)) {
-
-            return false; // Checking resize.
-        }
+        // Checking resize.
+        if (receiver != null && !performClaimChecks(receiver, tempTerrain, true)) return false;
 
         terrain.setDiagonals(tempTerrain.minDiagonal(), tempTerrain.maxDiagonal());
         return true;
@@ -317,17 +318,84 @@ public abstract class PlayerUtil<P extends R, R> {
         long usedBlocks = 0;
         Iterable<Terrain> terrains = perWorldBlockLimit.get() ? TerrainManager.terrains(Objects.requireNonNull(world)) : TerrainManager.allTerrains();
 
-        for (Terrain terrain : terrains) {
-            if (!Objects.equals(terrain.owner(), player)) continue;
-            if (claimingTerrain != null && terrain.id().equals(claimingTerrain.id()))
-                continue; // Let specified instance take priority.
-            // TODO: Check if terrain is intersecting another and remove intersection area from used blocks. Switch ON/OFF in config.
-            usedBlocks += (long) terrain.area();
+        // Getting areas of all terrains owned by player.
+        if (nestedTerrainsCountTowardsBlockLimit.get()) {
+            for (Terrain terrain : terrains) {
+                if (!Objects.equals(terrain.owner(), player)) continue;
+                // Let specified instance take priority.
+                if (claimingTerrain != null && terrain.id().equals(claimingTerrain.id())) continue;
+
+                usedBlocks += (long) terrain.area();
+            }
+
+            if (claimingTerrain != null) usedBlocks += (long) claimingTerrain.area();
+
+            return usedBlocks;
         }
 
-        if (claimingTerrain != null) usedBlocks += (long) claimingTerrain.area();
+        // Getting the total amount of claimed blocks without duplicates.
+        var events = new ArrayList<int[]>();
+
+        for (Terrain terrain : terrains) {
+            if (!Objects.equals(terrain.owner(), player)) continue;
+            if (claimingTerrain != null && terrain.id().equals(claimingTerrain.id())) {
+                addEvents(events, claimingTerrain); // Use specified instance.
+                claimingTerrain = null;
+                continue;
+            }
+
+            addEvents(events, terrain);
+        }
+
+        if (claimingTerrain != null) addEvents(events, claimingTerrain);
+
+        events.sort(Comparator.comparingInt(o -> o[0]));
+
+        var activeIntervals = new TreeMap<Integer, Integer>();
+        int prevX = events.get(0)[0];
+
+        for (int[] event : events) {
+            int currX = event[0];
+            int width = currX - prevX;
+
+            if (!activeIntervals.isEmpty()) usedBlocks += (long) (coveredHeight(activeIntervals) * width);
+
+            updateActiveIntervals(activeIntervals, event[1], event[2], event[3]);
+            prevX = currX;
+        }
 
         return usedBlocks;
+    }
+
+    private void addEvents(@NotNull ArrayList<int[]> events, @NotNull Terrain terrain) {
+        Coordinate max = terrain.maxDiagonal(), min = terrain.minDiagonal();
+
+        // MaxZ and MaxX offset by 1 to account for minecraft coordinate system.
+        events.add(new int[]{(int) min.x(), (int) min.z(), (int) max.z() + 1, 1});
+        events.add(new int[]{(int) max.x() + 1, (int) min.z(), (int) max.z() + 1, -1});
+    }
+
+    private void updateActiveIntervals(@NotNull TreeMap<Integer, Integer> activeIntervals, int z1, int z2, int type) {
+        activeIntervals.put(z1, activeIntervals.getOrDefault(z1, 0) + type);
+        activeIntervals.put(z2, activeIntervals.getOrDefault(z2, 0) - type);
+
+        if (activeIntervals.get(z1) == 0) activeIntervals.remove(z1);
+        if (activeIntervals.get(z2) == 0) activeIntervals.remove(z2);
+    }
+
+    private double coveredHeight(@NotNull TreeMap<Integer, Integer> intervals) {
+        int coveredHeight = 0;
+        int activeCount = 0;
+        int prevZ = -1;
+
+        for (Map.Entry<Integer, Integer> entry : intervals.entrySet()) {
+            int currZ = entry.getKey();
+            if (activeCount > 0 && prevZ != -1) coveredHeight += currZ - prevZ;
+            activeCount += entry.getValue();
+            prevZ = currZ;
+        }
+
+        return coveredHeight;
     }
 
     /**
@@ -552,22 +620,24 @@ public abstract class PlayerUtil<P extends R, R> {
     }
 
     public final void showMarkers(@NotNull P player) {
-        showMarkers(player, (int) playerLocation(player).coordinate().y() - 1, null);
+        showMarkers(player, (int) playerLocation(player).coordinate().y() - 1, true, null);
     }
 
-    public void showMarkers(@NotNull P player, int y, @Nullable Coordinate location) {
+    public void showMarkers(@NotNull P player, int y, boolean terrainMarkers, @Nullable Coordinate location) {
         removeMarkers(player);
 
-        var terrains = terrainsToShowBorders(player, location == null ? playerLocation(player).coordinate() : location);
-        terrains.removeIf(t -> t.chunks().isEmpty()); // Removing global terrains.
+        if (terrainMarkers) {
+            var terrains = terrainsToShowBorders(player, location == null ? playerLocation(player).coordinate() : location);
+            terrains.removeIf(t -> t.chunks().isEmpty()); // Removing global terrains.
 
-        for (Terrain terrain : terrains) { // Terrains to show borders.
-            int terrainY = y;
+            for (Terrain terrain : terrains) { // Terrains to show borders.
+                int terrainY = y;
 
-            if (terrain.maxDiagonal().y() + 1 < y) terrainY = (int) terrain.maxDiagonal().y() + 1;
-            else if (terrain.minDiagonal().y() > y) terrainY = (int) terrain.minDiagonal().y();
+                if (terrain.maxDiagonal().y() + 1 < y) terrainY = (int) terrain.maxDiagonal().y() + 1;
+                else if (terrain.minDiagonal().y() > y) terrainY = (int) terrain.minDiagonal().y();
 
-            spawnMarkersAtBorders(terrain.minDiagonal(), terrain.maxDiagonal(), player, terrainY, false);
+                spawnMarkersAtBorders(terrain.minDiagonal(), terrain.maxDiagonal(), player, terrainY, false);
+            }
         }
 
         WorldCoordinate[] selections = selections(playerUUID(player)); // Showing borders to selections.
