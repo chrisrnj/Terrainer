@@ -202,7 +202,7 @@ public final class Configurations {
               Cancel Interaction: true
               # If false, position #1 and #2 alternates by using just right-click.
               # If true, use left-click for position #1 and right-click for position #2.
-              Left And Right Click: false
+              Left And Right Click: true
               # Price for buying the item with '/tr wand'. Recommended only if 'Unique' is true.
               # Buy permission: terrainer.wand.selector
               # Free Bypass: terrainer.wand.selector.free
@@ -484,19 +484,49 @@ public final class Configurations {
               Error:
                 Different Worlds: '&4Terrain could not be created because the selections are in different worlds!'
                 Dimensions: '&4Terrains must have at least &6<min>&4 blocks in &7width&4 and &7length&4!'
-                No Block Limit: '&4This terrain has an area of &6<area>&4 blocks and you have &6<free>&c blocks left! To increase your block limit, buy in the &7&n/tr shop&4.'
-                No Claim Limit: '&4You can''t create more than &6<max>&4 terrains! To increase your claim limit, buy in the &7&n/tr shop&4.'
+                Low Block Limit: '&4This is area uses &6<area>&4 blocks and you have &6<free>&4 block(s) available! Increase your block limit buying in the &7&n/tr shop&4.'
+                Low Claim Limit: '&4You''ve already reached your limit of &6<max>&4 terrains! Increase your claim limit buying in the &7&n/tr shop&4.'
                 Not Selected: '&eYou need to make a selection before creating a terrain. You can select with the command &f&n/<label> pos1&e and &f&n/<label> pos2&e or with the selection wand: &f&n/<label> wand&e.'
-                Overlap: '&4Unable to claim because this terrain would overlap &7<other>&4 terrain!'
-                Overlap Several: '&4Unable to claim because this terrain would overlap other terrains!'
+                Overlap: '&4Unable to claim this area because it would overlap &7<overlapping>&4!'
+                Overlap Several: '&4Unable to claim this area because it would overlap other terrains!'
                 Too Small: '&4Area too small! Terrains must have at least &6<min>&4 blocks.'
-                Unknown: '&4An unknown error occurred while creating this terrain.'
-                World No Longer Exists: '&4The world in your selections no longer exists.'
-              Success: '&2Terrain ''&a<name>&2'' claimed successfully! Used block limit: &7<used>&f/&7<max>'
-              Define: '&2Terrain ''&a<name>&2'' defined successfully with all protection flags!'
+                Unknown: '&4An unknown error occurred while claiming this area.'
+                World No Longer Exists: '&4The world which your selections were made no longer exists.'
+              Success: '&2Terrain ''&a<terrain>&2'' claimed successfully! Used block limit: &7<used>&f/&7<max>'
+              Define: '&2Terrain ''&a<terrain>&2'' defined successfully with all protection flags!'
               # <owner> for the terrain owner's name.
               # <number> for the next available terrain name number.
               Default Name: '<owner>_<number>'
+                        
+            Transfer:
+              Confirmation Description: 'Accept ownership of <terrain>'
+              Error:
+                Default: '&4The terrain could not be transferred.'
+                Low Block Limit: '&7<player>&7 does not have enough block limit to accept this terrain.'
+                Low Claim Limit: '&7<player>&7 does not have enough claim limit to accept this terrain.'
+                Not Allowed: '&4You''re not allowed to transfer this terrain.'
+                Not Online: '&4You can''t transfer the terrain to &7<player>&4 because they are not online!'
+                Nothing Changed: '&7Nothing changed. <player>&7 already owns this terrain.'
+                Overlap: '&4You can''t transfer this terrain because it overlaps &f<overlapping>&4!'
+                Overlap Several: '&4You can''t transfer &f<terrain>&4 because it''s overlapping other terrains!'
+                World No Longer Exists: '&4The terrain couldn''t be transferred because it''s in a world that no longer exists.'
+                World Prohibited: '&4You can''t transfer &f<terrain>&4 because &f<player>&4 isn''t allowed to have terrains from this world.'
+                World Terrain: '&4Global world terrains can not be owned!'
+              Request: '&f<player>&7 wants to transfer the terrain &f<terrain>&7 to you. To accept, use &f&n/tr confirm&7.'
+              Requested: '&7A request was sent to &f<who>&7 to accept the terrain.'
+              Select: '&cSelect the terrain to transfer:'
+              Success: '&aTerrain &7<terrain>&a was transferred successfully to &7<who>&a.'
+                        
+            Resize:
+              Cancelled: '&7The resize operation of &f<terrain>&7 was cancelled because you claimed a new terrain.'
+              Confirmation Description: 'Resize terrain <terrain>'
+              Error:
+                Low Block Limit: '&4This is area uses &6<area>&4 blocks and <player> has only &6<free>&4 block(s) left!'
+                Owner Offline: '&4Can not resize this terrain because the player &7<player>&4 is offline.'
+                World Terrain: '&4Global world terrains can not be resized!'
+              Select: '&cSelect the terrain to resize:'
+              Success: '&2Terrain ''&a<terrain>&2'' resized successfully! Used block limit: &7<used>&f/&7<max>'
+              Tutorial: '&eTo resize the terrain, grab your selection wand and mark the new diagonals, then type &7&n/<label> confirm&e to confirm.'
                         
             Delete:
               Confirmation: '&7Are you sure you want to delete &e<name>&7? Please confirm the deletion with &f&n/<label> <label2>&7.'
@@ -687,28 +717,6 @@ public final class Configurations {
                 Revoked: '&7Revoked member role of &f<who>&7 in terrain &f<terrain>&7.'
                 Notify: '&aYou were granted a member role in the terrain &f<terrain>&a!'
               Select: '&cSelect the terrain to edit roles:'
-                        
-            Transfer:
-              Confirmation Description: 'Accept ownership of <terrain>'
-              Error:
-                Low Block Limit: '&7<player>&7 does not have enough block limit to accept this terrain.'
-                Low Claim Limit: '&7<player>&7 does not have enough claim limit to accept this terrain.'
-                Not Allowed: '&4You''re not allowed to transfer this terrain.'
-                Not Online: '&4You can''t transfer the terrain to &7<player>&4 because they are not online!'
-                Nothing Changed: '&7Nothing changed. <player>&7 already owns this terrain.'
-                World Terrain: '&4Global world terrains can not be owned!'
-              Request: '&f<player>&7 wants to transfer the terrain &f<terrain>&7 to you. To accept, use &f&n/tr confirm&7.'
-              Requested: '&7A request was sent to &f<who>&7 to accept the terrain.'
-              Select: '&cSelect the terrain to transfer:'
-              Success: '&aTerrain &7<terrain>&a was transferred successfully to &7<who>&a.'
-                        
-            Resize:
-              Cancelled: '&7The resize operation of &f<terrain>&7 was cancelled because you claimed a new terrain.'
-              Confirmation Description: 'Resize terrain <terrain>'
-              Error:
-                World Terrain: '&4Global world terrains can not be resized!'
-              Select: '&eTo resize the terrain, grab your selection wand and mark the new diagonals, then type &7&n/<label> confirm&e to confirm.'
-              Success: '&2Terrain ''&a<terrain>&2'' resized successfully! Used block limit: &7<used>&f/&7<max>'
                         
             Priority:
               Error:
