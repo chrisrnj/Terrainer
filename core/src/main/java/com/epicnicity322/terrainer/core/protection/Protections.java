@@ -181,14 +181,7 @@ public abstract class Protections<P extends R, R, M, B, E> {
     }
 
     public boolean handleProtection(@NotNull UUID world, int x, int y, int z, @NotNull Flag<Boolean> flag) {
-        Set<Terrain> terrains = TerrainManager.terrainsAt(world, x, y, z);
-
-        for (Terrain terrain : terrains) {
-            Boolean state = terrain.flags().getData(flag);
-            if (state != null) return state;
-        }
-
-        return true;
+        return TerrainManager.isFlagAllowedAt(flag, world, x, y, z);
     }
 
     public boolean handleProtection(@NotNull UUID world, int x, int y, int z, @NotNull Flag<Boolean> flag1, @NotNull Flag<Boolean> flag2) {
@@ -385,9 +378,13 @@ public abstract class Protections<P extends R, R, M, B, E> {
         return handleOutsideBlockProtection(world, x, y, z, blocks, true, Flags.SPONGES, Flags.BUILD) && !blocks.isEmpty();
     }
 
-    public boolean portalCreate(@NotNull P player, @NotNull List<B> blocks) {
+    public boolean portalCreate(@Nullable E entity, @NotNull List<B> blocks) {
+        P player = entity == null ? null : entityOrShooterToPlayer(entity);
+
         for (B block : blocks) {
-            if (!handleProtection(player, world(block), x(block), y(block), z(block), Flags.BUILD, true)) return false;
+            if (player == null ? !handleProtection(world(block), x(block), y(block), z(block), Flags.BUILD) : !handleProtection(player, world(block), x(block), y(block), z(block), Flags.BUILD, true)) {
+                return false;
+            }
         }
         return true;
     }

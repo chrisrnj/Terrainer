@@ -778,9 +778,9 @@ public final class ProtectionsListener extends Protections<Player, CommandSender
 
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
     public void onPortalCreate(PortalCreateEvent event) {
-        if (!(event.getEntity() instanceof Player player)) return;
-        if (!portalCreate(player, BlockStateToBlockMapping.wrapBlockStates(event.getBlocks())))
+        if (!portalCreate(event.getEntity(), BlockStateToBlockMapping.wrapBlockStates(event.getBlocks()))) {
             event.setCancelled(true);
+        }
     }
 
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
