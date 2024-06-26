@@ -28,12 +28,15 @@ import com.epicnicity322.terrainer.core.WorldCoordinate;
 import com.epicnicity322.terrainer.core.terrain.Terrain;
 import com.epicnicity322.terrainer.core.terrain.WorldTerrain;
 import com.epicnicity322.terrainer.core.util.PlayerUtil;
+import com.epicnicity322.terrainer.core.util.TerrainerUtil;
+import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
 import java.lang.ref.WeakReference;
 import java.util.Objects;
+import java.util.Set;
 import java.util.UUID;
 
 public final class ResizeCommand extends Command {
@@ -53,18 +56,18 @@ public final class ResizeCommand extends Command {
     }
 
     @Override
-    public void run(@NotNull String label, @NotNull CommandSender sender, @NotNull String[] args) {
+    public void run(@NotNull String label, @NotNull CommandSender sender0, @NotNull String[] args) {
         MessageSender lang = TerrainerPlugin.getLanguage();
-        CommandUtil.findTerrain("terrainer.resize.others", "terrainer.resize.world", false, label, sender, args, lang.getColored("Resize.Select"), commandArguments -> {
+        CommandUtil.findTerrain("terrainer.resize.others", "terrainer.resize.world", false, label, sender0, args, lang.getColored("Resize.Select"), commandArguments -> {
             Terrain terrain = commandArguments.terrain();
+            CommandSender sender = commandArguments.sender();
 
             if (terrain instanceof WorldTerrain) {
                 lang.send(sender, lang.get("Resize.Error.World Terrain"));
                 return;
             }
 
-            Player player = sender instanceof Player p ? p : null;
-            UUID playerID = player != null ? player.getUniqueId() : null;
+            UUID playerID = sender instanceof Player p ? p.getUniqueId() : null;
             int confirmationHash = Objects.hash("resize", terrain.id());
 
             // Cancel other players resizing of this terrain.
@@ -72,23 +75,26 @@ public final class ResizeCommand extends Command {
 
             // Player allowed to resize one terrain at a time, cancelling the previous resize if there is one.
             Terrain previousResizing = PlayerUtil.currentlyResizing(playerID);
-            if (previousResizing != null) ConfirmCommand.cancelConfirmation(playerID, confirmationHash);
+            if (previousResizing != null)
+                ConfirmCommand.cancelConfirmation(playerID, Objects.hash("resize", previousResizing.id()));
 
             PlayerUtil.setCurrentlyResizing(playerID, terrain);
 
+            // Setting selections to terrain diagonals
             WorldCoordinate[] selections = PlayerUtil.selections(playerID);
             selections[0] = new WorldCoordinate(terrain.world(), terrain.minDiagonal());
             selections[1] = new WorldCoordinate(terrain.world(), terrain.maxDiagonal());
 
-            lang.send(sender, lang.get("Resize.Select").replace("<label>", label));
+            lang.send(sender, lang.get("Resize.Tutorial").replace("<label>", label));
 
-            if (player != null)
-                TerrainerPlugin.getPlayerUtil().showMarkers(player, (int) player.getY() - 1, false, null);
+            if (sender instanceof Player p)
+                TerrainerPlugin.getPlayerUtil().showMarkers(p, (int) p.getY() - 1, false, null);
 
+            // Requesting confirmation to resize.
             WeakReference<Terrain> terrainRef = new WeakReference<>(terrain);
             String name = terrain.name();
 
-            ConfirmCommand.requestConfirmation(playerID, () -> {
+            ConfirmCommand.requestConfirmation(playerID, sender1 -> {
                 ConfirmCommand.cancelConfirmation(playerID, confirmationHash);
                 PlayerUtil.setCurrentlyResizing(playerID, null);
                 Terrain terrain1 = terrainRef.get();
@@ -96,17 +102,55 @@ public final class ResizeCommand extends Command {
                 WorldCoordinate[] selections1 = PlayerUtil.selections(playerID);
 
                 if (selections1[0] == null || selections1[1] == null) {
-                    lang.send(sender, lang.get("Resize.Error.Select"));
+                    lang.send(sender1, lang.get("Resize.Error.Select"));
                     return;
                 }
 
                 BukkitPlayerUtil util = TerrainerPlugin.getPlayerUtil();
+                UUID owner = terrain1.owner();
+                Terrain tempTerrain = new Terrain(terrain1); // Creating safe terrain clone.
 
-                if (util.resizeTerrain(player, terrain1, selections1[0], selections1[1])) {
-                    lang.send(sender, lang.get("Resize.Success").replace("<terrain>", terrain1.name())
-                            .replace("<used>", Long.toString(util.claimedBlocks(terrain1.owner(), terrain1.world())))
-                            .replace("<max>", player == null ? lang.get("Placeholder Values.Infinite Limit") : Long.toString(util.blockLimit(player))));
-                    if (player != null) util.updateSelectionMarkersToTerrainMarkers(player);
+                tempTerrain.setDiagonals(selections1[0].coordinate(), selections1[1].coordinate());
+
+                PlayerUtil.ClaimResponse<?> claimResponse = util.performClaimChecks(tempTerrain);
+
+                switch (claimResponse.response().id()) {
+                    case "AREA_TOO_SMALL" ->
+                            lang.send(sender1, lang.get("Create.Error.Too Small").replace("<min>", Double.toString((double) claimResponse.variable())));
+                    case "BLOCK_LIMIT_REACHED" -> {
+                        assert owner != null; // Should never be null, console has infinite block limit.
+                        Player player = Bukkit.getPlayer(owner);
+                        assert player != null; // Should never be null, otherwise OWNER_OFFLINE would've been the response.
+                        long needed = (long) claimResponse.variable();
+                        long limit = util.blockLimit(player);
+                        long used = util.claimedBlocks(terrain1.owner(), terrain1.world());
+
+                        lang.send(sender1, lang.get((player.equals(sender1) ? "Create" : "Resize") + ".Error.Low Block Limit").replace("<area>", Long.toString(needed - used)).replace("<player>", player.getName()).replace("<free>", Long.toString(Math.max(limit - used, 0))));
+                    }
+                    case "DIMENSIONS_TOO_SMALL" ->
+                            lang.send(sender1, lang.get("Create.Error.Dimensions").replace("<min>", Double.toString((double) claimResponse.variable())));
+                    case "OVERLAPPING_OTHERS" -> {
+                        //noinspection unchecked
+                        Set<Terrain> overlapping = (Set<Terrain>) claimResponse.variable();
+                        if (sender1 instanceof Player p && overlapping.stream().anyMatch(t -> !util.hasInfoPermission(p, t))) {
+                            // No permission to see terrain names.
+                            lang.send(sender1, lang.get("Create.Error.Overlap Several"));
+                        } else {
+                            lang.send(sender1, lang.get("Create.Error.Overlap").replace("<overlapping>", TerrainerUtil.listToString(overlapping, Terrain::name)));
+                        }
+                    }
+                    case "OWNER_OFFLINE" ->
+                            lang.send(sender1, lang.get("Resize.Error.Owner Offline").replace("<player>", util.ownerName(owner)));
+                    case "SUCCESS" -> {
+                        Player player = owner == null ? null : Bukkit.getPlayer(owner);
+
+                        lang.send(sender1, lang.get("Resize.Success").replace("<terrain>", terrain1.name())
+                                .replace("<used>", Long.toString((long) claimResponse.variable()))
+                                .replace("<max>", player == null ? lang.get("Placeholder Values.Infinite Limit") : Long.toString(util.blockLimit(player))));
+                        terrain1.setDiagonals(selections1[0].coordinate(), selections1[1].coordinate());
+                        if (player != null) util.updateSelectionMarkersToTerrainMarkers(player);
+                    }
+                    default -> lang.send(sender1, lang.get("Resize.Error.Unknown"));
                 }
 
                 // Clearing selections
