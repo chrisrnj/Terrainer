@@ -46,10 +46,11 @@ public final class DescriptionCommand extends Command {
     }
 
     @Override
-    public void run(@NotNull String label, @NotNull CommandSender sender, @NotNull String[] args0) {
+    public void run(@NotNull String label, @NotNull CommandSender sender0, @NotNull String[] args0) {
         MessageSender lang = TerrainerPlugin.getLanguage();
-        CommandUtil.findTerrain("terrainer.description.others", "terrainer.description.world", true, label, sender, args0, lang.getColored("Description.Select"), arguments -> {
+        CommandUtil.findTerrain("terrainer.description.others", "terrainer.description.world", true, label, sender0, args0, lang.getColored("Description.Select"), arguments -> {
             Terrain terrain = arguments.terrain();
+            CommandSender sender = arguments.sender();
             String[] args = arguments.preceding();
 
             if (args.length == 0) {

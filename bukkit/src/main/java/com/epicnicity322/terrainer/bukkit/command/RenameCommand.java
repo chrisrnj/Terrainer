@@ -51,10 +51,11 @@ public final class RenameCommand extends Command {
 
     @SuppressWarnings("deprecation")
     @Override
-    public void run(@NotNull String label, @NotNull CommandSender sender, @NotNull String[] args) {
+    public void run(@NotNull String label, @NotNull CommandSender sender0, @NotNull String[] args) {
         MessageSender lang = TerrainerPlugin.getLanguage();
-        CommandUtil.findTerrain("terrainer.rename.others", "terrainer.rename.world", false, label, sender, args, lang.getColored("Rename.Select"), arguments -> {
+        CommandUtil.findTerrain("terrainer.rename.others", "terrainer.rename.world", false, label, sender0, args, lang.getColored("Rename.Select"), arguments -> {
             Terrain terrain = arguments.terrain();
+            CommandSender sender = arguments.sender();
 
             if (terrain instanceof WorldTerrain) {
                 lang.send(sender, lang.get("Rename.Error.World Terrain"));

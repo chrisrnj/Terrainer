@@ -58,11 +58,12 @@ public final class FlagCommand extends Command {
     }
 
     @Override
-    public void run(@NotNull String label, @NotNull CommandSender sender, @NotNull String[] args0) {
+    public void run(@NotNull String label, @NotNull CommandSender sender0, @NotNull String[] args0) {
         MessageSender lang = TerrainerPlugin.getLanguage();
-        CommandUtil.findTerrain("terrainer.flag.others", "terrainer.flag.world", true, label, sender, args0, lang.getColored("Flags.Select"), arguments -> {
+        CommandUtil.findTerrain("terrainer.flag.others", "terrainer.flag.world", true, label, sender0, args0, lang.getColored("Flags.Select"), arguments -> {
             String[] args = arguments.preceding();
             Terrain terrain = arguments.terrain();
+            CommandSender sender = arguments.sender();
 
             // no args, open gui.
             if (args.length == 0) {

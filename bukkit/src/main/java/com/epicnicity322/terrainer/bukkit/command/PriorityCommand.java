@@ -54,10 +54,10 @@ public final class PriorityCommand extends Command {
     }
 
     @Override
-    public void run(@NotNull String label, @NotNull CommandSender sender, @NotNull String[] args0) {
+    public void run(@NotNull String label, @NotNull CommandSender sender0, @NotNull String[] args0) {
         MessageSender lang = TerrainerPlugin.getLanguage();
 
-        if (sender instanceof Player player && args0.length == 2 && (args0[1].equalsIgnoreCase("-h") || args0[1].equalsIgnoreCase(lang.get("Commands.Priority.Here")))) {
+        if (sender0 instanceof Player player && args0.length == 2 && (args0[1].equalsIgnoreCase("-h") || args0[1].equalsIgnoreCase(lang.get("Commands.Priority.Here")))) {
             Location loc = player.getLocation();
             UUID world = player.getWorld().getUID();
             Collection<Terrain> terrains = TerrainManager.terrainsAt(world, loc.getBlockX(), loc.getBlockY(), loc.getBlockZ());
@@ -75,31 +75,32 @@ public final class PriorityCommand extends Command {
             }
             if (terrains.size() == 1) {
                 Terrain single = terrains.iterator().next();
-                lang.send(sender, lang.get("Priority.Single").replace("<priority>", Integer.toString(single.priority())).replace("<terrain>", single.name()));
+                lang.send(sender0, lang.get("Priority.Single").replace("<priority>", Integer.toString(single.priority())).replace("<terrain>", single.name()));
                 return;
             }
             if (checkIfTerrainsHaveSamePriority(terrains)) {
                 Terrain first = terrains.iterator().next();
-                lang.send(sender, lang.get("Priority.Same.Here").replace("<priority>", Integer.toString(first.priority())).replace("<terrains>", TerrainerUtil.listToString(terrains, Terrain::name)));
-                if (removed) lang.send(sender, lang.get("Priority.Removed"));
+                lang.send(sender0, lang.get("Priority.Same.Here").replace("<priority>", Integer.toString(first.priority())).replace("<terrains>", TerrainerUtil.listToString(terrains, Terrain::name)));
+                if (removed) lang.send(sender0, lang.get("Priority.Removed"));
                 return;
             }
 
-            lang.send(sender, lang.get("Priority.Here"));
+            lang.send(sender0, lang.get("Priority.Here"));
 
             for (Terrain t : terrains) {
-                lang.send(sender, false, lang.get("Priority.Priority").replace("<priority>", Integer.toString(t.priority())).replace("<terrain>", t.name()));
+                lang.send(sender0, false, lang.get("Priority.Priority").replace("<priority>", Integer.toString(t.priority())).replace("<terrain>", t.name()));
             }
 
-            if (removed) lang.send(sender, lang.get("Priority.Removed"));
+            if (removed) lang.send(sender0, lang.get("Priority.Removed"));
 
             return;
         }
 
-        CommandUtil.findTerrain("terrainer.priority.others", "terrainer.priority.world", false, label, sender, args0, lang.getColored("Priority.Select"), arguments -> {
+        CommandUtil.findTerrain("terrainer.priority.others", "terrainer.priority.world", false, label, sender0, args0, lang.getColored("Priority.Select"), arguments -> {
             if (arguments == null) return;
-            Terrain terrain = arguments.terrain();
             String[] args = arguments.preceding();
+            Terrain terrain = arguments.terrain();
+            CommandSender sender = arguments.sender();
             UUID senderID = sender instanceof Player player ? player.getUniqueId() : null;
             List<Terrain> overlappingTerrains = getOverlappingTerrains(terrain);
 

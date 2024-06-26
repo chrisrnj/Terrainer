@@ -74,12 +74,12 @@ public abstract class PermissionCommand extends Command implements Permission {
     }
 
     @Override
-    public void run(@NotNull String label, @NotNull CommandSender sender, @NotNull String[] args0) {
+    public void run(@NotNull String label, @NotNull CommandSender sender0, @NotNull String[] args0) {
         MessageSender lang = TerrainerPlugin.getLanguage();
-        findTerrain(isGrant() ? "terrainer.grant.others" : "terrainer.revoke.others", isGrant() ? "terrainer.grant.world" : "terrainer.revoke.world", true, label, sender, args0, lang.getColored("Permission.Select"), commandArguments -> {
+        findTerrain(isGrant() ? "terrainer.grant.others" : "terrainer.revoke.others", isGrant() ? "terrainer.grant.world" : "terrainer.revoke.world", true, label, sender0, args0, lang.getColored("Permission.Select"), commandArguments -> {
             String[] args = commandArguments.preceding();
-
             Terrain terrain = commandArguments.terrain();
+            CommandSender sender = commandArguments.sender();
 
             if (args.length == 0) {
                 //TODO: open permission management inventory.

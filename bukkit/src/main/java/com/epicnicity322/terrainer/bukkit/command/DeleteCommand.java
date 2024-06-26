@@ -51,10 +51,11 @@ public final class DeleteCommand extends Command {
     }
 
     @Override
-    public void run(@NotNull String label, @NotNull CommandSender sender, @NotNull String[] args) {
+    public void run(@NotNull String label, @NotNull CommandSender sender0, @NotNull String[] args) {
         MessageSender lang = TerrainerPlugin.getLanguage();
-        CommandUtil.findTerrain("terrainer.delete.others", "terrainer.delete.world", false, label, sender, args, lang.getColored("Delete.Select"), commandArguments -> {
+        CommandUtil.findTerrain("terrainer.delete.others", "terrainer.delete.world", false, label, sender0, args, lang.getColored("Delete.Select"), commandArguments -> {
             Terrain terrain = commandArguments.terrain();
+            CommandSender sender = commandArguments.sender();
             // If world terrain is not found in list of loaded worlds, remove like a regular terrain.
             boolean worldTerrain = terrain instanceof WorldTerrain && Bukkit.getWorlds().stream().anyMatch(world -> world.getUID().equals(terrain.world()));
 
@@ -64,20 +65,20 @@ public final class DeleteCommand extends Command {
             WeakReference<Terrain> terrainRef = new WeakReference<>(terrain);
             int confirmationHash = Objects.hash("delete", terrain.id());
 
-            ConfirmCommand.requestConfirmation(sender, () -> {
+            ConfirmCommand.requestConfirmation(sender, sender1 -> {
                 ConfirmCommand.cancelConfirmations(confirmationHash);
                 Terrain terrain1 = terrainRef.get();
                 if (terrain1 == null) return;
 
                 if (TerrainManager.remove(terrain1) != null) {
                     boolean isReallyWorldTerrain = terrain1 instanceof WorldTerrain && Bukkit.getWorlds().stream().anyMatch(world -> world.getUID().equals(terrain1.world()));
-                    lang.send(sender, lang.get("Delete." + (isReallyWorldTerrain ? "World " : "") + "Success").replace("<name>", terrain1.name()));
+                    lang.send(sender1, lang.get("Delete." + (isReallyWorldTerrain ? "World " : "") + "Success").replace("<name>", terrain1.name()));
                     if (isReallyWorldTerrain) TerrainManager.loadWorld(terrain1.world(), terrain1.name());
                     // Cancelling all confirmations related to this terrain.
                     ConfirmCommand.cancelConfirmations(Objects.hash("transfer", terrain1.id()));
                     ConfirmCommand.cancelConfirmations(Objects.hash("resize", terrain1.id()), foundPlayer -> PlayerUtil.setCurrentlyResizing(foundPlayer, null));
                 } else {
-                    lang.send(sender, lang.get("Delete.Error"));
+                    lang.send(sender1, lang.get("Delete.Error"));
                 }
             }, () -> {
                 Terrain terrain1 = terrainRef.get();

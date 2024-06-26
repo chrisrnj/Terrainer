@@ -151,7 +151,7 @@ public final class CommandUtil {
         }
 
         if (foundTerrains.size() == 1) {
-            onFind.accept(new CommandArguments(preceding.toArray(new String[0]), foundTerrains.iterator().next()));
+            onFind.accept(new CommandArguments(preceding.toArray(new String[0]), foundTerrains.iterator().next(), sender));
             return;
         }
 
@@ -165,7 +165,7 @@ public final class CommandUtil {
                     lang.send(p, lang.get("Matcher.Changed"));
                     return;
                 }
-                onFind.accept(new CommandArguments(preceding.toArray(new String[0]), terrain));
+                onFind.accept(new CommandArguments(preceding.toArray(new String[0]), terrain, p));
             }).open(player);
         } else {
             lang.send(sender, lang.get("Matcher.Name.Multiple"));
@@ -269,7 +269,8 @@ public final class CommandUtil {
         }
     }
 
-    public record CommandArguments(@NotNull String[] preceding, @NotNull Terrain terrain) {
+    public record CommandArguments(@NotNull String[] preceding, @NotNull Terrain terrain,
+                                   @NotNull CommandSender sender) {
     }
 
     public record TargetResponse(@NotNull UUID id, @NotNull Supplier<String> who) {
