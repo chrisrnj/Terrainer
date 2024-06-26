@@ -26,7 +26,10 @@ import com.epicnicity322.terrainer.bukkit.util.BukkitPlayerUtil;
 import com.epicnicity322.terrainer.bukkit.util.CommandUtil;
 import com.epicnicity322.terrainer.core.terrain.Terrain;
 import com.epicnicity322.terrainer.core.terrain.WorldTerrain;
+import com.epicnicity322.terrainer.core.util.PlayerUtil;
+import com.epicnicity322.terrainer.core.util.TerrainerUtil;
 import org.bukkit.Bukkit;
+import org.bukkit.World;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
@@ -34,6 +37,7 @@ import org.jetbrains.annotations.NotNull;
 import java.lang.ref.WeakReference;
 import java.util.Locale;
 import java.util.Objects;
+import java.util.Set;
 import java.util.UUID;
 
 public final class TransferCommand extends Command {
@@ -53,10 +57,11 @@ public final class TransferCommand extends Command {
     }
 
     @Override
-    public void run(@NotNull String label, @NotNull CommandSender sender, @NotNull String[] args0) {
+    public void run(@NotNull String label, @NotNull CommandSender sender0, @NotNull String[] args0) {
         MessageSender lang = TerrainerPlugin.getLanguage();
-        CommandUtil.findTerrain("terrainer.transfer.others", "terrainer.transfer.world", false, label, sender, args0, lang.getColored("Transfer.Select"), arguments -> {
+        CommandUtil.findTerrain("terrainer.transfer.others", "terrainer.transfer.world", false, label, sender0, args0, lang.getColored("Transfer.Select"), arguments -> {
             Terrain terrain = arguments.terrain();
+            CommandSender sender = arguments.sender();
 
             if (terrain instanceof WorldTerrain) {
                 lang.send(sender, lang.get("Transfer.Error.World Terrain"));
@@ -115,12 +120,41 @@ public final class TransferCommand extends Command {
                         lang.send(sender, lang.get("Transfer.Error.Not Online").replace("<player>", who));
                         return;
                     }
-                    if (!newOwner.hasPermission("terrain.bypass.limit.blocks") && util.blockLimit(newOwner) - util.claimedBlocks(newOwnerID, terrain.world()) < terrain.area()) {
-                        lang.send(sender, lang.get("Transfer.Error.Low Block Limit").replace("<player>", who));
+                    World world = Bukkit.getWorld(terrain.world());
+
+                    if (world == null) {
+                        lang.send(sender, lang.get("Transfer.Error.World No Longer Exists"));
                         return;
                     }
-                    if (!newOwner.hasPermission("terrain.bypass.limit.claims") && util.claimLimit(newOwner) - util.claimedTerrains(newOwnerID, terrain.world()) < 1) {
+                    if (!newOwner.hasPermission("terrainer.world." + world.getName())) {
+                        lang.send(sender, lang.get("Transfer.Error.World Prohibited").replace("<player>", who).replace("<terrain>", terrain.name()));
+                        return;
+                    }
+
+                    Terrain tempTerrain = new Terrain(terrain); // Creating safe terrain clone.
+
+                    tempTerrain.setOwner(newOwnerID); // Perform claim checks with the new owner as terrain owner.
+                    PlayerUtil.ClaimResponse<?> claimResponse = util.performClaimChecks(tempTerrain);
+                    PlayerUtil.ClaimResponseType<?> responseType = claimResponse.response();
+
+                    if (responseType == PlayerUtil.ClaimResponseType.BLOCK_LIMIT_REACHED) {
+                        lang.send(sender, lang.get("Transfer.Error.Low Block Limit").replace("<player>", who));
+                        return;
+                    } else if (responseType == PlayerUtil.ClaimResponseType.CLAIM_LIMIT_REACHED) {
                         lang.send(sender, lang.get("Transfer.Error.Low Claim Limit").replace("<player>", who));
+                        return;
+                    } else if (responseType == PlayerUtil.ClaimResponseType.OVERLAPPING_OTHERS) {
+                        //noinspection unchecked
+                        Set<Terrain> overlapping = (Set<Terrain>) claimResponse.variable();
+                        if (sender instanceof Player p && overlapping.stream().anyMatch(t -> !util.hasInfoPermission(p, t))) {
+                            // No permission to see terrain names.
+                            lang.send(sender, lang.get("Transfer.Error.Overlap Several").replace("<player>", who).replace("<terrain>", terrain.name()));
+                        } else {
+                            lang.send(sender, lang.get("Transfer.Error.Overlap").replace("<player>", who).replace("<terrain>", terrain.name()).replace("<overlapping>", TerrainerUtil.listToString(overlapping, Terrain::name)));
+                        }
+                        return;
+                    } else if (responseType != PlayerUtil.ClaimResponseType.SUCCESS) { // Probably Area or Dimension too small.
+                        lang.send(sender, lang.get("Transfer.Error.Default").replace("<player>", who));
                         return;
                     }
                 }
@@ -138,7 +172,9 @@ public final class TransferCommand extends Command {
                 lang.send(sender, lang.get("Transfer.Requested").replace("<who>", who));
                 lang.send(newOwner, lang.get("Transfer.Request").replace("<player>", sender.getName()).replace("<terrain>", name));
 
-                ConfirmCommand.requestConfirmation(newOwner, () -> {
+                WeakReference<CommandSender> senderRef = new WeakReference<>(sender);
+
+                ConfirmCommand.requestConfirmation(newOwner, newOwner1 -> {
                     ConfirmCommand.cancelConfirmations(confirmationHash);
 
                     Terrain terrain1 = terrainRef.get();
@@ -146,8 +182,10 @@ public final class TransferCommand extends Command {
                     String name1 = terrain1.name();
 
                     terrain1.setOwner(newOwnerID);
-                    lang.send(sender, lang.get("Transfer.Success").replace("<terrain>", name1).replace("<who>", who));
-                    lang.send(newOwner, lang.get("Transfer.Success").replace("<terrain>", name1).replace("<who>", lang.get("Target.You").toLowerCase(Locale.ROOT)));
+                    CommandSender sender1 = senderRef.get();
+                    if (sender1 != null)
+                        lang.send(sender1, lang.get("Transfer.Success").replace("<terrain>", name1).replace("<who>", who));
+                    lang.send(newOwner1, lang.get("Transfer.Success").replace("<terrain>", name1).replace("<who>", lang.get("Target.You").toLowerCase(Locale.ROOT)));
                 }, () -> {
                     Terrain terrain1 = terrainRef.get();
                     return lang.get("Transfer.Confirmation Description").replace("<terrain>", terrain1 == null ? name : terrain1.name());
