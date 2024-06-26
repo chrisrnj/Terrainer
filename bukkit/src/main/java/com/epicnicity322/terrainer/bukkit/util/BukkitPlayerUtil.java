@@ -50,7 +50,7 @@ public final class BukkitPlayerUtil extends PlayerUtil<Player, CommandSender> {
     private final @NotNull NamespacedKey resetFlyKey;
 
     public BukkitPlayerUtil(@NotNull TerrainerPlugin plugin, @NotNull TreeSet<Map.Entry<String, Long>> defaultBlockLimits, @NotNull TreeSet<Map.Entry<String, Integer>> defaultClaimLimits, @NotNull AtomicBoolean nestedTerrainsCountTowardsBlockLimit, @NotNull AtomicBoolean perWorldBlockLimit, @NotNull AtomicBoolean perWorldClaimLimit, @NotNull AtomicBoolean sumIfTheresMultipleBlockLimitPermissions, @NotNull AtomicBoolean sumIfTheresMultipleClaimLimitPermissions) {
-        super(TerrainerPlugin.getLanguage(), defaultBlockLimits, defaultClaimLimits, nestedTerrainsCountTowardsBlockLimit, perWorldBlockLimit, perWorldClaimLimit, sumIfTheresMultipleBlockLimitPermissions, sumIfTheresMultipleClaimLimitPermissions);
+        super(defaultBlockLimits, defaultClaimLimits, nestedTerrainsCountTowardsBlockLimit, perWorldBlockLimit, perWorldClaimLimit, sumIfTheresMultipleBlockLimitPermissions, sumIfTheresMultipleClaimLimitPermissions);
 
         this.plugin = plugin;
         blockLimitKey = new NamespacedKey(plugin, "block-limit");
@@ -142,12 +142,6 @@ public final class BukkitPlayerUtil extends PlayerUtil<Player, CommandSender> {
     }
 
     @Override
-    public boolean hasPermission(@NotNull UUID player, @NotNull String permission) {
-        Player p = plugin.getServer().getPlayer(player);
-        return p != null && p.hasPermission(permission);
-    }
-
-    @Override
     public @NotNull String playerName(@NotNull Player player) {
         return player.getName();
     }
@@ -160,6 +154,11 @@ public final class BukkitPlayerUtil extends PlayerUtil<Player, CommandSender> {
             String name = plugin.getServer().getOfflinePlayer(uuid).getName();
             return name == null ? uuid.toString() : name;
         }
+    }
+
+    @Override
+    protected @Nullable Player fetchOnline(@NotNull UUID uuid) {
+        return plugin.getServer().getPlayer(uuid);
     }
 
     @Override
@@ -203,12 +202,7 @@ public final class BukkitPlayerUtil extends PlayerUtil<Player, CommandSender> {
     @Override
     public @NotNull WorldCoordinate playerLocation(@NotNull Player player) {
         Location loc = player.getLocation();
-        return new WorldCoordinate(playerWorld(player), new Coordinate(loc.getBlockX(), loc.getBlockY(), loc.getBlockZ()));
-    }
-
-    @Override
-    public @NotNull UUID playerWorld(@NotNull Player player) {
-        return player.getWorld().getUID();
+        return new WorldCoordinate(player.getWorld().getUID(), new Coordinate(loc.getBlockX(), loc.getBlockY(), loc.getBlockZ()));
     }
 
     @Override

@@ -33,6 +33,7 @@ import com.epicnicity322.terrainer.core.event.terrain.IUserNameTerrainEvent;
 import com.epicnicity322.terrainer.core.terrain.Terrain;
 import com.epicnicity322.terrainer.core.terrain.TerrainManager;
 import com.epicnicity322.terrainer.core.util.PlayerUtil;
+import com.epicnicity322.terrainer.core.util.TerrainerUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.World;
@@ -42,6 +43,7 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.Locale;
 import java.util.Objects;
+import java.util.Set;
 import java.util.UUID;
 
 public final class ClaimCommand extends Command {
@@ -72,7 +74,7 @@ public final class ClaimCommand extends Command {
             lang.send(sender, lang.get("Create.Error.Not Selected").replace("<label>", label));
             return;
         }
-        if (selection[0].world() != selection[1].world()) {
+        if (!selection[0].world().equals(selection[1].world())) {
             lang.send(sender, lang.get("Create.Error.Different Worlds").replace("<label>", label));
             return;
         }
@@ -107,6 +109,10 @@ public final class ClaimCommand extends Command {
             }
         } else name = null;
 
+        // Clearing selections.
+        selection[0] = null;
+        selection[1] = null;
+
         BukkitPlayerUtil util = TerrainerPlugin.getPlayerUtil();
         Terrain terrain = new Terrain(first, second, world.getUID());
 
@@ -120,24 +126,57 @@ public final class ClaimCommand extends Command {
             if (!event.isCancelled()) terrain.setName(event.newName());
         }
 
-        if (util.performClaimChecks(player, terrain) && TerrainManager.add(terrain)) {
-            var create = new UserCreateTerrainEvent(terrain, sender, false);
-            Bukkit.getPluginManager().callEvent(create);
-            if (player != null) util.updateSelectionMarkersToTerrainMarkers(player);
 
-            lang.send(sender, lang.get("Create.Success").replace("<name>", terrain.name()).replace("<used>", Long.toString(util.claimedBlocks(owner, terrain.world()))).replace("<max>", player == null ? lang.get("Placeholder Values.Infinite Limit") : Long.toString(util.blockLimit(player))));
+        PlayerUtil.ClaimResponse<?> claimResponse = util.performClaimChecks(terrain);
 
-            // Removing resizing in case there was any.
-            Terrain resizing = PlayerUtil.currentlyResizing(owner);
-            if (resizing != null) {
-                lang.send(sender, lang.get("Resize.Cancelled").replace("<terrain>", resizing.name()));
-                ConfirmCommand.cancelConfirmation(owner, Objects.hash("resize", resizing.id()));
-                PlayerUtil.setCurrentlyResizing(owner, null);
+        switch (claimResponse.response().id()) {
+            case "AREA_TOO_SMALL" ->
+                    lang.send(sender, lang.get("Create.Error.Too Small").replace("<min>", Double.toString((double) claimResponse.variable())));
+            case "BLOCK_LIMIT_REACHED" -> {
+                assert player != null;
+                long needed = (long) claimResponse.variable();
+                long limit = util.blockLimit(player);
+                long used = util.claimedBlocks(owner, terrain.world());
+
+                lang.send(sender, lang.get("Create.Error.Low Block Limit").replace("<area>", Long.toString(needed - used)).replace("<free>", Long.toString(Math.max(limit - used, 0))));
             }
-        } else if (player != null) util.removeMarkers(player);
+            case "CLAIM_LIMIT_REACHED" ->
+                    lang.send(sender, lang.get("Create.Error.Low Claim Limit").replace("<max>", Integer.toString((int) claimResponse.variable())));
+            case "DIMENSIONS_TOO_SMALL" ->
+                    lang.send(sender, lang.get("Create.Error.Dimensions").replace("<min>", Double.toString((double) claimResponse.variable())));
+            case "OVERLAPPING_OTHERS" -> {
+                //noinspection unchecked
+                Set<Terrain> overlapping = (Set<Terrain>) claimResponse.variable();
+                if (player != null && overlapping.stream().anyMatch(t -> !util.hasInfoPermission(player, t))) {
+                    // No permission to see terrain names.
+                    lang.send(sender, lang.get("Create.Error.Overlap Several"));
+                } else {
+                    lang.send(sender, lang.get("Create.Error.Overlap").replace("<overlapping>", TerrainerUtil.listToString(overlapping, Terrain::name)));
+                }
+            }
+            case "SUCCESS" -> {
+                if (TerrainManager.add(terrain)) {
+                    var create = new UserCreateTerrainEvent(terrain, sender, false);
+                    Bukkit.getPluginManager().callEvent(create);
+                    if (player != null) util.updateSelectionMarkersToTerrainMarkers(player);
 
-        // Clearing selections.
-        selection[0] = null;
-        selection[1] = null;
+                    lang.send(sender, lang.get("Create.Success").replace("<terrain>", terrain.name())
+                            .replace("<used>", Long.toString((long) claimResponse.variable()))
+                            .replace("<max>", player == null ? lang.get("Placeholder Values.Infinite Limit") : Long.toString(util.blockLimit(player))));
+
+                    // Removing resizing in case there was any.
+                    Terrain resizing = PlayerUtil.currentlyResizing(owner);
+                    if (resizing != null) {
+                        lang.send(sender, lang.get("Resize.Cancelled").replace("<terrain>", resizing.name()));
+                        ConfirmCommand.cancelConfirmation(owner, Objects.hash("resize", resizing.id()));
+                        PlayerUtil.setCurrentlyResizing(owner, null);
+                    }
+                }
+                return; // Don't remove markers.
+            }
+            default -> lang.send(sender, lang.get("Create.Error.Unknown"));
+        }
+
+        if (player != null) util.removeMarkers(player);
     }
 }

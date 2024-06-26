@@ -28,7 +28,6 @@ import com.epicnicity322.terrainer.core.config.Configurations;
 import com.epicnicity322.terrainer.core.terrain.Terrain;
 import com.epicnicity322.terrainer.core.terrain.TerrainManager;
 import com.epicnicity322.terrainer.core.terrain.WorldTerrain;
-import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.UnknownNullability;
@@ -58,7 +57,6 @@ public abstract class PlayerUtil<P extends R, R> {
      */
     private static final @NotNull UUID consoleUUID = UUID.randomUUID();
 
-    private final @NotNull LanguageHolder<?, R> lang;
     /**
      * The default permission based block limits set up on config.
      */
@@ -73,8 +71,7 @@ public abstract class PlayerUtil<P extends R, R> {
     private final @NotNull AtomicBoolean sumIfTheresMultipleBlockLimitPermissions;
     private final @NotNull AtomicBoolean sumIfTheresMultipleClaimLimitPermissions;
 
-    protected PlayerUtil(@NotNull LanguageHolder<?, R> lang, @NotNull TreeSet<Map.Entry<String, Long>> defaultBlockLimits, @NotNull TreeSet<Map.Entry<String, Integer>> defaultClaimLimits, @NotNull AtomicBoolean nestedTerrainsCountTowardsBlockLimit, @NotNull AtomicBoolean perWorldBlockLimit, @NotNull AtomicBoolean perWorldClaimLimit, @NotNull AtomicBoolean sumIfTheresMultipleBlockLimitPermissions, @NotNull AtomicBoolean sumIfTheresMultipleClaimLimitPermissions) {
-        this.lang = lang;
+    protected PlayerUtil(@NotNull TreeSet<Map.Entry<String, Long>> defaultBlockLimits, @NotNull TreeSet<Map.Entry<String, Integer>> defaultClaimLimits, @NotNull AtomicBoolean nestedTerrainsCountTowardsBlockLimit, @NotNull AtomicBoolean perWorldBlockLimit, @NotNull AtomicBoolean perWorldClaimLimit, @NotNull AtomicBoolean sumIfTheresMultipleBlockLimitPermissions, @NotNull AtomicBoolean sumIfTheresMultipleClaimLimitPermissions) {
         this.defaultBlockLimits = defaultBlockLimits;
         this.defaultClaimLimits = defaultClaimLimits;
         this.perWorldBlockLimit = perWorldBlockLimit;
@@ -155,15 +152,11 @@ public abstract class PlayerUtil<P extends R, R> {
 
     public abstract boolean hasPermission(@NotNull P player, @NotNull String permission);
 
-    public abstract boolean hasPermission(@NotNull UUID player, @NotNull String permission);
-
     public abstract @NotNull String playerName(@NotNull P player);
 
     public abstract @NotNull UUID playerUUID(@NotNull P player);
 
     public abstract @NotNull WorldCoordinate playerLocation(@NotNull P player);
-
-    public abstract @NotNull UUID playerWorld(@NotNull P player);
 
     /**
      * Finds the name of the proprietary of this UUID. {@code null} is used to find the name of console.
@@ -173,106 +166,71 @@ public abstract class PlayerUtil<P extends R, R> {
      */
     public abstract @NotNull String ownerName(@Nullable UUID uuid);
 
+    protected abstract @Nullable P fetchOnline(@NotNull UUID uuid);
+
     protected abstract @NotNull R consoleRecipient();
 
     /**
-     * Performs several checks to verify if a player is allowed to claim a terrain, and sends messages to the player in
-     * case they're not.
-     * <p>
-     * This will check the player's limits and if the terrain is overlapping another terrain.
+     * Performs several checks to verify if the terrain owner is allowed to register it.
      *
-     * @param player  The player claiming the terrain, <code>null</code> for console.
-     * @param terrain The terrain to be claimed by this player.
-     * @return Whether the terrain was claimed or not.
+     * @param terrain The terrain to be claimed.
+     * @return The response of the claim attempt.
+     * @see ClaimResponseType
      */
-    @Contract("null,_ -> true")
-    public boolean performClaimChecks(@Nullable P player, @NotNull Terrain terrain) {
-        if (player == null) return true;
-
-        return performClaimChecks(player, terrain, false);
-    }
-
-    private boolean performClaimChecks(@NotNull P receiver, @NotNull Terrain terrain, boolean resize) {
-        UUID ownerID = terrain.owner();
-        if (resize && ownerID == null) return true;
-
-        int maxClaims;
+    public @NotNull ClaimResponse<?> performClaimChecks(@NotNull Terrain terrain) {
         UUID world = terrain.world();
-        UUID terrainOwner = resize ? ownerID : playerUUID(receiver);
+        UUID owner = terrain.owner();
 
-        if (!resize && !hasPermission(terrainOwner, "terrainer.bypass.limit.claims") && claimedTerrains(terrainOwner, world) >= (maxClaims = claimLimit(receiver))) {
-            lang.send(receiver, lang.get("Create.Error.No Claim Limit").replace("<max>", Integer.toString(maxClaims)));
-            return false;
-        }
+        if (owner == null) return new ClaimResponse<>(ClaimResponseType.SUCCESS, -1L); // Console owner always success.
 
-        if (!hasPermission(terrainOwner, "terrainer.bypass.overlap")) {
-            Set<Terrain> overlapping = overlappingTerrains(terrain);
+        P player = fetchOnline(owner);
 
-            if (!overlapping.isEmpty()) {
-                if (!hasPermission(receiver, "terrainer.bypass.overlap.self")) {
-                    // Send generic message if player not allowed to see the overlapping terrains names.
-                    if (overlapping.stream().anyMatch(t -> !hasInfoPermission(receiver, t))) {
-                        lang.send(receiver, lang.get("Create.Error.Overlap Several"));
-                    } else {
-                        lang.send(receiver, lang.get("Create.Error.Overlap").replace("<other>", TerrainerUtil.listToString(overlapping, Terrain::name)));
-                    }
-                    return false;
-                } else {
-                    for (Terrain t1 : overlapping) {
-                        // Terrains can overlap if they are owned by the same person.
-                        if (terrainOwner.equals(t1.owner())) continue;
+        if (player == null) return new ClaimResponse<>(ClaimResponseType.OWNER_OFFLINE, null);
 
-                        if (!hasInfoPermission(receiver, t1)) { // Player not allowed to see terrain name.
-                            lang.send(receiver, lang.get("Create.Error.Overlap Several"));
-                        } else {
-                            lang.send(receiver, lang.get("Create.Error.Overlap").replace("<other>", t1.name()));
-                        }
-                        return false;
-                    }
-                }
+        // Checking claim limit.
+        if (!hasPermission(player, "terrainer.bypass.limit.claims")) {
+            int maxClaims;
+            // If the player doesn't own the terrain and is already at claim limit, return.
+            if (TerrainManager.terrainsOf(owner).stream().noneMatch(t -> terrain.id().equals(t.id())) && claimedTerrains(owner, world) >= (maxClaims = claimLimit(player))) {
+                return new ClaimResponse<>(ClaimResponseType.CLAIM_LIMIT_REACHED, maxClaims);
             }
         }
 
-        if (!hasPermission(terrainOwner, "terrainer.bypass.limit.blocks")) {
-            long maxBlocks;
+        // Checking overlap.
+        if (!hasPermission(player, "terrainer.bypass.overlap")) {
+            Set<Terrain> overlapping = overlappingTerrains(terrain);
+
+            if (hasPermission(player, "terrainer.bypass.overlap.self")) {
+                overlapping.removeIf(t -> owner.equals(t.owner()));
+            }
+
+            if (!overlapping.isEmpty()) return new ClaimResponse<>(ClaimResponseType.OVERLAPPING_OTHERS, overlapping);
+        }
+
+        long newClaimedBlocksAmount = -1; // Will return -1 in case the player has bypass permission.
+
+        // Checking area, dimensions and block limit.
+        if (!hasPermission(player, "terrainer.bypass.limit.blocks")) {
+            Coordinate max = terrain.maxDiagonal(), min = terrain.minDiagonal();
             double area = terrain.area();
             double minArea = Configurations.CONFIG.getConfiguration().getNumber("Min Area").orElse(25.0).doubleValue();
             double minDimensions = Configurations.CONFIG.getConfiguration().getNumber("Min Dimensions").orElse(5.0).doubleValue();
-            Coordinate max = terrain.maxDiagonal();
-            Coordinate min = terrain.minDiagonal();
 
             if (area < minArea) {
-                lang.send(receiver, lang.get("Create.Error.Too Small").replace("<min>", Double.toString(minArea)));
-                return false;
+                return new ClaimResponse<>(ClaimResponseType.AREA_TOO_SMALL, minArea);
             }
+
             if (max.x() - (min.x() - 1) < minDimensions || max.z() - (min.z() - 1) < minDimensions) {
-                lang.send(receiver, lang.get("Create.Error.Dimensions").replace("<min>", Double.toString(minDimensions)));
-                return false;
+                return new ClaimResponse<>(ClaimResponseType.DIMENSIONS_TOO_SMALL, minDimensions);
             }
+
             // Checking whether the terrain's area plus the player's used blocks will be greater than the player's limit.
-            if (claimedBlocks(terrainOwner, world, terrain) > (maxBlocks = blockLimit(receiver))) {
-                lang.send(receiver, lang.get("Create.Error.No Block Limit").replace("<area>", Double.toString(area)).replace("<free>", Long.toString(Math.max(maxBlocks - claimedBlocks(terrainOwner, world), 0))));
-                return false;
+            if ((newClaimedBlocksAmount = claimedBlocks(owner, world, terrain)) > blockLimit(player)) {
+                return new ClaimResponse<>(ClaimResponseType.BLOCK_LIMIT_REACHED, newClaimedBlocksAmount);
             }
         }
 
-        return true;
-    }
-
-    public boolean resizeTerrain(@Nullable P receiver, @NotNull Terrain terrain, @NotNull WorldCoordinate first, @NotNull WorldCoordinate second) {
-        if (!first.world().equals(second.world()) || !first.world().equals(terrain.world())) {
-            lang.send(receiver == null ? consoleRecipient() : receiver, lang.get("Create.Error.Different Worlds").replace("<label>", "tr"));
-            return false;
-        }
-
-        Terrain tempTerrain = new Terrain(terrain); // Creating safe terrain clone.
-        tempTerrain.setDiagonals(first.coordinate(), second.coordinate());
-
-        // Checking resize.
-        if (receiver != null && !performClaimChecks(receiver, tempTerrain, true)) return false;
-
-        terrain.setDiagonals(tempTerrain.minDiagonal(), tempTerrain.maxDiagonal());
-        return true;
+        return new ClaimResponse<>(ClaimResponseType.SUCCESS, newClaimedBlocksAmount);
     }
 
     private @NotNull Set<Terrain> overlappingTerrains(@NotNull Terrain terrain) {
@@ -298,6 +256,22 @@ public abstract class PlayerUtil<P extends R, R> {
     public long claimedBlocks(@Nullable UUID player, @UnknownNullability UUID world) {
         return claimedBlocks(player, world, null);
     }
+
+//    public boolean resizeTerrain(@Nullable P receiver, @NotNull Terrain terrain, @NotNull WorldCoordinate first, @NotNull WorldCoordinate second) {
+//        if (!first.world().equals(second.world()) || !first.world().equals(terrain.world())) {
+//            lang.send(receiver == null ? consoleRecipient() : receiver, lang.get("Create.Error.Different Worlds").replace("<label>", "tr"));
+//            return false;
+//        }
+//
+//        Terrain tempTerrain = new Terrain(terrain); // Creating safe terrain clone.
+//        tempTerrain.setDiagonals(first.coordinate(), second.coordinate());
+//
+//        // Checking resize.
+//        if (receiver != null && !performClaimChecks(tempTerrain)) return false;
+//
+//        terrain.setDiagonals(tempTerrain.minDiagonal(), tempTerrain.maxDiagonal());
+//        return true;
+//    }
 
     /**
      * Gets the sum of the areas of all terrains owned by the specified player.
@@ -348,6 +322,8 @@ public abstract class PlayerUtil<P extends R, R> {
         }
 
         if (claimingTerrain != null) addEvents(events, claimingTerrain);
+
+        if (events.isEmpty()) return 0;
 
         events.sort(Comparator.comparingInt(o -> o[0]));
 
@@ -666,7 +642,6 @@ public abstract class PlayerUtil<P extends R, R> {
         return terrains;
     }
 
-
     public void removeMarkers(@NotNull P player) {
         HashMap<SpawnedMarker, Boolean> ids = markers.remove(playerUUID(player));
         if (ids == null) return;
@@ -723,6 +698,81 @@ public abstract class PlayerUtil<P extends R, R> {
      * @param player The player to colorize the marker to.
      */
     protected abstract void updateSelectionMarkerToTerrainMarker(@NotNull SpawnedMarker marker, @NotNull P player) throws Throwable;
+
+    /**
+     * A class with static fields of possible response types.
+     *
+     * @param <T> The variable that may be provided in the claim response.
+     * @see ClaimResponse
+     */
+    public static final class ClaimResponseType<T> {
+        /**
+         * Response that will be given if the terrain has an area too small.
+         * Variable is the minimum area a terrain is allowed to have.
+         */
+        public static final @NotNull ClaimResponseType<Double> AREA_TOO_SMALL = new ClaimResponseType<>("AREA_TOO_SMALL", double.class);
+        /**
+         * Response that will be given when the terrain would've hit the block limit of the player.
+         * Variable is what the player's block limit would be if they were able to claim.
+         */
+        public static final @NotNull ClaimResponseType<Long> BLOCK_LIMIT_REACHED = new ClaimResponseType<>("BLOCK_LIMIT_REACHED", long.class);
+        /**
+         * Response that will be given when the player would've reached the limit of claims.
+         * Variable is the player's total claim limit.
+         */
+        public static final @NotNull ClaimResponseType<Integer> CLAIM_LIMIT_REACHED = new ClaimResponseType<>("CLAIM_LIMIT_REACHED", int.class);
+        /**
+         * Response that will be given if the terrain has at least one edge that is too small.
+         * Variable is the minimum size each edge of terrain must be.
+         */
+        public static final @NotNull ClaimResponseType<Double> DIMENSIONS_TOO_SMALL = new ClaimResponseType<>("DIMENSIONS_TOO_SMALL", double.class);
+        /**
+         * Response that will be given when the terrain would've overlapped other terrains and the player has no
+         * permission to overlap them.
+         * Variable is the set of terrains the player doesn't have permission to overlap.
+         */
+        @SuppressWarnings("unchecked")
+        public static final @NotNull ClaimResponseType<Set<Terrain>> OVERLAPPING_OTHERS = new ClaimResponseType<>("OVERLAPPING_OTHERS", (Class<Set<Terrain>>) (Class<?>) Set.class);
+        /**
+         * Response that will be given when the terrain owner is not online, therefore no limits can be obtained to
+         * verify if they're allowed to register the terrain.
+         * Variable is null.
+         */
+        public static final @NotNull ClaimResponseType<Object> OWNER_OFFLINE = new ClaimResponseType<>("OWNER_OFFLINE", Object.class);
+        /**
+         * Response that will be given if the terrain passed all checks and is allowed to be registered.
+         * Variable is the player's new used block limit.
+         */
+        public static final @NotNull ClaimResponseType<Long> SUCCESS = new ClaimResponseType<>("SUCCESS", long.class);
+
+        private final @NotNull String responseID;
+        private final @NotNull Class<T> variableType;
+
+        private ClaimResponseType(@NotNull String responseID, @NotNull Class<T> variableType) {
+            this.responseID = responseID;
+            this.variableType = variableType;
+        }
+
+        public @NotNull String id() {
+            return responseID;
+        }
+
+        public @NotNull Class<T> variableType() {
+            return variableType;
+        }
+    }
+
+    /**
+     * A claim response that provides a variable to be used according to the {@link ClaimResponseType}.
+     * <p>
+     * The response type is always a static value available publicly at {@link ClaimResponseType} class.
+     *
+     * @param response The response of the claim attempt.
+     * @param variable The helper variable. May be null depending on the response type.
+     * @param <T>      The type of the helper variable.
+     */
+    public record ClaimResponse<T>(@NotNull ClaimResponseType<T> response, T variable) {
+    }
 
     public record SpawnedMarker(int entityID, @NotNull UUID entityUUID, @NotNull Object markerEntity) {
     }
