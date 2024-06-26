@@ -484,7 +484,7 @@ public final class Configurations {
               Error:
                 Different Worlds: '&4Terrain could not be created because the selections are in different worlds!'
                 Dimensions: '&4Terrains must have at least &6<min>&4 blocks in &7width&4 and &7length&4!'
-                Low Block Limit: '&4This is area uses &6<area>&4 blocks and you have &6<free>&4 block(s) available! Increase your block limit buying in the &7&n/tr shop&4.'
+                Low Block Limit: '&4This area uses &6<area>&4 blocks and you have &6<free>&4 block(s) available! Increase your block limit buying in the &7&n/tr shop&4.'
                 Low Claim Limit: '&4You''ve already reached your limit of &6<max>&4 terrains! Increase your claim limit buying in the &7&n/tr shop&4.'
                 Not Selected: '&eYou need to make a selection before creating a terrain. You can select with the command &f&n/<label> pos1&e and &f&n/<label> pos2&e or with the selection wand: &f&n/<label> wand&e.'
                 Overlap: '&4Unable to claim this area because it would overlap &7<overlapping>&4!'
