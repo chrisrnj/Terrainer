@@ -47,12 +47,12 @@ public final class ConfirmCommand extends Command {
      * Request the player to confirm something, and run the runnable only after they use the confirm command.
      *
      * @param player      The command sender to ask the confirmation.
-     * @param onConfirm   The runnable to run when they confirm.
+     * @param onConfirm   The consumer to apply when they confirm.
      * @param description The description to show the player when listing their confirmations.
      * @param hash        The hash of the confirmation, to avoid multiple confirmations that do the same thing.
      * @return Whether if there was no other confirmation for this player with this hash.
      */
-    public static boolean requestConfirmation(@NotNull CommandSender player, @NotNull Runnable onConfirm, @NotNull Supplier<String> description, int hash) {
+    public static boolean requestConfirmation(@NotNull CommandSender player, @NotNull Consumer<CommandSender> onConfirm, @NotNull Supplier<String> description, int hash) {
         return requestConfirmation(player instanceof Player p ? p.getUniqueId() : null, onConfirm, description, hash);
     }
 
@@ -60,12 +60,12 @@ public final class ConfirmCommand extends Command {
      * Request the player to confirm something, and run the runnable only after they use the confirm command.
      *
      * @param player      The ID of the player to ask the confirmation. Null for console.
-     * @param onConfirm   The runnable to run when they confirm.
+     * @param onConfirm   The consumer to apply when they confirm.
      * @param description The description to show the player when listing their confirmations.
      * @param hash        The hash of the confirmation, to avoid multiple confirmations that do the same thing.
      * @return Whether if there was no other confirmation for this player with this hash.
      */
-    public static boolean requestConfirmation(@Nullable UUID player, @NotNull Runnable onConfirm, @NotNull Supplier<String> description, int hash) {
+    public static boolean requestConfirmation(@Nullable UUID player, @NotNull Consumer<CommandSender> onConfirm, @NotNull Supplier<String> description, int hash) {
         if (player == null) player = console;
         ArrayList<PendingConfirmation> onConfirmList = requests.get(player);
 
@@ -94,13 +94,13 @@ public final class ConfirmCommand extends Command {
     /**
      * Cancels all confirmations that have this hash from all players.
      *
-     * @param hash           The hash to cancel confirmations.
-     * @param playerConsumer A consumer to run for each player found that had the confirmation.
+     * @param hash        The hash to cancel confirmations.
+     * @param foundPlayer A consumer to run for each player found that had the confirmation.
      */
-    public static void cancelConfirmations(int hash, @Nullable Consumer<UUID> playerConsumer) {
+    public static void cancelConfirmations(int hash, @Nullable Consumer<UUID> foundPlayer) {
         requests.entrySet().removeIf(entry -> {
             if (entry.getValue().removeIf(confirmation -> confirmation.hash == hash)) {
-                if (playerConsumer != null) playerConsumer.accept(entry.getKey() == console ? null : entry.getKey());
+                if (foundPlayer != null) foundPlayer.accept(entry.getKey() == console ? null : entry.getKey());
             }
             return entry.getValue().isEmpty();
         });
@@ -227,12 +227,12 @@ public final class ConfirmCommand extends Command {
         }
 
         try {
-            Runnable runnable = confirmations.get(id).onConfirm;
+            Consumer<CommandSender> consumer = confirmations.get(id).onConfirm;
             confirmations.remove(id.intValue());
             if (confirmations.isEmpty()) {
                 requests.remove(sender instanceof Player player ? player.getUniqueId() : console);
             }
-            runnable.run();
+            consumer.accept(sender);
         } catch (Throwable e) {
             lang.send(sender, lang.get("Confirm.Error.Run"));
             Terrainer.logger().log("Something went wrong while running the confirmation " + id + " for player " + sender.getName() + ":", ConsoleLogger.Level.WARN);
@@ -240,6 +240,7 @@ public final class ConfirmCommand extends Command {
         }
     }
 
-    private record PendingConfirmation(@NotNull Runnable onConfirm, @NotNull Supplier<String> description, int hash) {
+    private record PendingConfirmation(@NotNull Consumer<CommandSender> onConfirm,
+                                       @NotNull Supplier<String> description, int hash) {
     }
 }
