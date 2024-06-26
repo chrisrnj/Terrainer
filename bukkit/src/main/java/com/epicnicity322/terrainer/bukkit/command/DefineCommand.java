@@ -115,7 +115,7 @@ public final class DefineCommand extends Command {
         flagMap.putFlag(Flags.SPAWNERS, false);
 
         if (TerrainManager.add(terrain)) {
-            lang.send(sender, lang.get("Create.Define").replace("<name>", terrain.name()));
+            lang.send(sender, lang.get("Create.Define").replace("<terrain>", terrain.name()));
             var create = new UserCreateTerrainEvent(terrain, sender, true);
             Bukkit.getPluginManager().callEvent(create);
 
