@@ -32,12 +32,13 @@ public final class BlockStateToBlockMapping {
     private BlockStateToBlockMapping() {
     }
 
-    public static @NotNull Block mapCoordinatesOnly(@NotNull BlockState state) {
+    public static @NotNull Block wrapBlockState(@NotNull BlockState state) {
         return (Block) Proxy.newProxyInstance(Block.class.getClassLoader(), new Class<?>[]{Block.class}, (proxy, method, args) -> switch (method.getName()) {
             case "getX" -> state.getX();
             case "getY" -> state.getY();
             case "getZ" -> state.getZ();
             case "getWorld" -> state.getWorld();
+            case "getType" -> state.getType();
             case "equals" -> {
                 if (args.length == 1) {
                     Object otherObject = args[0];
@@ -67,7 +68,7 @@ public final class BlockStateToBlockMapping {
      * @return The list in which {@link List#get(int)} returns a block.
      */
     public static @NotNull List<Block> wrapBlockStates(@NotNull List<BlockState> states) {
-        List<Block> blocks = states.stream().map(BlockStateToBlockMapping::mapCoordinatesOnly).collect(Collectors.toList());
+        List<Block> blocks = states.stream().map(BlockStateToBlockMapping::wrapBlockState).collect(Collectors.toList());
 
         class ListWrapper extends AbstractList<Block> {
             @Override
