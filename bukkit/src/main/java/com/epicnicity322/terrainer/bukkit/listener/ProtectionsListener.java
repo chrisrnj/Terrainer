@@ -60,13 +60,14 @@ import org.bukkit.event.vehicle.VehicleDestroyEvent;
 import org.bukkit.event.world.PortalCreateEvent;
 import org.bukkit.event.world.StructureGrowEvent;
 import org.bukkit.inventory.InventoryHolder;
+import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.PotionMeta;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
 
-public final class ProtectionsListener extends Protections<Player, CommandSender, Material, Block, Entity> implements Listener {
+public final class ProtectionsListener extends Protections<Player, CommandSender, Block, ItemStack, Entity> implements Listener {
     // Enemy interface was added in 1.19.3.
     private static final @Nullable Class<?> enemyInterface = ReflectionUtil.getClass("org.bukkit.entity.Enemy");
     // Paper
@@ -115,19 +116,22 @@ public final class ProtectionsListener extends Protections<Player, CommandSender
         }
     }
 
-    private static boolean tryingToEnterVehicle(@NotNull Material mainHand, @NotNull Material offHand, boolean sneaking) {
-        return !sneaking && mainHand == Material.AIR && offHand == Material.AIR;
+    private static boolean isTryingToEnterVehicle(@NotNull ItemStack hand, boolean sneaking) {
+        return !sneaking && hand.getType() == Material.AIR;
     }
 
     @Override
-    @SuppressWarnings("deprecation")
-    protected boolean isInteractable(@NotNull Material material) {
-        return material.isInteractable();
+    @SuppressWarnings("deprecation") // Material#isInteractable depicts interactable blocks perfectly for Terrainer.
+    protected boolean isInteractable(@NotNull Block block) {
+        return block.getType().isInteractable();
     }
 
     @Override
-    protected boolean isPlaceable(@Nullable Material material) {
-        if (material == null) return false;
+    protected boolean isPlaceable(@Nullable ItemStack item) {
+        if (item == null) return false;
+
+        Material material = item.getType();
+
         if (material.isBlock()) return true;
 
         return switch (material) {
@@ -140,8 +144,8 @@ public final class ProtectionsListener extends Protections<Player, CommandSender
     }
 
     @Override
-    protected boolean isFire(@NotNull Material material) {
-        return material == Material.FIRE || material == Material.SOUL_FIRE;
+    protected boolean isFire(@NotNull Block block) {
+        return block.getType() == Material.FIRE || block.getType() == Material.SOUL_FIRE;
     }
 
     @Override
@@ -165,8 +169,8 @@ public final class ProtectionsListener extends Protections<Player, CommandSender
     }
 
     @Override
-    protected boolean isContainer(@NotNull Material material) {
-        return switch (material) {
+    protected boolean isContainer(@NotNull Block block) {
+        return switch (block.getType()) {
             case BARREL, BLAST_FURNACE, BREWING_STAND, CHEST, DISPENSER, DROPPER, FURNACE, HOPPER, SMOKER,
                  TRAPPED_CHEST, SHULKER_BOX, BLACK_SHULKER_BOX, BLUE_SHULKER_BOX, BROWN_SHULKER_BOX, CYAN_SHULKER_BOX,
                  GRAY_SHULKER_BOX, GREEN_SHULKER_BOX, LIGHT_BLUE_SHULKER_BOX, LIGHT_GRAY_SHULKER_BOX, LIME_SHULKER_BOX,
@@ -204,8 +208,8 @@ public final class ProtectionsListener extends Protections<Player, CommandSender
     }
 
     @Override
-    protected @NotNull Flag<Boolean> flagPhysicalInteraction(@NotNull Material material) {
-        String typeName = material.name();
+    protected @NotNull Flag<Boolean> flagPhysicalInteraction(@NotNull Block block) {
+        String typeName = block.getType().name();
         int underscore = typeName.lastIndexOf('_');
         if (underscore != -1) typeName = typeName.substring(underscore + 1);
 
@@ -217,8 +221,9 @@ public final class ProtectionsListener extends Protections<Player, CommandSender
     }
 
     @Override
-    protected @NotNull Flag<Boolean> flagInteractableBlock(@NotNull Material material, @Nullable Material hand) {
-        if (isContainer(material)) return Flags.CONTAINERS;
+    protected @NotNull Flag<Boolean> flagInteractableBlock(@NotNull Block block, @Nullable ItemStack hand) {
+        Material material = block.getType();
+        if (isContainer(block)) return Flags.CONTAINERS;
         if (isPrepareBlock(material)) return Flags.PREPARE;
 
         String typeName = material.name();
@@ -230,7 +235,7 @@ public final class ProtectionsListener extends Protections<Player, CommandSender
             case "DOOR", "GATE", "TRAPDOOR" -> Flags.DOORS;
             case "SIGN" -> Flags.SIGN_CLICK;
             case "CAKE" ->
-                    hand == Material.FLINT_AND_STEEL || hand == Material.FIRE_CHARGE ? Flags.LIGHTERS : Flags.EAT;
+                    hand != null && (hand.getType() == Material.FLINT_AND_STEEL || hand.getType() == Material.FIRE_CHARGE) ? Flags.LIGHTERS : Flags.EAT;
             case "ANVIL" -> Flags.ANVILS;
             case "CANDLE", "CAMPFIRE" -> Flags.LIGHTERS;
             case "CAULDRON" -> Flags.CAULDRONS;
@@ -239,29 +244,29 @@ public final class ProtectionsListener extends Protections<Player, CommandSender
     }
 
     @Override
-    protected @NotNull Flag<Boolean> flagItemUse(@NotNull Material block, @Nullable Material hand) {
+    protected @NotNull Flag<Boolean> flagItemUse(@NotNull Block block, @Nullable ItemStack hand) {
         if (hand == null) return Flags.INTERACTIONS;
 
-        return switch (hand) {
+        return switch (hand.getType()) {
             case FLINT_AND_STEEL, FIRE_CHARGE -> Flags.LIGHTERS;
             case POTION, LINGERING_POTION, SPLASH_POTION -> Flags.POTIONS;
-            default -> hand.isEdible() ? Flags.EAT : Flags.INTERACTIONS;
+            default -> hand.getType().isEdible() ? Flags.EAT : Flags.INTERACTIONS;
         };
     }
 
     @Override
-    protected @NotNull Flag<Boolean> flagEntityInteraction(@NotNull Entity entity, @NotNull Material mainHand, @NotNull Material offHand, boolean sneaking) {
+    protected @NotNull Flag<Boolean> flagEntityInteraction(@NotNull Entity entity, @NotNull ItemStack playerHand, boolean playerSneaking) {
         return switch (entity.getType()) {
             case ARMOR_STAND -> Flags.ARMOR_STANDS;
             case GLOW_ITEM_FRAME, ITEM_FRAME -> Flags.ITEM_FRAMES;
             case MINECART_CHEST, MINECART_HOPPER, CHEST_BOAT -> Flags.CONTAINERS;
             case DONKEY, MULE, LLAMA, TRADER_LLAMA ->
-                    ((ChestedHorse) entity).isCarryingChest() ? Flags.CONTAINERS : tryingToEnterVehicle(mainHand, offHand, sneaking) ? Flags.ENTER_VEHICLES : Flags.ENTITY_INTERACTIONS;
+                    ((ChestedHorse) entity).isCarryingChest() ? Flags.CONTAINERS : (isTryingToEnterVehicle(playerHand, playerSneaking) ? Flags.ENTER_VEHICLES : Flags.ENTITY_INTERACTIONS);
             case BOAT, MINECART -> Flags.ENTER_VEHICLES;
             case CAMEL, HORSE, SKELETON_HORSE, ZOMBIE_HORSE ->
-                    tryingToEnterVehicle(mainHand, offHand, sneaking) ? Flags.ENTER_VEHICLES : Flags.ENTITY_INTERACTIONS;
+                    isTryingToEnterVehicle(playerHand, playerSneaking) ? Flags.ENTER_VEHICLES : Flags.ENTITY_INTERACTIONS;
             case PIG, STRIDER ->
-                    (((Steerable) entity).hasSaddle() && mainHand == Material.AIR && offHand == Material.AIR) ? Flags.ENTER_VEHICLES : Flags.ENTITY_INTERACTIONS;
+                    (((Steerable) entity).hasSaddle() && playerHand.getType() == Material.AIR) ? Flags.ENTER_VEHICLES : Flags.ENTITY_INTERACTIONS;
             default -> Flags.ENTITY_INTERACTIONS;
         };
     }
@@ -322,7 +327,7 @@ public final class ProtectionsListener extends Protections<Player, CommandSender
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
     public void onBlockBreak(BlockBreakEvent event) {
         Block block = event.getBlock();
-        if (!blockBreak(block.getWorld().getUID(), block.getX(), block.getY(), block.getZ(), event.getPlayer(), block.getType()))
+        if (!blockBreak(block.getWorld().getUID(), block.getX(), block.getY(), block.getZ(), event.getPlayer(), block))
             event.setCancelled(true);
     }
 
@@ -344,7 +349,7 @@ public final class ProtectionsListener extends Protections<Player, CommandSender
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
     public void onBlockPlace(BlockPlaceEvent event) {
         Block block = event.getBlock();
-        if (!blockPlace(block.getWorld().getUID(), block.getX(), block.getY(), block.getZ(), event.getPlayer(), block.getType()))
+        if (!blockPlace(block.getWorld().getUID(), block.getX(), block.getY(), block.getZ(), event.getPlayer(), block))
             event.setCancelled(true);
     }
 
@@ -367,14 +372,12 @@ public final class ProtectionsListener extends Protections<Player, CommandSender
         Action action = event.getAction();
 
         if (action == Action.PHYSICAL) {
-            if (!physicalInteract(world, block.getX(), block.getY(), block.getZ(), player, block.getType()))
+            if (!physicalInteract(world, block.getX(), block.getY(), block.getZ(), player, block))
                 event.setCancelled(true);
             return;
         } else if (action != Action.RIGHT_CLICK_BLOCK) return;
 
-        Material hand = event.getItem() == null ? null : event.getItem().getType();
-
-        if (!rightClickInteract(world, block.getX(), block.getY(), block.getZ(), player, block.getType(), hand))
+        if (!rightClickInteract(world, block.getX(), block.getY(), block.getZ(), player, block, event.getItem()))
             event.setCancelled(true);
     }
 
@@ -396,7 +399,7 @@ public final class ProtectionsListener extends Protections<Player, CommandSender
         Player player = event.getPlayer();
         Entity entity = event.getRightClicked();
         Location loc = entity.getLocation();
-        if (!entityInteraction(entity.getWorld().getUID(), loc.getBlockX(), loc.getBlockY(), loc.getBlockZ(), player, entity, player.getInventory().getItemInMainHand().getType(), player.getInventory().getItemInOffHand().getType()))
+        if (!entityInteraction(entity.getWorld().getUID(), loc.getBlockX(), loc.getBlockY(), loc.getBlockZ(), player, entity, player.getEquipment().getItem(event.getHand())))
             event.setCancelled(true);
     }
 
@@ -481,7 +484,7 @@ public final class ProtectionsListener extends Protections<Player, CommandSender
     public void onBlockSpread(BlockSpreadEvent event) {
         Block from = event.getSource();
         Block to = event.getBlock();
-        if (!blockSpread(to.getWorld().getUID(), to.getX(), to.getY(), to.getZ(), from.getX(), from.getY(), from.getZ(), event.getNewState().getType()))
+        if (!blockSpread(to.getWorld().getUID(), to.getX(), to.getY(), to.getZ(), from.getX(), from.getY(), from.getZ(), BlockStateToBlockMapping.wrapBlockState(event.getNewState())))
             event.setCancelled(true);
     }
 
@@ -536,7 +539,7 @@ public final class ProtectionsListener extends Protections<Player, CommandSender
         Entity placed = event.getEntity();
         Location loc = placed.getLocation();
         // Material could be ITEM_FRAME, GLOW_ITEM_FRAME or PAINTING, but block place only checks for fire, so it doesn't matter.
-        if (!blockPlace(placed.getWorld().getUID(), loc.getBlockX(), loc.getBlockY(), loc.getBlockZ(), event.getPlayer(), Material.ITEM_FRAME))
+        if (!blockPlace(placed.getWorld().getUID(), loc.getBlockX(), loc.getBlockY(), loc.getBlockZ(), event.getPlayer(), null))
             event.setCancelled(true);
     }
 

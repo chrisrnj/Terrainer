@@ -35,7 +35,7 @@ import java.util.*;
 import java.util.function.Function;
 import java.util.regex.Pattern;
 
-public abstract class Protections<P extends R, R, M, B, E> {
+public abstract class Protections<P extends R, R, B, I, E> {
     private final @NotNull PlayerUtil<P, R> playerUtil;
     private final @NotNull LanguageHolder<?, R> lang;
 
@@ -44,26 +44,26 @@ public abstract class Protections<P extends R, R, M, B, E> {
         this.lang = lang;
     }
 
-    protected abstract boolean isContainer(@NotNull M material);
+    protected abstract boolean isContainer(@NotNull B block);
 
     /**
      * Blocks that have a reaction when right-clicked with no/any item.
      *
-     * @param material The material to test.
-     * @return Whether this material is a block that once you interact, something happens.
+     * @param block The block to test.
+     * @return Whether something will happen once this block is interacted with.
      */
-    protected abstract boolean isInteractable(@NotNull M material);
+    protected abstract boolean isInteractable(@NotNull B block);
 
     /**
-     * Items that can be placed on the ground. Buckets of water, armor stands, item frames and paintings are some of the
-     * items that are not considered blocks that should be considered building items.
+     * Items that are not blocks, but can be placed on the ground. Buckets of water, armor stands, item frames and
+     * paintings are some of the items that are not considered blocks that should be considered building items.
      *
-     * @param material The material to test.
-     * @return Whether this material is a block that can be placed.
+     * @param item The item to test.
+     * @return Whether this item is can be placed as a block.
      */
-    protected abstract boolean isPlaceable(@Nullable M material);
+    protected abstract boolean isPlaceable(@Nullable I item);
 
-    protected abstract boolean isFire(@NotNull M material);
+    protected abstract boolean isFire(@NotNull B block);
 
     protected abstract boolean isBoat(@NotNull E entity);
 
@@ -87,13 +87,13 @@ public abstract class Protections<P extends R, R, M, B, E> {
 
     protected abstract @NotNull Flag<Boolean> flagEntityPlaced(@NotNull E entity);
 
-    protected abstract @NotNull Flag<Boolean> flagPhysicalInteraction(@NotNull M material);
+    protected abstract @NotNull Flag<Boolean> flagPhysicalInteraction(@NotNull B block);
 
-    protected abstract @NotNull Flag<Boolean> flagInteractableBlock(@NotNull M material, @Nullable M hand);
+    protected abstract @NotNull Flag<Boolean> flagInteractableBlock(@NotNull B block, @Nullable I hand);
 
-    protected abstract @NotNull Flag<Boolean> flagItemUse(@NotNull M block, @Nullable M hand);
+    protected abstract @NotNull Flag<Boolean> flagItemUse(@NotNull B block, @Nullable I hand);
 
-    protected abstract @NotNull Flag<Boolean> flagEntityInteraction(@NotNull E entity, @NotNull M mainHand, @NotNull M offHand, boolean sneaking);
+    protected abstract @NotNull Flag<Boolean> flagEntityInteraction(@NotNull E entity, @NotNull I playerHand, boolean playerSneaking);
 
     /**
      * Finds the appropriate flag for an entity being hit. This method will never be called when the victim is a player.
@@ -314,16 +314,16 @@ public abstract class Protections<P extends R, R, M, B, E> {
         return handleProtection(player, world, x, y, z, Flags.BUILD, true);
     }
 
-    public boolean physicalInteract(@NotNull UUID world, int x, int y, int z, @NotNull P player, @NotNull M material) {
-        return handleProtection(player, world, x, y, z, flagPhysicalInteraction(material), true);
+    public boolean physicalInteract(@NotNull UUID world, int x, int y, int z, @NotNull P player, @NotNull B block) {
+        return handleProtection(player, world, x, y, z, flagPhysicalInteraction(block), true);
     }
 
     public boolean placeEntity(@NotNull UUID world, int x, int y, int z, @NotNull P player, @NotNull E entity) {
         return handleProtection(player, world, x, y, z, flagEntityPlaced(entity), true);
     }
 
-    public boolean entityInteraction(@NotNull UUID world, int x, int y, int z, @NotNull P player, @NotNull E entity, @NotNull M mainHand, @NotNull M offHand) {
-        return handleProtection(player, world, x, y, z, flagEntityInteraction(entity, mainHand, offHand, playerUtil.isSneaking(player)), true);
+    public boolean entityInteraction(@NotNull UUID world, int x, int y, int z, @NotNull P player, @NotNull E entity, @NotNull I hand) {
+        return handleProtection(player, world, x, y, z, flagEntityInteraction(entity, hand, playerUtil.isSneaking(player)), true);
     }
 
     public boolean itemPickup(@NotNull UUID world, int x, int y, int z, @NotNull P player) {
@@ -528,8 +528,8 @@ public abstract class Protections<P extends R, R, M, B, E> {
         return handleProtection(world, x, y, z, Flags.BLOCK_FORM);
     }
 
-    public boolean blockSpread(@NotNull UUID world, int x, int y, int z, int fromX, int fromY, int fromZ, @NotNull M material) {
-        return handleBlockFromTo(world, x, y, z, fromX, fromY, fromZ, isFire(material) ? Flags.FIRE_SPREAD : Flags.BLOCK_SPREAD, Flags.BUILD);
+    public boolean blockSpread(@NotNull UUID world, int x, int y, int z, int fromX, int fromY, int fromZ, @NotNull B block) {
+        return handleBlockFromTo(world, x, y, z, fromX, fromY, fromZ, isFire(block) ? Flags.FIRE_SPREAD : Flags.BLOCK_SPREAD, Flags.BUILD);
     }
 
     public boolean blockBurn(@NotNull UUID world, int x, int y, int z) {
@@ -541,16 +541,16 @@ public abstract class Protections<P extends R, R, M, B, E> {
     }
 
     // Prevent block break if BUILD is false. If it's a container, prevent if BUILD or CONTAINERS is false.
-    public boolean blockBreak(@NotNull UUID world, int x, int y, int z, @NotNull P player, @NotNull M material) {
-        if (isContainer(material)) {
+    public boolean blockBreak(@NotNull UUID world, int x, int y, int z, @NotNull P player, @NotNull B block) {
+        if (isContainer(block)) {
             return handleProtection(player, world, x, y, z, Flags.BUILD, Flags.CONTAINERS);
         } else {
             return handleProtection(player, world, x, y, z, Flags.BUILD, true);
         }
     }
 
-    public boolean blockPlace(@NotNull UUID world, int x, int y, int z, @NotNull P player, @NotNull M material) {
-        if (isFire(material)) {
+    public boolean blockPlace(@NotNull UUID world, int x, int y, int z, @NotNull P player, @Nullable B block) {
+        if (block != null && isFire(block)) {
             return handleProtection(player, world, x, y, z, Flags.BUILD, Flags.LIGHTERS);
         } else {
             return handleProtection(player, world, x, y, z, Flags.BUILD, true);
@@ -572,23 +572,23 @@ public abstract class Protections<P extends R, R, M, B, E> {
         return true;
     }
 
-    public boolean rightClickInteract(@NotNull UUID world, int x, int y, int z, @NotNull P player, @NotNull M material, @Nullable M hand) {
+    public boolean rightClickInteract(@NotNull UUID world, int x, int y, int z, @NotNull P player, @NotNull B block, @Nullable I hand) {
         Flag<Boolean> flag;
         boolean message = true;
 
-        if (isInteractable(material)) {
+        if (isInteractable(block)) {
             if (playerUtil.isSneaking(player) && isPlaceable(hand)) {
                 // Let block place/bucket fill event handle it.
                 return true;
             } else {
-                flag = flagInteractableBlock(material, hand);
+                flag = flagInteractableBlock(block, hand);
             }
         } else if (isPlaceable(hand)) {
             // Let block place/bucket fill event handle it.
             return true;
         } else {
             if (hand == null) message = false;
-            flag = flagItemUse(material, hand);
+            flag = flagItemUse(block, hand);
         }
 
         return handleProtection(player, world, x, y, z, flag, message);
@@ -597,8 +597,8 @@ public abstract class Protections<P extends R, R, M, B, E> {
     public boolean startFlight(@NotNull UUID world, int x, int y, int z, @NotNull P player) {
         if (!handleProtection(player, world, x, y, z, Flags.FLY, true)) {
             if (playerUtil.canFly(player)) {
-                // Setting tag on player to return flight when leaving the terrain.
-                playerUtil.setResetFly(player, true);
+                playerUtil.setCanFly(player, false);
+                playerUtil.setResetFly(player, true); // Setting tag on player to return flight when leaving the terrain.
             }
             return false;
         }
@@ -703,7 +703,7 @@ public abstract class Protections<P extends R, R, M, B, E> {
                 if (flyFound == null) flyFound = flags.getData(Flags.FLY);
                 if (flyFound != null && !flyFound) {
                     playerUtil.setCanFly(player, false);
-                    playerUtil.setResetFly(player, true);
+                    playerUtil.setResetFly(player, true); // Adding reset flight on leave tag.
                     // Only send message if player is flying.
                     if (playerUtil.isFlying(player)) lang.send(player, lang.get("Protections." + Flags.FLY.id()));
                 }
@@ -838,6 +838,7 @@ public abstract class Protections<P extends R, R, M, B, E> {
         List<String> playerCommandsFound = null;
         Integer playerCommandsPriority = null;
 
+        // Gathering commands and removing player effects of all terrains in from location.
         for (Terrain terrain : fromTerrains) {
             int priority = terrain.priority();
             Terrain.MemberFlagMap memberFlagMap = terrain.memberFlags();
@@ -857,13 +858,13 @@ public abstract class Protections<P extends R, R, M, B, E> {
                 }
             }
 
-            // Add to list only the commands of left terrains. It ensures that only the highest priority commands are executed.
+            // Add to the list only the commands of left terrains. It ensures that only the highest priority commands are executed.
             if (consoleCommandsPriority == null) {
                 consoleCommandsFound = memberFlagMap.getData(pUID, Flags.LEAVE_CONSOLE_COMMANDS);
                 if (consoleCommandsFound == null) consoleCommandsFound = flags.getData(Flags.LEAVE_CONSOLE_COMMANDS);
                 if (consoleCommandsFound != null) {
                     consoleCommandsPriority = priority;
-                    // Only adding values of left terrains, to avoid executing commands again.
+                    // Only adding values of left terrains, to avoid executing commands when they leave other terrains in the future.
                     consoleCommandsFound = leftTerrains.contains(terrain) ? new ArrayList<>(consoleCommandsFound) : new ArrayList<>();
                 }
             } else if (consoleCommandsPriority == priority && leftTerrains.contains(terrain)) {
@@ -872,13 +873,13 @@ public abstract class Protections<P extends R, R, M, B, E> {
                 if (consoleCommandsState != null) consoleCommandsFound.addAll(consoleCommandsState);
             }
 
-            // Add to list only the commands of left terrains. It ensures that only the highest priority commands are executed.
+            // Add to the list only the commands of left terrains. It ensures that only the highest priority commands are executed.
             if (playerCommandsPriority == null) {
                 playerCommandsFound = memberFlagMap.getData(pUID, Flags.LEAVE_PLAYER_COMMANDS);
                 if (playerCommandsFound == null) playerCommandsFound = flags.getData(Flags.LEAVE_PLAYER_COMMANDS);
                 if (playerCommandsFound != null) {
                     playerCommandsPriority = priority;
-                    // Only adding values of left terrains, to avoid executing commands again.
+                    // Only adding values of left terrains, to avoid executing commands when they leave other terrains in the future.
                     playerCommandsFound = leftTerrains.contains(terrain) ? new ArrayList<>(playerCommandsFound) : new ArrayList<>();
                 }
             } else if (playerCommandsPriority == priority && leftTerrains.contains(terrain)) {
@@ -892,7 +893,7 @@ public abstract class Protections<P extends R, R, M, B, E> {
             }
         }
 
-        // Re-apply effects, in case the player had their effects removed, and remained in a terrain that had similar effects.
+        // Re-apply effects, in case the player just had their effects removed, and remained in a terrain that had similar effects.
         TerrainManager.getMapFlagDataAt(Flags.EFFECTS, playerUtil.playerUUID(player), world, x, y, z, false).forEach((effect, amplifier) -> playerUtil.applyEffect(player, effect, amplifier));
 
         // Dispatching console commands.
@@ -905,10 +906,10 @@ public abstract class Protections<P extends R, R, M, B, E> {
             playerCommandsFound.forEach(command -> playerUtil.dispatchCommand(player, command.replace("%p", playerUtil.playerName(player))));
         }
 
-        // Setting fly back if the player had a return flight tag.
-        if (playerUtil.shouldResetFly(player) && TerrainManager.isFlagAllowedAt(Flags.FLY, pUID, world, x, y, z)) {
-            playerUtil.setResetFly(player, false);
-            playerUtil.setCanFly(player, true);
+        // If player is allowed flight, return their ability to fly if they have a 'flight return' tag.
+        if (handleProtection(player, world, x, y, z, Flags.FLY, false)) {
+            if (playerUtil.shouldResetFly(player)) playerUtil.setCanFly(player, true);
+            playerUtil.setResetFly(player, false); // Removing tag.
         }
 
         // Sending leave message.
