@@ -69,17 +69,6 @@ public final class BukkitPlayerUtil extends PlayerUtil<Player, CommandSender> {
     }
 
     @Override
-    public boolean shouldResetFly(@NotNull Player player) {
-        Integer resetFly = player.getPersistentDataContainer().get(resetFlyKey, PersistentDataType.INTEGER);
-        if (resetFly == null) return false;
-        boolean hadFlightPermissionBefore = resetFly == 1;
-        Configuration config = Configurations.CONFIG.getConfiguration();
-
-        // If they had the permission, only reset flight if they still have it. Otherwise, always reset flight unless Strict Fly Return is true.
-        return hadFlightPermissionBefore ? player.hasPermission(config.getString("Fly Permission").orElse("essentials.fly")) : !config.getBoolean("Strict Fly Return").orElse(false);
-    }
-
-    @Override
     public void setResetFly(@NotNull Player player, boolean value) {
         PersistentDataContainer container = player.getPersistentDataContainer();
 
@@ -91,6 +80,17 @@ public final class BukkitPlayerUtil extends PlayerUtil<Player, CommandSender> {
         } else {
             container.remove(resetFlyKey);
         }
+    }
+
+    @Override
+    public boolean shouldResetFly(@NotNull Player player) {
+        Integer resetFly = player.getPersistentDataContainer().get(resetFlyKey, PersistentDataType.INTEGER);
+        if (resetFly == null) return false;
+        boolean hadFlightPermissionBefore = resetFly == 1;
+        Configuration config = Configurations.CONFIG.getConfiguration();
+
+        // If they had the permission, only reset flight if they still have it. Otherwise, always reset flight unless Strict Fly Return is true.
+        return hadFlightPermissionBefore ? player.hasPermission(config.getString("Fly Permission").orElse("essentials.fly")) : !config.getBoolean("Strict Fly Return").orElse(false);
     }
 
     @Override

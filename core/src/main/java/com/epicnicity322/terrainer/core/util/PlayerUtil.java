@@ -132,9 +132,23 @@ public abstract class PlayerUtil<P extends R, R> {
 
     public abstract void setCanFly(@NotNull P player, boolean canFly);
 
-    public abstract boolean shouldResetFly(@NotNull P player);
+    /**
+     * Sets a tag on the player to return their ability to fly once they're not in a terrain with
+     * {@link com.epicnicity322.terrainer.core.terrain.Flags#FLY} denied.
+     *
+     * @param player The player to set the tag of flight return.
+     * @param value  Whether to add or remove the tag.
+     */
+    public abstract void setResetFly(@NotNull P player, boolean value);
 
-    public abstract void setResetFly(@NotNull P player, boolean checkPermission);
+    /**
+     * Tests whether the player has a tag of flight return, meaning they're waiting to get their fly ability granted
+     * back once allowed.
+     *
+     * @param player The player to check for the tag.
+     * @return Whether the player had the tag of flight return.
+     */
+    public abstract boolean shouldResetFly(@NotNull P player);
 
     public abstract boolean isSneaking(@NotNull P player);
 
@@ -256,22 +270,6 @@ public abstract class PlayerUtil<P extends R, R> {
     public long claimedBlocks(@Nullable UUID player, @UnknownNullability UUID world) {
         return claimedBlocks(player, world, null);
     }
-
-//    public boolean resizeTerrain(@Nullable P receiver, @NotNull Terrain terrain, @NotNull WorldCoordinate first, @NotNull WorldCoordinate second) {
-//        if (!first.world().equals(second.world()) || !first.world().equals(terrain.world())) {
-//            lang.send(receiver == null ? consoleRecipient() : receiver, lang.get("Create.Error.Different Worlds").replace("<label>", "tr"));
-//            return false;
-//        }
-//
-//        Terrain tempTerrain = new Terrain(terrain); // Creating safe terrain clone.
-//        tempTerrain.setDiagonals(first.coordinate(), second.coordinate());
-//
-//        // Checking resize.
-//        if (receiver != null && !performClaimChecks(tempTerrain)) return false;
-//
-//        terrain.setDiagonals(tempTerrain.minDiagonal(), tempTerrain.maxDiagonal());
-//        return true;
-//    }
 
     /**
      * Gets the sum of the areas of all terrains owned by the specified player.
