@@ -20,13 +20,17 @@ package com.epicnicity322.terrainer.bukkit.listener;
 
 import com.epicnicity322.epicpluginlib.bukkit.lang.MessageSender;
 import com.epicnicity322.epicpluginlib.bukkit.reflection.ReflectionUtil;
+import com.epicnicity322.epicpluginlib.core.logger.ConsoleLogger;
 import com.epicnicity322.terrainer.bukkit.TerrainerPlugin;
 import com.epicnicity322.terrainer.bukkit.command.BordersCommand;
+import com.epicnicity322.terrainer.bukkit.event.terrain.TerrainCanEnterEvent;
+import com.epicnicity322.terrainer.bukkit.event.terrain.TerrainCanLeaveEvent;
 import com.epicnicity322.terrainer.bukkit.event.terrain.TerrainEnterEvent;
 import com.epicnicity322.terrainer.bukkit.event.terrain.TerrainLeaveEvent;
 import com.epicnicity322.terrainer.bukkit.util.BlockStateToBlockMapping;
 import com.epicnicity322.terrainer.bukkit.util.TaskFactory;
 import com.epicnicity322.terrainer.core.Coordinate;
+import com.epicnicity322.terrainer.core.Terrainer;
 import com.epicnicity322.terrainer.core.protection.Protections;
 import com.epicnicity322.terrainer.core.terrain.Flag;
 import com.epicnicity322.terrainer.core.terrain.Flags;
@@ -73,6 +77,12 @@ public final class ProtectionsListener extends Protections<Player, CommandSender
     // Paper
     private static final boolean getOriginMethod = ReflectionUtil.getMethod(Entity.class, "getOrigin") != null;
     private static final @NotNull HashMap<UUID, BossBarTask> bossBarTasks = new HashMap<>();
+
+    static {
+        if (!getOriginMethod)
+            Terrainer.logger().log("Unable to fetch origin of entities. Entities such as TNT or Creepers might be able to explode terrains if they are pushed in. Please use Paper to protect against this.", ConsoleLogger.Level.WARN);
+    }
+
     private final @NotNull MessageSender lang = TerrainerPlugin.getLanguage();
     private final @NotNull TerrainerPlugin plugin;
     private final @NotNull BordersCommand bordersCommand;
@@ -804,26 +814,26 @@ public final class ProtectionsListener extends Protections<Player, CommandSender
     }
 
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
-    public void onTerrainEnter(TerrainEnterEvent event) {
-        if (!terrainEnter(event.player(), event.terrains(), event.toTerrains(), event.reason()))
+    public void onTerrainCanEnter(TerrainCanEnterEvent event) {
+        if (!terrainCanEnter(event.player(), event.terrains(), event.toTerrains(), event.reason()))
             event.setCancelled(true);
     }
 
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
-    public void onTerrainLeave(TerrainLeaveEvent event) {
-        if (!terrainLeave(event.player(), event.terrains(), event.fromTerrains(), event.toTerrains()))
+    public void onTerrainCanLeave(TerrainCanLeaveEvent event) {
+        if (!terrainCanLeave(event.player(), event.terrains(), event.fromTerrains(), event.toTerrains()))
             event.setCancelled(true);
     }
 
-    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
-    public void onTerrainEnterMonitor(TerrainEnterEvent event) {
-        monitorTerrainEnter(event.player(), event.terrains(), event.toTerrains());
+    @EventHandler
+    public void onTerrainEnter(TerrainEnterEvent event) {
+        terrainEnter(event.player(), event.terrains(), event.toTerrains());
     }
 
-    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
-    public void onTerrainLeaveMonitor(TerrainLeaveEvent event) {
+    @EventHandler
+    public void onTerrainLeave(TerrainLeaveEvent event) {
         Location to = event.to();
-        monitorTerrainLeave(event.player(), event.terrains(), event.player().getWorld().getUID(), to.getBlockX(), to.getBlockY(), to.getBlockZ(), event.fromTerrains());
+        terrainLeave(event.player(), event.terrains(), event.player().getWorld().getUID(), to.getBlockX(), to.getBlockY(), to.getBlockZ(), event.fromTerrains());
     }
 
     private void sendBar(@NotNull String message, @NotNull Player player) {

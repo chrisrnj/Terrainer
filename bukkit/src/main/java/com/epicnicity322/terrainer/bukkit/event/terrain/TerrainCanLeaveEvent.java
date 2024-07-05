@@ -18,11 +18,12 @@
 
 package com.epicnicity322.terrainer.bukkit.event.terrain;
 
-import com.epicnicity322.terrainer.core.event.terrain.ITerrainEnterEvent;
+import com.epicnicity322.terrainer.core.event.terrain.ITerrainCanLeaveEvent;
 import com.epicnicity322.terrainer.core.terrain.Terrain;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
+import org.bukkit.event.Cancellable;
 import org.bukkit.event.Event;
 import org.bukkit.event.HandlerList;
 import org.jetbrains.annotations.NotNull;
@@ -32,16 +33,9 @@ import java.util.Collections;
 import java.util.Set;
 
 /**
- * When a player has entered a terrain.
- * <p>
- * Due to movement check events being performed on {@link org.bukkit.event.EventPriority#LOW} priority, this event might
- * be called even if the player hasn't really entered a terrain, because the movement check events might be later
- * cancelled by other plugins on {@link org.bukkit.event.EventPriority#HIGHEST} priority.
- * <p>
- * This event behaves this way because it is called right after {@link TerrainCanEnterEvent} to save performance, and
- * that event needs to be at low priority.
+ * An event whose cancellation state is used to determine whether a player is allowed to leave terrains.
  */
-public class TerrainEnterEvent extends Event implements ITerrainEnterEvent<Location, Player> {
+public class TerrainCanLeaveEvent extends Event implements ITerrainCanLeaveEvent<Location, Player>, Cancellable {
     private static final @NotNull HandlerList handlers = new HandlerList();
     private final @NotNull Location from;
     private final @NotNull Location to;
@@ -50,8 +44,9 @@ public class TerrainEnterEvent extends Event implements ITerrainEnterEvent<Locat
     private final @NotNull EnterLeaveReason reason;
     private @Nullable Set<Terrain> fromTerrains;
     private @Nullable Set<Terrain> toTerrains;
+    private boolean cancelled = false;
 
-    public TerrainEnterEvent(@NotNull Location from, @NotNull Location to, @NotNull Player player, @NotNull Set<Terrain> terrains, @Nullable Set<Terrain> fromTerrains, @Nullable Set<Terrain> toTerrains, @NotNull EnterLeaveReason reason) {
+    public TerrainCanLeaveEvent(@NotNull Location from, @NotNull Location to, @NotNull Player player, @NotNull Set<Terrain> terrains, @Nullable Set<Terrain> fromTerrains, @Nullable Set<Terrain> toTerrains, @NotNull EnterLeaveReason reason) {
         super(!Bukkit.isPrimaryThread());
         this.from = from;
         this.to = to;
@@ -69,6 +64,16 @@ public class TerrainEnterEvent extends Event implements ITerrainEnterEvent<Locat
     @Override
     public @NotNull HandlerList getHandlers() {
         return handlers;
+    }
+
+    @Override
+    public boolean isCancelled() {
+        return cancelled;
+    }
+
+    @Override
+    public void setCancelled(boolean cancel) {
+        this.cancelled = cancel;
     }
 
     @Override

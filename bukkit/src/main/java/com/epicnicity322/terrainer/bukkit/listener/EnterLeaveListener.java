@@ -19,10 +19,9 @@
 package com.epicnicity322.terrainer.bukkit.listener;
 
 import com.epicnicity322.epicpluginlib.bukkit.reflection.ReflectionUtil;
-import com.epicnicity322.terrainer.bukkit.event.terrain.TerrainAddEvent;
-import com.epicnicity322.terrainer.bukkit.event.terrain.TerrainEnterEvent;
-import com.epicnicity322.terrainer.bukkit.event.terrain.TerrainLeaveEvent;
-import com.epicnicity322.terrainer.bukkit.event.terrain.TerrainRemoveEvent;
+import com.epicnicity322.epicpluginlib.core.logger.ConsoleLogger;
+import com.epicnicity322.terrainer.bukkit.TerrainerPlugin;
+import com.epicnicity322.terrainer.bukkit.event.terrain.*;
 import com.epicnicity322.terrainer.bukkit.util.ToggleableListener;
 import com.epicnicity322.terrainer.core.Terrainer;
 import com.epicnicity322.terrainer.core.event.TerrainEnterLeaveEvent.EnterLeaveReason;
@@ -55,7 +54,8 @@ public final class EnterLeaveListener extends ToggleableListener {
     private static @NotNull List<String> commandsOnEntryCancelled = Collections.emptyList();
 
     static {
-        if (asyncTeleport) Terrainer.logger().log("Teleports will be done asynchronously.");
+        if (!asyncTeleport)
+            Terrainer.logger().log("Unable to perform teleports asynchronously. Please use Paper to have better performance.", ConsoleLogger.Level.WARN);
     }
 
     public static void setCommandsOnEntryCancelled(@NotNull List<String> commandsOnEntryCancelled) {
@@ -97,30 +97,42 @@ public final class EnterLeaveListener extends ToggleableListener {
         leftTerrains.removeIf(enteredTerrains::remove); // Removing the intersection of the sets, leaving only the actual left and entered terrains.
 
         if (!leftTerrains.isEmpty()) {
-            if (pVehicle != null && callLeave(leftTerrains, fromTerrains, toTerrains, from, to, pVehicle, reason)) {
+            if (pVehicle != null && callCanLeave(leftTerrains, fromTerrains, toTerrains, from, to, pVehicle, reason)) {
                 cancelMovement(from, to, players, pVehicle, vehicle);
                 return;
             }
 
             for (Player player : players) {
-                if (callLeave(leftTerrains, fromTerrains, toTerrains, from, to, player, reason)) {
+                if (callCanLeave(leftTerrains, fromTerrains, toTerrains, from, to, player, reason)) {
                     cancelMovement(from, to, players, pVehicle, vehicle);
                     return;
                 }
             }
         }
         if (!enteredTerrains.isEmpty()) {
-            if (pVehicle != null && callEnter(enteredTerrains, fromTerrains, toTerrains, from, to, pVehicle, reason)) {
+            if (pVehicle != null && callCanEnter(enteredTerrains, fromTerrains, toTerrains, from, to, pVehicle, reason)) {
                 cancelMovement(from, to, players, pVehicle, vehicle);
                 return;
             }
 
             for (Player player : players) {
-                if (callEnter(enteredTerrains, fromTerrains, toTerrains, from, to, player, reason)) {
+                if (callCanEnter(enteredTerrains, fromTerrains, toTerrains, from, to, player, reason)) {
                     cancelMovement(from, to, players, pVehicle, vehicle);
                     return;
                 }
             }
+        }
+
+        if (!leftTerrains.isEmpty()) {
+            if (pVehicle != null) callLeave(leftTerrains, fromTerrains, toTerrains, from, to, pVehicle, reason);
+
+            for (Player player : players) callLeave(leftTerrains, fromTerrains, toTerrains, from, to, player, reason);
+        }
+        if (!enteredTerrains.isEmpty()) {
+            if (pVehicle != null) callEnter(enteredTerrains, fromTerrains, toTerrains, from, to, pVehicle, reason);
+
+            for (Player player : players)
+                callEnter(enteredTerrains, fromTerrains, toTerrains, from, to, player, reason);
         }
     }
 
@@ -190,23 +202,46 @@ public final class EnterLeaveListener extends ToggleableListener {
 
         leftTerrains.removeIf(enteredTerrains::remove); // Removing the intersection of the sets, leaving only the actual left and entered terrains.
 
-        boolean cancel = callLeave(leftTerrains, fromTerrains, toTerrains, from, to, player, reason);
+        boolean cancel = callCanLeave(leftTerrains, fromTerrains, toTerrains, from, to, player, reason);
         if (cancel) return true;
-        return callEnter(enteredTerrains, fromTerrains, toTerrains, from, to, player, reason);
+        cancel = callCanEnter(enteredTerrains, fromTerrains, toTerrains, from, to, player, reason);
+        if (cancel) return true;
+
+        callLeave(leftTerrains, fromTerrains, toTerrains, from, to, player, reason);
+        callEnter(enteredTerrains, fromTerrains, toTerrains, from, to, player, reason);
+        return false;
     }
 
-    private static boolean callLeave(@NotNull Set<Terrain> terrains, @Nullable Set<Terrain> fromTerrains, @Nullable Set<Terrain> toTerrains, @NotNull Location from, @NotNull Location to, @NotNull Player player, @NotNull EnterLeaveReason reason) {
+    private static boolean callCanLeave(@NotNull Set<Terrain> terrains, @Nullable Set<Terrain> fromTerrains, @Nullable Set<Terrain> toTerrains, @NotNull Location from, @NotNull Location to, @NotNull Player player, @NotNull EnterLeaveReason reason) {
         if (terrains.isEmpty()) return false;
+
+        var canLeave = new TerrainCanLeaveEvent(from, to, player, terrains, fromTerrains, toTerrains, reason);
+        Bukkit.getPluginManager().callEvent(canLeave);
+
+        return canLeave.isCancelled();
+    }
+
+    private static boolean callCanEnter(@NotNull Set<Terrain> terrains, @Nullable Set<Terrain> fromTerrains, @Nullable Set<Terrain> toTerrains, @NotNull Location from, @NotNull Location to, @NotNull Player player, @NotNull EnterLeaveReason reason) {
+        if (terrains.isEmpty()) return false;
+
+        var canEnter = new TerrainCanEnterEvent(from, to, player, terrains, fromTerrains, toTerrains, reason);
+        Bukkit.getPluginManager().callEvent(canEnter);
+
+        return canEnter.isCancelled();
+    }
+
+    private static void callLeave(@NotNull Set<Terrain> terrains, @Nullable Set<Terrain> fromTerrains, @Nullable Set<Terrain> toTerrains, @NotNull Location from, @NotNull Location to, @NotNull Player player, @NotNull EnterLeaveReason reason) {
+        if (terrains.isEmpty()) return;
+
         var leave = new TerrainLeaveEvent(from, to, player, terrains, fromTerrains, toTerrains, reason);
         Bukkit.getPluginManager().callEvent(leave);
-        return leave.isCancelled();
     }
 
-    private static boolean callEnter(@NotNull Set<Terrain> terrains, @Nullable Set<Terrain> fromTerrains, @Nullable Set<Terrain> toTerrains, @NotNull Location from, @NotNull Location to, @NotNull Player player, @NotNull EnterLeaveReason reason) {
-        if (terrains.isEmpty()) return false;
+    private static void callEnter(@NotNull Set<Terrain> terrains, @Nullable Set<Terrain> fromTerrains, @Nullable Set<Terrain> toTerrains, @NotNull Location from, @NotNull Location to, @NotNull Player player, @NotNull EnterLeaveReason reason) {
+        if (terrains.isEmpty()) return;
+
         var enter = new TerrainEnterEvent(from, to, player, terrains, fromTerrains, toTerrains, reason);
         Bukkit.getPluginManager().callEvent(enter);
-        return enter.isCancelled();
     }
 
     @EventHandler(priority = EventPriority.LOW, ignoreCancelled = true)
@@ -234,16 +269,28 @@ public final class EnterLeaveListener extends ToggleableListener {
         }
     }
 
+    @EventHandler(priority = EventPriority.LOW)
+    public void onRespawn(PlayerRespawnEvent event) {
+        Player player = event.getPlayer();
+        Location from = player.getLocation(), to = event.getRespawnLocation();
+
+        if (handleFromTo(from, to, player.getWorld().getUID(), to.getWorld().getUID(), player, EnterLeaveReason.RESPAWN)) {
+            event.setRespawnLocation(from);
+        }
+    }
+
     @EventHandler
     public void onJoin(PlayerJoinEvent event) {
         Player player = event.getPlayer();
         Location loc = player.getLocation();
         Set<Terrain> enteredTerrains = TerrainManager.terrainsAt(player.getWorld().getUID(), loc.getBlockX(), loc.getBlockY(), loc.getBlockZ());
 
-        if (callEnter(enteredTerrains, enteredTerrains, enteredTerrains, loc, loc, player, EnterLeaveReason.JOIN_SERVER)) {
+        if (callCanEnter(enteredTerrains, enteredTerrains, enteredTerrains, loc, loc, player, EnterLeaveReason.JOIN_SERVER)) {
             for (String command : commandsOnEntryCancelled) {
-                Bukkit.dispatchCommand(Bukkit.getConsoleSender(), command.replace("%p", player.getName()));
+                TerrainerPlugin.getPlayerUtil().dispatchCommand(null, command.replace("%p", player.getName()));
             }
+        } else {
+            callEnter(enteredTerrains, enteredTerrains, enteredTerrains, loc, loc, player, EnterLeaveReason.JOIN_SERVER);
         }
     }
 
@@ -253,6 +300,7 @@ public final class EnterLeaveListener extends ToggleableListener {
         Location loc = player.getLocation();
         Set<Terrain> leftTerrains = TerrainManager.terrainsAt(player.getWorld().getUID(), loc.getBlockX(), loc.getBlockY(), loc.getBlockZ());
 
+        // Can leave is not called for PlayerQuitEvent because it can't be cancelled.
         callLeave(leftTerrains, leftTerrains, leftTerrains, loc, loc, player, EnterLeaveReason.LEAVE_SERVER);
     }
 
@@ -267,10 +315,12 @@ public final class EnterLeaveListener extends ToggleableListener {
             Location loc = player.getLocation();
             if (!terrain.isWithin(loc.getBlockX(), loc.getBlockY(), loc.getBlockZ())) continue;
 
-            if (callEnter(singletonTerrain, null, null, loc, loc, player, EnterLeaveReason.CREATE)) {
+            if (callCanEnter(singletonTerrain, null, null, loc, loc, player, EnterLeaveReason.CREATE)) {
                 for (String command : commandsOnEntryCancelled) {
-                    Bukkit.dispatchCommand(Bukkit.getConsoleSender(), command.replace("%p", player.getName()));
+                    TerrainerPlugin.getPlayerUtil().dispatchCommand(null, command.replace("%p", player.getName()));
                 }
+            } else {
+                callEnter(singletonTerrain, null, null, loc, loc, player, EnterLeaveReason.CREATE);
             }
         }
     }
@@ -286,17 +336,9 @@ public final class EnterLeaveListener extends ToggleableListener {
             Location loc = player.getLocation();
             if (!terrain.isWithin(loc.getBlockX(), loc.getBlockY(), loc.getBlockZ())) continue;
 
+            // Can leave is not called for TerrainRemoveEvent because it can't be cancelled.
             callLeave(singletonTerrain, null, null, loc, loc, player, EnterLeaveReason.REMOVE);
         }
     }
 
-    @EventHandler(priority = EventPriority.LOW)
-    public void onRespawn(PlayerRespawnEvent event) {
-        Player player = event.getPlayer();
-        Location from = player.getLocation(), to = event.getRespawnLocation();
-
-        if (handleFromTo(from, to, player.getWorld().getUID(), to.getWorld().getUID(), player, EnterLeaveReason.RESPAWN)) {
-            event.setRespawnLocation(from);
-        }
-    }
 }

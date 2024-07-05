@@ -631,7 +631,7 @@ public abstract class Protections<P extends R, R, B, I, E> {
         }
     }
 
-    public boolean terrainEnter(@NotNull P player, @NotNull Set<Terrain> enteredTerrains, @NotNull Set<Terrain> toTerrains, @NotNull TerrainEnterLeaveEvent.EnterLeaveReason reason) {
+    public boolean terrainCanEnter(@NotNull P player, @NotNull Set<Terrain> enteredTerrains, @NotNull Set<Terrain> toTerrains, @NotNull TerrainEnterLeaveEvent.EnterLeaveReason reason) {
         var pUID = playerUtil.playerUUID(player);
         Boolean enter = playerUtil.hasPermission(player, Flags.ENTER.bypassPermission()) ? true : null;
         // Prevent player from moving into the terrain while flying.
@@ -674,7 +674,7 @@ public abstract class Protections<P extends R, R, B, I, E> {
         return true;
     }
 
-    public void monitorTerrainEnter(@NotNull P player, @NotNull Set<Terrain> enteredTerrains, @NotNull Set<Terrain> toTerrains) {
+    public void terrainEnter(@NotNull P player, @NotNull Set<Terrain> enteredTerrains, @NotNull Set<Terrain> toTerrains) {
         Configuration config = Configurations.CONFIG.getConfiguration();
         var pUID = playerUtil.playerUUID(player);
 
@@ -702,10 +702,10 @@ public abstract class Protections<P extends R, R, B, I, E> {
                 flyFound = memberFlagMap.getData(pUID, Flags.FLY);
                 if (flyFound == null) flyFound = flags.getData(Flags.FLY);
                 if (flyFound != null && !flyFound) {
-                    playerUtil.setCanFly(player, false);
-                    playerUtil.setResetFly(player, true); // Adding reset flight on leave tag.
                     // Only send message if player is flying.
                     if (playerUtil.isFlying(player)) lang.send(player, lang.get("Protections." + Flags.FLY.id()));
+                    playerUtil.setCanFly(player, false);
+                    playerUtil.setResetFly(player, true); // Adding reset flight on leave tag.
                 }
             }
 
@@ -798,7 +798,7 @@ public abstract class Protections<P extends R, R, B, I, E> {
         });
     }
 
-    public boolean terrainLeave(@NotNull P player, @NotNull Set<Terrain> leftTerrains, @NotNull Set<Terrain> fromTerrains, @NotNull Set<Terrain> toTerrains) {
+    public boolean terrainCanLeave(@NotNull P player, @NotNull Set<Terrain> leftTerrains, @NotNull Set<Terrain> fromTerrains, @NotNull Set<Terrain> toTerrains) {
         if (!playerUtil.hasPermission(player, Flags.LEAVE.bypassPermission())) {
             var pUID = playerUtil.playerUUID(player);
 
@@ -823,13 +823,13 @@ public abstract class Protections<P extends R, R, B, I, E> {
             // Checking enter again, in case player was in a terrain that had flags allowed, left it and is currently in a terrain that has flags disallowed.
             var enteredTerrains = new HashSet<>(toTerrains);
             enteredTerrains.retainAll(fromTerrains);
-            return terrainEnter(player, enteredTerrains, toTerrains, TerrainEnterLeaveEvent.EnterLeaveReason.MOVE); // Move is used to always prevent entering while flying (in case flight is denied).
+            return terrainCanEnter(player, enteredTerrains, toTerrains, TerrainEnterLeaveEvent.EnterLeaveReason.MOVE); // Move is used to always prevent entering while flying (in case flight is denied).
         } else {
             return true;
         }
     }
 
-    public void monitorTerrainLeave(@NotNull P player, @NotNull Set<Terrain> leftTerrains, UUID world, int x, int y, int z, @NotNull Set<Terrain> fromTerrains) {
+    public void terrainLeave(@NotNull P player, @NotNull Set<Terrain> leftTerrains, UUID world, int x, int y, int z, @NotNull Set<Terrain> fromTerrains) {
         var pUID = playerUtil.playerUUID(player);
 
         Integer effectsPriority = null;

@@ -18,30 +18,26 @@
 
 package com.epicnicity322.terrainer.bukkit.event.terrain;
 
-import com.epicnicity322.terrainer.core.event.terrain.ITerrainEnterEvent;
+import com.epicnicity322.terrainer.core.event.terrain.ITerrainCanEnterEvent;
 import com.epicnicity322.terrainer.core.terrain.Terrain;
+import com.epicnicity322.terrainer.core.terrain.TerrainManager;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
+import org.bukkit.event.Cancellable;
 import org.bukkit.event.Event;
 import org.bukkit.event.HandlerList;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.Set;
 
 /**
- * When a player has entered a terrain.
- * <p>
- * Due to movement check events being performed on {@link org.bukkit.event.EventPriority#LOW} priority, this event might
- * be called even if the player hasn't really entered a terrain, because the movement check events might be later
- * cancelled by other plugins on {@link org.bukkit.event.EventPriority#HIGHEST} priority.
- * <p>
- * This event behaves this way because it is called right after {@link TerrainCanEnterEvent} to save performance, and
- * that event needs to be at low priority.
+ * An event whose cancellation state is used to determine whether a player is allowed to enter terrains.
  */
-public class TerrainEnterEvent extends Event implements ITerrainEnterEvent<Location, Player> {
+public class TerrainCanEnterEvent extends Event implements ITerrainCanEnterEvent<Location, Player>, Cancellable {
     private static final @NotNull HandlerList handlers = new HandlerList();
     private final @NotNull Location from;
     private final @NotNull Location to;
@@ -50,8 +46,9 @@ public class TerrainEnterEvent extends Event implements ITerrainEnterEvent<Locat
     private final @NotNull EnterLeaveReason reason;
     private @Nullable Set<Terrain> fromTerrains;
     private @Nullable Set<Terrain> toTerrains;
+    private boolean cancelled = false;
 
-    public TerrainEnterEvent(@NotNull Location from, @NotNull Location to, @NotNull Player player, @NotNull Set<Terrain> terrains, @Nullable Set<Terrain> fromTerrains, @Nullable Set<Terrain> toTerrains, @NotNull EnterLeaveReason reason) {
+    public TerrainCanEnterEvent(@NotNull Location from, @NotNull Location to, @NotNull Player player, @NotNull Set<Terrain> terrains, @Nullable Set<Terrain> fromTerrains, @Nullable Set<Terrain> toTerrains, @NotNull EnterLeaveReason reason) {
         super(!Bukkit.isPrimaryThread());
         this.from = from;
         this.to = to;
@@ -60,6 +57,19 @@ public class TerrainEnterEvent extends Event implements ITerrainEnterEvent<Locat
         this.fromTerrains = fromTerrains;
         this.toTerrains = toTerrains;
         this.reason = reason;
+    }
+
+    static @NotNull Set<Terrain> terrainsAt(@NotNull Set<Terrain> terrains, @NotNull Location loc) {
+        Set<Terrain> terrainsAt = TerrainManager.terrainsAt(loc.getWorld().getUID(), loc.getBlockX(), loc.getBlockY(), loc.getBlockZ());
+
+        for (Terrain terrain : terrains) {
+            if (terrain.isWithin(loc.getBlockX(), loc.getBlockY(), loc.getBlockZ())) {
+                if (terrainsAt.isEmpty()) terrainsAt = new HashSet<>();
+                terrainsAt.add(terrain);
+            }
+        }
+
+        return terrainsAt;
     }
 
     public static @NotNull HandlerList getHandlerList() {
@@ -72,19 +82,29 @@ public class TerrainEnterEvent extends Event implements ITerrainEnterEvent<Locat
     }
 
     @Override
+    public boolean isCancelled() {
+        return cancelled;
+    }
+
+    @Override
+    public void setCancelled(boolean cancel) {
+        this.cancelled = cancel;
+    }
+
+    @Override
     public @NotNull Set<Terrain> terrains() {
         return Collections.unmodifiableSet(terrains);
     }
 
     @Override
     public @NotNull Set<Terrain> fromTerrains() {
-        if (fromTerrains == null) fromTerrains = TerrainCanEnterEvent.terrainsAt(terrains, from);
+        if (fromTerrains == null) fromTerrains = terrainsAt(terrains, from);
         return Collections.unmodifiableSet(fromTerrains);
     }
 
     @Override
     public @NotNull Set<Terrain> toTerrains() {
-        if (toTerrains == null) toTerrains = TerrainCanEnterEvent.terrainsAt(terrains, to);
+        if (toTerrains == null) toTerrains = terrainsAt(terrains, to);
         return Collections.unmodifiableSet(toTerrains);
     }
 

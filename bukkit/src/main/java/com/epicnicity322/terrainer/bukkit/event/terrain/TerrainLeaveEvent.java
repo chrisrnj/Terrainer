@@ -20,11 +20,9 @@ package com.epicnicity322.terrainer.bukkit.event.terrain;
 
 import com.epicnicity322.terrainer.core.event.terrain.ITerrainLeaveEvent;
 import com.epicnicity322.terrainer.core.terrain.Terrain;
-import com.epicnicity322.terrainer.core.terrain.TerrainManager;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
-import org.bukkit.event.Cancellable;
 import org.bukkit.event.Event;
 import org.bukkit.event.HandlerList;
 import org.jetbrains.annotations.NotNull;
@@ -35,8 +33,15 @@ import java.util.Set;
 
 /**
  * When a player has left a terrain.
+ * <p>
+ * Due to movement check events being performed on {@link org.bukkit.event.EventPriority#LOW} priority, this event might
+ * be called even if the player hasn't really left a terrain, because the movement check events might be later cancelled
+ * by other plugins on {@link org.bukkit.event.EventPriority#HIGHEST} priority.
+ * <p>
+ * This event behaves this way because it is called right after {@link TerrainCanLeaveEvent} to save performance, and
+ * that event needs to be at low priority.
  */
-public class TerrainLeaveEvent extends Event implements ITerrainLeaveEvent<Location, Player>, Cancellable {
+public class TerrainLeaveEvent extends Event implements ITerrainLeaveEvent<Location, Player> {
     private static final @NotNull HandlerList handlers = new HandlerList();
     private final @NotNull Location from;
     private final @NotNull Location to;
@@ -45,7 +50,6 @@ public class TerrainLeaveEvent extends Event implements ITerrainLeaveEvent<Locat
     private final @NotNull EnterLeaveReason reason;
     private @Nullable Set<Terrain> fromTerrains;
     private @Nullable Set<Terrain> toTerrains;
-    private boolean cancelled = false;
 
     public TerrainLeaveEvent(@NotNull Location from, @NotNull Location to, @NotNull Player player, @NotNull Set<Terrain> terrains, @Nullable Set<Terrain> fromTerrains, @Nullable Set<Terrain> toTerrains, @NotNull EnterLeaveReason reason) {
         super(!Bukkit.isPrimaryThread());
@@ -68,33 +72,19 @@ public class TerrainLeaveEvent extends Event implements ITerrainLeaveEvent<Locat
     }
 
     @Override
-    public boolean isCancelled() {
-        return cancelled;
-    }
-
-    @Override
-    public void setCancelled(boolean cancel) {
-        this.cancelled = cancel;
-    }
-
-    @Override
     public @NotNull Set<Terrain> terrains() {
         return Collections.unmodifiableSet(terrains);
     }
 
     @Override
     public @NotNull Set<Terrain> fromTerrains() {
-        if (fromTerrains == null) {
-            fromTerrains = TerrainManager.terrainsAt(from.getWorld().getUID(), from.getBlockX(), from.getBlockY(), from.getBlockZ());
-        }
+        if (fromTerrains == null) fromTerrains = TerrainCanEnterEvent.terrainsAt(terrains, from);
         return Collections.unmodifiableSet(fromTerrains);
     }
 
     @Override
     public @NotNull Set<Terrain> toTerrains() {
-        if (toTerrains == null) {
-            toTerrains = TerrainManager.terrainsAt(to.getWorld().getUID(), to.getBlockX(), to.getBlockY(), to.getBlockZ());
-        }
+        if (toTerrains == null) toTerrains = TerrainCanEnterEvent.terrainsAt(terrains, to);
         return Collections.unmodifiableSet(toTerrains);
     }
 
