@@ -20,6 +20,7 @@ package com.epicnicity322.terrainer.bukkit.util;
 
 import com.epicnicity322.terrainer.bukkit.TerrainerPlugin;
 import com.epicnicity322.terrainer.core.Coordinate;
+import com.epicnicity322.terrainer.core.Terrainer;
 import com.epicnicity322.terrainer.core.WorldCoordinate;
 import com.epicnicity322.terrainer.core.config.Configurations;
 import com.epicnicity322.terrainer.core.util.PlayerUtil;
@@ -133,7 +134,24 @@ public final class BukkitPlayerUtil extends PlayerUtil<Player, CommandSender> {
 
     @Override
     public void dispatchCommand(@Nullable Player executor, @NotNull String command) {
-        plugin.getServer().dispatchCommand(executor == null ? consoleRecipient() : executor, command);
+        try {
+            if (plugin.getServer().isPrimaryThread()) {
+                plugin.getServer().dispatchCommand(executor == null ? consoleRecipient() : executor, command);
+            } else {
+                if (executor == null)
+                    plugin.getTaskFactory().runGlobalTask(() -> plugin.getServer().dispatchCommand(consoleRecipient(), command));
+                else
+                    plugin.getTaskFactory().runDelayed(executor, 1, () -> plugin.getServer().dispatchCommand(executor, command), null);
+            }
+        } catch (IllegalStateException e) { // Async execution exception.
+            if (executor == null)
+                plugin.getTaskFactory().runGlobalTask(() -> plugin.getServer().dispatchCommand(consoleRecipient(), command));
+            else
+                plugin.getTaskFactory().runDelayed(executor, 1, () -> plugin.getServer().dispatchCommand(executor, command), null);
+        } catch (Throwable t) {
+            Terrainer.logger().log("Unable to execute command '" + command + "' as " + (executor == null ? "console" : executor.getName()) + ":");
+            t.printStackTrace();
+        }
     }
 
     @Override
