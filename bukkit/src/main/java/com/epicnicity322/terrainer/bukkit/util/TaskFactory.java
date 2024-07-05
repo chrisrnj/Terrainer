@@ -34,7 +34,7 @@ public final class TaskFactory {
     private static final boolean folia = ReflectionUtil.getClass("io.papermc.paper.threadedregions.RegionizedServer") != null;
 
     static {
-        if (folia) Terrainer.logger().log("Tasks will run with regionised multithreading.");
+        if (folia) Terrainer.logger().log("Folia detected! Tasks will run with regionized multithreading.");
     }
 
     private final @NotNull TerrainerPlugin plugin;
