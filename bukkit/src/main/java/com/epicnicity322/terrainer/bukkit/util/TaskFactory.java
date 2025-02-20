@@ -23,9 +23,12 @@ import com.epicnicity322.terrainer.bukkit.TerrainerPlugin;
 import com.epicnicity322.terrainer.core.Terrainer;
 import io.papermc.paper.threadedregions.scheduler.ScheduledTask;
 import org.bukkit.entity.Entity;
+import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scheduler.BukkitTask;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+
+import java.util.function.Consumer;
 
 /**
  * A class for helping tasks run on Folia or Spigot servers.
@@ -56,6 +59,22 @@ public final class TaskFactory {
             plugin.getServer().getAsyncScheduler().runNow(plugin, task -> runnable.run());
         } else {
             plugin.getServer().getScheduler().runTaskAsynchronously(plugin, runnable);
+        }
+    }
+
+    public @NotNull CancellableTask runGlobalTaskAtFixedRate(@NotNull Consumer<CancellableTask> runnable, long period) {
+        if (folia) {
+            ScheduledTask scheduledTask = plugin.getServer().getGlobalRegionScheduler().runAtFixedRate(plugin, task -> runnable.accept(task::cancel), 1, period);
+            return scheduledTask::cancel;
+        } else {
+            BukkitRunnable bukkitRunnable = new BukkitRunnable() {
+                @Override
+                public void run() {
+                    runnable.accept(this::cancel);
+                }
+            };
+            bukkitRunnable.runTaskTimer(plugin, 0, period);
+            return bukkitRunnable::cancel;
         }
     }
 
