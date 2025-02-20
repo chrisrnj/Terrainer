@@ -43,6 +43,7 @@ permissions:
       terrainer.select.command.3d: true
       terrainer.select.command.coordinates: true
       terrainer.teleport: true
+      terrainer.updateavailablealert: true
       terrainer.wand.info.free: true
       terrainer.wand.info.nocooldown: true
       terrainer.wand.info: true

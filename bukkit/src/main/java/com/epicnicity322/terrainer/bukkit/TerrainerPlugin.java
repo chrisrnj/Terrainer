@@ -26,6 +26,7 @@ import com.epicnicity322.epicpluginlib.bukkit.reflection.ReflectionUtil;
 import com.epicnicity322.epicpluginlib.core.EpicPluginLib;
 import com.epicnicity322.epicpluginlib.core.config.ConfigurationHolder;
 import com.epicnicity322.epicpluginlib.core.logger.ConsoleLogger;
+import com.epicnicity322.epicpluginlib.core.tools.GitHubUpdateChecker;
 import com.epicnicity322.terrainer.bukkit.command.*;
 import com.epicnicity322.terrainer.bukkit.event.flag.FlagSetEvent;
 import com.epicnicity322.terrainer.bukkit.event.flag.FlagUnsetEvent;
@@ -37,6 +38,7 @@ import com.epicnicity322.terrainer.bukkit.hook.placeholderapi.TerrainerPlacehold
 import com.epicnicity322.terrainer.bukkit.listener.*;
 import com.epicnicity322.terrainer.bukkit.util.*;
 import com.epicnicity322.terrainer.core.Terrainer;
+import com.epicnicity322.terrainer.core.TerrainerVersion;
 import com.epicnicity322.terrainer.core.config.Configurations;
 import com.epicnicity322.terrainer.core.terrain.Flags;
 import com.epicnicity322.terrainer.core.terrain.TerrainManager;
@@ -46,9 +48,13 @@ import com.epicnicity322.yamlhandler.ConfigurationSection;
 import org.bukkit.*;
 import org.bukkit.command.PluginCommand;
 import org.bukkit.entity.Player;
+import org.bukkit.event.EventHandler;
 import org.bukkit.event.HandlerList;
+import org.bukkit.event.Listener;
+import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scoreboard.Scoreboard;
 import org.bukkit.scoreboard.Team;
 import org.jetbrains.annotations.NotNull;
@@ -58,6 +64,7 @@ import java.io.IOException;
 import java.lang.reflect.Field;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.ToIntFunction;
 import java.util.function.ToLongFunction;
 
@@ -67,6 +74,8 @@ public final class TerrainerPlugin extends JavaPlugin {
     private static final @NotNull TreeSet<Map.Entry<String, Long>> defaultBlockLimits = new TreeSet<>(Comparator.comparingLong((ToLongFunction<Map.Entry<String, Long>>) Map.Entry::getValue).reversed().thenComparing(Map.Entry::getKey));
     private static final @NotNull TreeSet<Map.Entry<String, Integer>> defaultClaimLimits = new TreeSet<>(Comparator.comparingInt((ToIntFunction<Map.Entry<String, Integer>>) Map.Entry::getValue).reversed().thenComparing(Map.Entry::getKey));
     private static final @NotNull AtomicBoolean nestedTerrainsCountTowardsBlockLimit = new AtomicBoolean(false), perWorldBlockLimit = new AtomicBoolean(false), perWorldClaimLimit = new AtomicBoolean(false), sumIfTheresMultipleBlockLimitPermissions = new AtomicBoolean(true), sumIfTheresMultipleClaimLimitPermissions = new AtomicBoolean(true);
+    private static final @NotNull AtomicBoolean updateFound = new AtomicBoolean(false);
+    private static final @NotNull AtomicReference<TaskFactory.CancellableTask> updateChecker = new AtomicReference<>();
     private static @Nullable TerrainerPlugin instance;
     private static @Nullable EconomyHandler economyHandler;
     private static @NotNull NMSHandler nmsHandler = new NMSHandler() {
@@ -87,11 +96,8 @@ public final class TerrainerPlugin extends JavaPlugin {
     static {
         Terrainer.setLang(lang);
         Terrainer.setLogger(logger);
-        Flags.setEffectChecker(value -> {
-            var key = NamespacedKey.fromString(value);
-            if (key == null) return false;
-            return Registry.EFFECT.get(key) != null;
-        });
+        //noinspection deprecation - backwards compatibility
+        Flags.setEffectChecker(value -> PotionEffectType.getByName(value) != null);
         //TODO: Translate to languages.
         lang.addLanguage("EN_US", Configurations.LANG_EN_US);
         lang.addLanguage("PT_BR", Configurations.LANG_EN_US);
@@ -222,6 +228,10 @@ public final class TerrainerPlugin extends JavaPlugin {
 
         // Selection and Info Items
         SelectionListener.reloadItems(instance.selectorWandKey, instance.infoWandKey);
+
+        // Update checker
+        instance.reloadUpdater();
+
         return exceptions.isEmpty();
     }
 
@@ -319,7 +329,7 @@ public final class TerrainerPlugin extends JavaPlugin {
                 for (World world : getServer().getWorlds()) TerrainManager.loadWorld(world.getUID(), world.getName());
                 pm.registerEvents(new WorldLoadListener(), this);
 
-                logger.log(TerrainManager.terrainsAmount() + " terrains loaded.");
+                logger.log(TerrainManager.allTerrains().size() + " terrains loaded.");
             } catch (IOException e) {
                 logger.log("Unable to load terrains due to exception:", ConsoleLogger.Level.ERROR);
                 e.printStackTrace();
@@ -333,8 +343,6 @@ public final class TerrainerPlugin extends JavaPlugin {
     @SuppressWarnings("deprecation")
     @Override
     public void onDisable() {
-        TerrainManager.save();
-
         Scoreboard mainScoreboard = getServer().getScoreboardManager().getMainScoreboard();
 
         Team createdTeam = mainScoreboard.getTeam("TRcreatedTeam");
@@ -354,6 +362,7 @@ public final class TerrainerPlugin extends JavaPlugin {
         }
 
         Terrainer.stopDailyTimer();
+        TerrainManager.save();
     }
 
     public @NotNull TaskFactory getTaskFactory() {
@@ -367,6 +376,21 @@ public final class TerrainerPlugin extends JavaPlugin {
             return;
         }
         CommandManager.registerCommand(main, commands);
+    }
+
+    private void loadListener(@NotNull ToggleableListener listener, boolean register, @NotNull String name, boolean plural) {
+        if (register) {
+            if (!listener.registered.get()) {
+                getServer().getPluginManager().registerEvents(listener, this);
+                listener.registered.set(true);
+            }
+        } else {
+            logger.log(name + " event" + (plural ? "s are" : " is") + " disabled! Protections and features related to " + (plural ? "these events" : "this event") + " will not work.", ConsoleLogger.Level.WARN);
+            if (listener.registered.get()) {
+                HandlerList.unregisterAll(listener);
+                listener.registered.set(false);
+            }
+        }
     }
 
     private void reloadListeners() {
@@ -388,18 +412,52 @@ public final class TerrainerPlugin extends JavaPlugin {
         loadListener(creatureSpawnListener, creatureSpawnEvent, "Creature Spawn", false);
     }
 
-    private void loadListener(@NotNull ToggleableListener listener, boolean register, @NotNull String name, boolean plural) {
-        if (register) {
-            if (!listener.registered.get()) {
-                getServer().getPluginManager().registerEvents(listener, this);
-                listener.registered.set(true);
-            }
-        } else {
-            logger.log(name + " event" + (plural ? "s are" : " is") + " disabled! Protections and features related to " + (plural ? "these events" : "this event") + " will not work.", ConsoleLogger.Level.WARN);
-            if (listener.registered.get()) {
-                HandlerList.unregisterAll(listener);
-                listener.registered.set(false);
-            }
+    private void reloadUpdater() {
+        if (updateFound.get()) return;
+
+        if (!Configurations.CONFIG.getConfiguration().getBoolean("Update Checker.Enabled").orElse(true)) {
+            TaskFactory.CancellableTask updaterTask = updateChecker.getAndSet(null);
+            if (updaterTask != null) updaterTask.cancel();
+            return;
+        }
+
+        if (updateChecker.get() == null) {
+            GitHubUpdateChecker updater = new GitHubUpdateChecker("chrisrnj/Terrainer", TerrainerVersion.VERSION);
+            AtomicBoolean sentFirstMessage = new AtomicBoolean(false);
+
+            TaskFactory.CancellableTask updaterTask = taskFactory.runGlobalTaskAtFixedRate(checkerTask -> {
+                boolean log = !sentFirstMessage.getAndSet(true) || Configurations.CONFIG.getConfiguration().getBoolean("Update Checker.Log Messages").orElse(false);
+
+                if (log) logger.log("&7Checking for updates...");
+
+                updater.check((available, version) -> {
+                    if (!available) {
+                        if (log) logger.log("&7No updates found.");
+                    } else {
+                        checkerTask.cancel();
+                        updateChecker.set(null);
+
+                        if (!updateFound.getAndSet(true)) {
+                            // Alert task.
+                            taskFactory.runGlobalTaskAtFixedRate(task -> logger.log("Update v" + version + " available! Download at https://github.com/chrisrnj/Terrainer/releases/latest"), 72000);
+                            // Alert message.
+                            getServer().getPluginManager().registerEvents(new Listener() {
+                                @EventHandler
+                                public void onJoin(PlayerJoinEvent event) {
+                                    Player player = event.getPlayer();
+                                    if (player.hasPermission("terrainer.updateavailablealert")) {
+                                        lang.send(player, false, lang.get("Update Available").replace("<version>", version.getVersion()));
+                                    }
+                                }
+                            }, this);
+                        }
+                    }
+                }, (result, exception) -> {
+                    if (log) logger.log("&cCould not check for updates.");
+                });
+            }, 72000);
+
+            updateChecker.set(updaterTask);
         }
     }
 }
