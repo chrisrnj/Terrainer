@@ -88,7 +88,7 @@ public final class ResizeCommand extends Command {
             lang.send(sender, lang.get("Resize.Tutorial").replace("<label>", label));
 
             if (sender instanceof Player p)
-                TerrainerPlugin.getPlayerUtil().showMarkers(p, (int) p.getY() - 1, false, null);
+                TerrainerPlugin.getPlayerUtil().showMarkers(p, (int) p.getLocation().getBlockY() - 1, false, null);
 
             // Requesting confirmation to resize.
             WeakReference<Terrain> terrainRef = new WeakReference<>(terrain);

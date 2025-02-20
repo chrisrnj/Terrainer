@@ -27,7 +27,6 @@ import com.epicnicity322.terrainer.core.util.PlayerUtil;
 import com.epicnicity322.yamlhandler.Configuration;
 import org.bukkit.Location;
 import org.bukkit.NamespacedKey;
-import org.bukkit.Registry;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.persistence.PersistentDataContainer;
@@ -116,18 +115,16 @@ public final class BukkitPlayerUtil extends PlayerUtil<Player, CommandSender> {
 
     @Override
     public void applyEffect(@NotNull Player player, @NotNull String effect, int power) {
-        NamespacedKey key = NamespacedKey.fromString(effect);
-        if (key == null) return;
-        PotionEffectType type = Registry.POTION_EFFECT_TYPE.get(key);
+        //noinspection deprecation - backwards compatibility
+        PotionEffectType type = PotionEffectType.getByName(effect);
         if (type == null) return;
         player.addPotionEffect(new PotionEffect(type, Integer.MAX_VALUE, power, false, false));
     }
 
     @Override
     public void removeEffect(@NotNull Player player, @NotNull String effect) {
-        NamespacedKey key = NamespacedKey.fromString(effect);
-        if (key == null) return;
-        PotionEffectType type = Registry.POTION_EFFECT_TYPE.get(key);
+        //noinspection deprecation - backwards compatibility
+        PotionEffectType type = PotionEffectType.getByName(effect);
         if (type == null) return;
         player.removePotionEffect(type);
     }

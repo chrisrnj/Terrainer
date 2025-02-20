@@ -50,6 +50,8 @@ public final class EnterLeaveListener extends ToggleableListener {
     public static final boolean asyncTeleport = ReflectionUtil.getMethod(Entity.class, "teleportAsync", Location.class) != null;
     static final @NotNull HashSet<UUID> ignoredPlayersTeleportEvent = new HashSet<>(4);
     static final @NotNull HashSet<UUID> ignoredPlayersDismountEvent = new HashSet<>(4);
+    // Entity#getYaw and Entity#getPitch are only available on Paper.
+    private static final boolean getYawAndPitchMethod = ReflectionUtil.getMethod(Entity.class, "getYaw") != null && ReflectionUtil.getMethod(Entity.class, "getPitch") != null;
     private static final @NotNull Vector zero = new Vector(0, 0, 0);
     private static @NotNull List<String> commandsOnEntryCancelled = Collections.emptyList();
 
@@ -149,9 +151,12 @@ public final class EnterLeaveListener extends ToggleableListener {
             Entity thisVehicle = player.getVehicle();
             if (thisVehicle != null) thisVehicle.removePassenger(player);
 
-            Location tp = to.clone();
-            tp.setYaw(player.getYaw());
-            tp.setPitch(player.getPitch());
+            Location tp;
+            if (getYawAndPitchMethod) {
+                tp = to.clone();
+                tp.setYaw(player.getYaw());
+                tp.setPitch(player.getPitch());
+            } else tp = to;
 
             ignoredPlayersTeleportEvent.add(pUID);
             if (asyncTeleport) {

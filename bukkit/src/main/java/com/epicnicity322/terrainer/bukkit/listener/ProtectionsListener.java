@@ -37,7 +37,6 @@ import com.epicnicity322.terrainer.core.terrain.Flags;
 import com.epicnicity322.terrainer.core.terrain.Terrain;
 import net.md_5.bungee.api.ChatMessageType;
 import net.md_5.bungee.api.chat.TextComponent;
-import org.apache.commons.lang3.mutable.Mutable;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
@@ -49,6 +48,7 @@ import org.bukkit.boss.BarStyle;
 import org.bukkit.boss.BossBar;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.*;
+import org.bukkit.entity.minecart.ExplosiveMinecart;
 import org.bukkit.event.Cancellable;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -70,13 +70,18 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
+import java.util.concurrent.atomic.AtomicReference;
 
 public final class ProtectionsListener extends Protections<Player, CommandSender, Block, ItemStack, Entity> implements Listener {
+    private static final @NotNull HashMap<UUID, BossBarTask> bossBarTasks = new HashMap<>();
+    // Entity#getOrigin only available on Paper.
+    private static final boolean getOriginMethod = ReflectionUtil.getMethod(Entity.class, "getOrigin") != null;
+    // PlayerPickupArrowEvent#getFlyAtPlayer only available on Paper.
+    private static final boolean getFlyAtPlayerMethod = ReflectionUtil.getMethod(PlayerPickupArrowEvent.class, "getFlyAtPlayer") != null;
+    // BlockExplodeEvent#getExplodedBlockState only available on Paper.
+    private static final boolean getExplodedBlockStateMethod = ReflectionUtil.getMethod(BlockExplodeEvent.class, "getExplodedBlockState") != null;
     // Enemy interface was added in 1.19.3.
     private static final @Nullable Class<?> enemyInterface = ReflectionUtil.getClass("org.bukkit.entity.Enemy");
-    // Paper
-    private static final boolean getOriginMethod = ReflectionUtil.getMethod(Entity.class, "getOrigin") != null;
-    private static final @NotNull HashMap<UUID, BossBarTask> bossBarTasks = new HashMap<>();
 
     static {
         if (!getOriginMethod)
@@ -93,6 +98,18 @@ public final class ProtectionsListener extends Protections<Player, CommandSender
         this.bordersCommand = bordersCommand;
     }
 
+    private static @NotNull Location origin(@NotNull Entity entity) {
+        if (getOriginMethod) {
+            return entity.getOrigin() == null ? entity.getLocation() : entity.getOrigin();
+        } else {
+            return entity.getLocation();
+        }
+    }
+
+    private static boolean isTryingToEnterVehicle(@NotNull ItemStack hand, boolean sneaking) {
+        return !sneaking && hand.getType() == Material.AIR;
+    }
+
     /**
      * Entities that fight back the players.
      */
@@ -100,6 +117,7 @@ public final class ProtectionsListener extends Protections<Player, CommandSender
         if (enemyInterface != null) {
             return enemyInterface.isAssignableFrom(entity.getClass()) || entity instanceof Wolf wolf && wolf.isAngry();
         } else {
+            // Fallback for versions without Enemy interface.
             return switch (entity.getType()) {
                 case BLAZE, CAVE_SPIDER, CREEPER, DROWNED, ELDER_GUARDIAN, ENDER_DRAGON, ENDERMAN, ENDERMITE, EVOKER,
                      GHAST, GIANT, GUARDIAN, HOGLIN, HUSK, ILLUSIONER, MAGMA_CUBE, PHANTOM, PIGLIN, PIGLIN_BRUTE,
@@ -116,18 +134,6 @@ public final class ProtectionsListener extends Protections<Player, CommandSender
                     true;
             default -> false;
         };
-    }
-
-    private static @NotNull Location origin(@NotNull Entity entity) {
-        if (getOriginMethod) {
-            return entity.getOrigin() == null ? entity.getLocation() : entity.getOrigin();
-        } else {
-            return entity.getLocation();
-        }
-    }
-
-    private static boolean isTryingToEnterVehicle(@NotNull ItemStack hand, boolean sneaking) {
-        return !sneaking && hand.getType() == Material.AIR;
     }
 
     @Override
@@ -160,12 +166,12 @@ public final class ProtectionsListener extends Protections<Player, CommandSender
 
     @Override
     protected boolean isBoat(@NotNull Entity entity) {
-        return entity.getType() == EntityType.BOAT || entity.getType() == EntityType.CHEST_BOAT;
+        return entity instanceof Boat;
     }
 
     @Override
     protected boolean isPotion(@NotNull Entity entity) {
-        return entity.getType() == EntityType.SPLASH_POTION;
+        return entity instanceof ThrownPotion;
     }
 
     @Override
@@ -207,14 +213,11 @@ public final class ProtectionsListener extends Protections<Player, CommandSender
 
     @Override
     protected @NotNull Flag<Boolean> flagEntityPlaced(@NotNull Entity entity) {
-        return switch (entity.getType()) {
-            case MINECART, MINECART_CHEST, MINECART_HOPPER, MINECART_COMMAND, MINECART_FURNACE, MINECART_MOB_SPAWNER ->
-                    Flags.BUILD_MINECARTS;
-            case MINECART_TNT -> Flags.BUILD;
-            case BOAT, CHEST_BOAT -> Flags.BUILD_BOATS;
-            // ARMOR_STAND, ENDER_CRYSTAL
-            default -> Flags.BUILD;
-        };
+        if (entity instanceof ExplosiveMinecart) return Flags.BUILD;
+        if (entity instanceof Minecart) return Flags.BUILD_MINECARTS;
+        if (entity instanceof Boat) return Flags.BUILD_BOATS;
+        // Probably ARMOR_STAND or END_CRYSTAL
+        return Flags.BUILD;
     }
 
     @Override
@@ -480,7 +483,11 @@ public final class ProtectionsListener extends Protections<Player, CommandSender
     public void onPickupArrow(PlayerPickupArrowEvent event) {
         AbstractArrow arrow = event.getArrow();
         Location loc = arrow.getLocation();
-        if (!pickupArrow(arrow.getWorld().getUID(), loc.getBlockX(), loc.getBlockY(), loc.getBlockZ(), event.getPlayer(), event.getFlyAtPlayer()))
+        boolean flyAtPlayer = true;
+
+        if (getFlyAtPlayerMethod) flyAtPlayer = event.getFlyAtPlayer();
+
+        if (!pickupArrow(arrow.getWorld().getUID(), loc.getBlockX(), loc.getBlockY(), loc.getBlockZ(), event.getPlayer(), flyAtPlayer))
             event.setCancelled(true);
     }
 
@@ -576,7 +583,10 @@ public final class ProtectionsListener extends Protections<Player, CommandSender
     @EventHandler(priority = EventPriority.LOW, ignoreCancelled = true)
     public void onBlockExplode(BlockExplodeEvent event) {
         Block block = event.getBlock();
-        BlockState state = event.getExplodedBlockState();
+        BlockState state = null;
+
+        if (getExplodedBlockStateMethod) state = event.getExplodedBlockState();
+        // noinspection ConstantValue - the block state may be null on older versions.
         if (state != null) {
             if (!blockExplode(block.getWorld().getUID(), state.getX(), state.getY(), state.getZ(), event.blockList()))
                 event.setCancelled(true);
@@ -757,7 +767,7 @@ public final class ProtectionsListener extends Protections<Player, CommandSender
     public void onProjectileHit(ProjectileHitEvent event) {
         Projectile projectile = event.getEntity();
         // Let potion events handle it
-        if (projectile.getType() == EntityType.SPLASH_POTION) return;
+        if (isPotion(projectile)) return;
         projectileHit(projectile, event);
     }
 
@@ -839,51 +849,39 @@ public final class ProtectionsListener extends Protections<Player, CommandSender
     private void sendBar(@NotNull String message, @NotNull Player player) {
         UUID playerID = player.getUniqueId();
         BossBarTask previous = bossBarTasks.get(playerID);
-        BossBar bar;
-        Mutable<TaskFactory.CancellableTask> barRemoverTask;
 
         // Creating or getting current bossbar of player.
         if (previous == null) {
-            bar = Bukkit.createBossBar(message, BarColor.RED, BarStyle.SOLID);
+            BossBar bar = Bukkit.createBossBar(message, BarColor.RED, BarStyle.SOLID);
             bar.addPlayer(player);
-            barRemoverTask = new Mutable<>() {
-                private @Nullable TaskFactory.CancellableTask task;
-
-                @Override
-                public @Nullable TaskFactory.CancellableTask getValue() {
-                    return task;
-                }
-
-                @Override
-                public void setValue(@Nullable TaskFactory.CancellableTask task) {
-                    this.task = task;
-                }
-            };
 
             // Starting bar remover task.
             Runnable barRemoverRunnable = () -> {
                 bossBarTasks.remove(playerID);
                 bar.removePlayer(player);
             };
-            barRemoverTask.setValue(plugin.getTaskFactory().runDelayed(player, 100, barRemoverRunnable, barRemoverRunnable));
+            TaskFactory.CancellableTask task = plugin.getTaskFactory().runDelayed(player, 100, barRemoverRunnable, barRemoverRunnable);
 
-            // Adding bar to current alive boss bars.
-            if (barRemoverTask.getValue() != null) bossBarTasks.put(playerID, new BossBarTask(bar, barRemoverTask));
+            if (task != null) {
+                // Adding bar to current alive boss bars.
+                bossBarTasks.put(playerID, new BossBarTask(bar, new AtomicReference<>(task)));
+            }
         } else {
-            bar = previous.bar;
-            barRemoverTask = previous.task;
+            BossBar bar = previous.bar;
+            AtomicReference<TaskFactory.CancellableTask> barRemoverTask = previous.task;
             bar.setTitle(message);
 
             // Cancelling previous bar remover task and starting it again.
-            if (barRemoverTask.getValue() != null) barRemoverTask.getValue().cancel();
+            barRemoverTask.get().cancel();
             Runnable barRemoverRunnable = () -> {
                 bossBarTasks.remove(playerID);
                 bar.removePlayer(player);
             };
-            barRemoverTask.setValue(plugin.getTaskFactory().runDelayed(player, 100, barRemoverRunnable, barRemoverRunnable));
+            barRemoverTask.set(plugin.getTaskFactory().runDelayed(player, 100, barRemoverRunnable, barRemoverRunnable));
         }
     }
 
-    private record BossBarTask(@NotNull BossBar bar, @NotNull Mutable<TaskFactory.CancellableTask> task) {
+    private record BossBarTask(@NotNull BossBar bar,
+                               @NotNull AtomicReference<TaskFactory.@NotNull CancellableTask> task) {
     }
 }

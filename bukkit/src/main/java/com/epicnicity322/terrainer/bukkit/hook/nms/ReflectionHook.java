@@ -21,13 +21,15 @@ package com.epicnicity322.terrainer.bukkit.hook.nms;
 import com.epicnicity322.epicpluginlib.bukkit.reflection.ReflectionUtil;
 import com.epicnicity322.epicpluginlib.bukkit.reflection.type.PackageType;
 import com.epicnicity322.epicpluginlib.bukkit.reflection.type.SubPackageType;
+import com.epicnicity322.epicpluginlib.core.logger.ConsoleLogger;
+import com.epicnicity322.terrainer.bukkit.util.BlockDisplayUtil;
 import com.epicnicity322.terrainer.bukkit.util.NMSHandler;
+import com.epicnicity322.terrainer.core.Terrainer;
 import com.epicnicity322.terrainer.core.util.PlayerUtil;
 import net.minecraft.network.protocol.game.PacketPlayOutEntityDestroy;
 import net.minecraft.network.protocol.game.PacketPlayOutEntityMetadata;
 import net.minecraft.network.protocol.game.PacketPlayOutSpawnEntity;
 import net.minecraft.network.syncher.DataWatcher;
-import net.minecraft.world.entity.Display;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityTypes;
 import net.minecraft.world.entity.monster.EntitySlime;
@@ -38,22 +40,19 @@ import org.bukkit.ChatColor;
 import org.bukkit.Color;
 import org.bukkit.Material;
 import org.bukkit.block.data.BlockData;
-import org.bukkit.entity.BlockDisplay;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Slime;
 import org.bukkit.scoreboard.Scoreboard;
 import org.bukkit.scoreboard.Team;
-import org.bukkit.util.Transformation;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.joml.AxisAngle4f;
-import org.joml.Vector3f;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.List;
 import java.util.Objects;
+import java.util.UUID;
 
 public final class ReflectionHook implements NMSHandler {
     private static final @NotNull Vec3D zero = new Vec3D(0, 0, 0);
@@ -62,10 +61,12 @@ public final class ReflectionHook implements NMSHandler {
     private static final Method method_Entity_getBukkitEntity = ReflectionUtil.getMethod(Entity.class, "getBukkitEntity");
     private static final Method method_Entity_getDataWatcher = ReflectionUtil.findMethodByType(Entity.class, DataWatcher.class, false);
     private static final Constructor<?> constructor_PacketPlayOutEntityMetadata;
-    private static final EntityTypes<?> slimeEntityType = findEntityType(EntityTypes.class.getName() + "<" + EntitySlime.class.getName() + ">");
-    private static final EntityTypes<?> blockDisplayType = findEntityType(EntityTypes.class.getName() + "<" + Display.BlockDisplay.class.getName() + ">");
+    private static final Constructor<?> constructor_PacketPlayOutSpawnEntity_Old = ReflectionUtil.getConstructor(PacketPlayOutSpawnEntity.class, int.class, UUID.class, double.class, double.class, double.class, float.class, float.class, EntityTypes.class, int.class, Vec3D.class);
+    private static final Class<?> class_BlockDisplay = ReflectionUtil.getClass("org.bukkit.entity.BlockDisplay");
+    private static final boolean hasBlockDisplays = class_BlockDisplay != null;
+    private static final EntityTypes<?> blockDisplayType = hasBlockDisplays ? BlockDisplayUtil.findBlockDisplayType() : null;
     private static final boolean newPacketMetadataConstructor;
-    private static final boolean hasBlockDisplays = blockDisplayType != null;
+    private static final EntityTypes<?> slimeEntityType = findEntityType(EntityTypes.class.getName() + "<" + EntitySlime.class.getName() + ">");
     private static @NotNull BlockData selectionBlock = Material.GLOWSTONE.createBlockData();
     private static @NotNull BlockData selectionEdgeBlock = Material.GOLD_BLOCK.createBlockData();
     private static @NotNull BlockData terrainBlock = Material.DIAMOND_BLOCK.createBlockData();
@@ -87,13 +88,17 @@ public final class ReflectionHook implements NMSHandler {
         } else {
             method_CraftEntity_getHandle = ReflectionUtil.getMethod(class_CraftEntity, "getHandle");
         }
-        Constructor<?> oldConstructor = ReflectionUtil.getConstructor(PacketPlayOutEntityMetadata.class, int.class, DataWatcher.class, boolean.class);
-        if (oldConstructor == null) {
+        Constructor<?> oldEntityMetadataConstructor = ReflectionUtil.getConstructor(PacketPlayOutEntityMetadata.class, int.class, DataWatcher.class, boolean.class);
+        if (oldEntityMetadataConstructor == null) {
             constructor_PacketPlayOutEntityMetadata = null;
             newPacketMetadataConstructor = ReflectionUtil.getConstructor(PacketPlayOutEntityMetadata.class, int.class, List.class) != null;
         } else {
-            constructor_PacketPlayOutEntityMetadata = oldConstructor;
+            constructor_PacketPlayOutEntityMetadata = oldEntityMetadataConstructor;
             newPacketMetadataConstructor = false;
+        }
+
+        if (!hasBlockDisplays) {
+            Terrainer.logger().log("Block Displays are not available. Using Slime entities as markers.", ConsoleLogger.Level.WARN);
         }
     }
 
@@ -151,14 +156,8 @@ public final class ReflectionHook implements NMSHandler {
         if (hasBlockDisplays && !blockType.getMaterial().isAir()) {
             type = blockDisplayType;
             assert type != null;
-            Display.BlockDisplay display = new Display.BlockDisplay(type, (World) method_CraftWorld_getHandle.invoke(player.getWorld()));
-            BlockDisplay bukkitDisplay = (BlockDisplay) method_Entity_getBukkitEntity.invoke(display);
-            bukkitDisplay.setTransformation(BlockDisplayUtils.transformation);
-            bukkitDisplay.setBrightness(BlockDisplayUtils.brightness);
-            bukkitDisplay.setBlock(blockType);
-            bukkitDisplay.setGlowColorOverride(selection ? selectionColor : terrainColor);
-            entity = bukkitDisplay;
-            nmsEntity = display;
+            nmsEntity = BlockDisplayUtil.nmsBlockDisplay(type, (World) method_CraftWorld_getHandle.invoke(player.getWorld()));
+            entity = BlockDisplayUtil.applyPropertiesToBlockDisplay((org.bukkit.entity.Entity) method_Entity_getBukkitEntity.invoke(nmsEntity), blockType, selection ? selectionColor : terrainColor);
         } else {
             type = slimeEntityType;
             assert type != null;
@@ -175,7 +174,11 @@ public final class ReflectionHook implements NMSHandler {
         int id = entity.getEntityId();
         entity.setGlowing(true);
 
-        ReflectionUtil.sendPacket(player, new PacketPlayOutSpawnEntity(id, entity.getUniqueId(), center(x, type), type == slimeEntityType ? y : center(y, type), center(z, type), 0, 0, type, 0, zero, 0));
+        if (constructor_PacketPlayOutSpawnEntity_Old != null) {
+            ReflectionUtil.sendPacket(player, constructor_PacketPlayOutSpawnEntity_Old.newInstance(id, entity.getUniqueId(), center(x, type), type == slimeEntityType ? y : center(y, type), center(z, type), 0, 0, type, 0, zero));
+        } else {
+            ReflectionUtil.sendPacket(player, new PacketPlayOutSpawnEntity(id, entity.getUniqueId(), center(x, type), type == slimeEntityType ? y : center(y, type), center(z, type), 0, 0, type, 0, zero, 0));
+        }
         DataWatcher dataWatcher = (DataWatcher) method_Entity_getDataWatcher.invoke(nmsEntity);
 
         if (newPacketMetadataConstructor) {
@@ -229,27 +232,27 @@ public final class ReflectionHook implements NMSHandler {
 
             team.setColor(Objects.requireNonNullElse(ChatColor.getByChar(Integer.toHexString((selection ? selectionColor : created ? terrainCreatedColor : terrainColor).asRGB())), selection ? ChatColor.YELLOW : created ? ChatColor.GREEN : ChatColor.WHITE));
             team.addEntry(slime.getUniqueId().toString());
-        } else if (entity instanceof BlockDisplay display) {
-            BlockData block = display.getBlock();
+        } else if (class_BlockDisplay != null && class_BlockDisplay.isAssignableFrom(entity.getClass())) {
+            org.bukkit.entity.Entity blockDisplay = (org.bukkit.entity.Entity) entity;
+            BlockData block = BlockDisplayUtil.getBlock(blockDisplay);
 
-            display.setGlowColorOverride(terrainCreatedColor);
-            if (block.equals(selectionBlock)) display.setBlock(terrainBlock);
-            else if (block.equals(selectionEdgeBlock)) display.setBlock(terrainEdgeBlock);
+            if (block.equals(selectionBlock)) {
+                BlockDisplayUtil.applyPropertiesToBlockDisplay(blockDisplay, terrainBlock, terrainCreatedColor);
+            } else if (block.equals(selectionEdgeBlock)) {
+                BlockDisplayUtil.applyPropertiesToBlockDisplay(blockDisplay, terrainEdgeBlock, terrainCreatedColor);
+            }
 
             assert method_Entity_getDataWatcher != null;
             assert method_CraftEntity_getHandle != null;
-            DataWatcher dataWatcher = (DataWatcher) method_Entity_getDataWatcher.invoke(method_CraftEntity_getHandle.invoke(display));
+            DataWatcher dataWatcher = (DataWatcher) method_Entity_getDataWatcher.invoke(method_CraftEntity_getHandle.invoke(entity));
+            int entityId = blockDisplay.getEntityId();
+
             if (newPacketMetadataConstructor) {
-                ReflectionUtil.sendPacket(player, new PacketPlayOutEntityMetadata(display.getEntityId(), Objects.requireNonNull(dataWatcher.c())));
+                ReflectionUtil.sendPacket(player, new PacketPlayOutEntityMetadata(entityId, Objects.requireNonNull(dataWatcher.c())));
             } else {
                 assert constructor_PacketPlayOutEntityMetadata != null;
-                ReflectionUtil.sendPacket(player, constructor_PacketPlayOutEntityMetadata.newInstance(display.getEntityId(), dataWatcher, false));
+                ReflectionUtil.sendPacket(player, constructor_PacketPlayOutEntityMetadata.newInstance(entityId, dataWatcher, false));
             }
         }
-    }
-
-    private static final class BlockDisplayUtils {
-        private static final @NotNull Transformation transformation = new Transformation(new Vector3f(0, 0, 0), new AxisAngle4f(0, 0, 0, 0), new Vector3f(1.001f, 1.001f, 1.001f), new AxisAngle4f(0, 0, 0, 0));
-        private static final @NotNull org.bukkit.entity.Display.Brightness brightness = new org.bukkit.entity.Display.Brightness(14, 14);
     }
 }
