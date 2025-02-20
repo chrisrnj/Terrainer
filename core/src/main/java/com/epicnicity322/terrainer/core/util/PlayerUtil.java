@@ -288,11 +288,12 @@ public abstract class PlayerUtil<P extends R, R> {
      */
     private long claimedBlocks(@Nullable UUID player, @UnknownNullability UUID world, @Nullable Terrain claimingTerrain) {
         long usedBlocks = 0;
-        Iterable<Terrain> terrains = perWorldBlockLimit.get() ? TerrainManager.terrains(Objects.requireNonNull(world)) : TerrainManager.allTerrains();
+        Iterator<Terrain> terrains = perWorldBlockLimit.get() ? TerrainManager.terrains(Objects.requireNonNull(world)).iterator() : TerrainManager.allTerrains().iterator();
 
         // Getting areas of all terrains owned by player.
         if (nestedTerrainsCountTowardsBlockLimit.get()) {
-            for (Terrain terrain : terrains) {
+            while (terrains.hasNext()) {
+                Terrain terrain = terrains.next();
                 if (!Objects.equals(terrain.owner(), player)) continue;
                 // Let specified instance take priority.
                 if (claimingTerrain != null && terrain.id().equals(claimingTerrain.id())) continue;
@@ -308,7 +309,8 @@ public abstract class PlayerUtil<P extends R, R> {
         // Getting the total amount of claimed blocks without duplicates.
         var events = new ArrayList<int[]>();
 
-        for (Terrain terrain : terrains) {
+        while (terrains.hasNext()) {
+            Terrain terrain = terrains.next();
             if (!Objects.equals(terrain.owner(), player)) continue;
             if (claimingTerrain != null && terrain.id().equals(claimingTerrain.id())) {
                 addEvents(events, claimingTerrain); // Use specified instance.
@@ -420,9 +422,10 @@ public abstract class PlayerUtil<P extends R, R> {
      */
     public int claimedTerrains(@Nullable UUID player, @UnknownNullability UUID world) {
         int claimed = 0;
-        Iterable<Terrain> terrains = perWorldClaimLimit.get() ? TerrainManager.terrains(Objects.requireNonNull(world)) : TerrainManager.allTerrains();
+        Iterator<Terrain> terrains = perWorldClaimLimit.get() ? TerrainManager.terrains(Objects.requireNonNull(world)).iterator() : TerrainManager.allTerrains().iterator();
 
-        for (Terrain terrain : terrains) {
+        while (terrains.hasNext()) {
+            Terrain terrain = terrains.next();
             if (Objects.equals(terrain.owner(), player)) claimed++;
         }
 

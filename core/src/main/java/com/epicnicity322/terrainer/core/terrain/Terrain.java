@@ -32,6 +32,7 @@ import com.epicnicity322.yamlhandler.YamlConfigurationLoader;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.Unmodifiable;
 
 import java.io.*;
 import java.nio.file.Path;
@@ -50,7 +51,7 @@ public class Terrain implements Serializable {
      */
     public static final int MAX_CHUNK_AMOUNT = 8398404;
     @Serial
-    private static final long serialVersionUID = 7427059289387648133L;
+    private static final long serialVersionUID = -3321476017962923730L;
     final @NotNull UUID world;
     final @NotNull UUID id;
     final @NotNull ZonedDateTime creationDate;
@@ -62,7 +63,7 @@ public class Terrain implements Serializable {
     @NotNull Coordinate minDiagonal;
     @NotNull Coordinate maxDiagonal;
     @NotNull Set<Coordinate> borders;
-    @NotNull Set<Chunk> chunks;
+    volatile @NotNull Set<Chunk> chunks;
     @NotNull String name;
     @Nullable String description;
     int priority;
@@ -369,6 +370,7 @@ public class Terrain implements Serializable {
      * @param maxDiagonal The max edge of the terrain.
      * @return An unmodifiable set with the coordinates of where border particles should spawn.
      */
+    @Unmodifiable
     protected @NotNull Set<Coordinate> findBorders(@NotNull Coordinate minDiagonal, @NotNull Coordinate maxDiagonal) {
         Configuration config = Configurations.CONFIG.getConfiguration();
 
@@ -404,6 +406,7 @@ public class Terrain implements Serializable {
      * @implNote These chunks will be used for finding the terrain, so this should take into account terrains that are not rectangle shaped.
      * @implSpec When the amount of chunks is greater than {@link #MAX_CHUNK_AMOUNT}, an empty set should be returned.
      */
+    @Unmodifiable
     protected @NotNull Set<Chunk> findChunks(@NotNull Coordinate minDiagonal, @NotNull Coordinate maxDiagonal) {
         // Converting block coordinates to chunk coordinates.
         int maxX = (int) maxDiagonal.x() >> 4;
@@ -434,15 +437,6 @@ public class Terrain implements Serializable {
     protected void chunkUpdate(@NotNull Set<Chunk> previousChunks) {
         // If this terrain is registered to save, then update in registered terrain chunks map.
         if (save && !previousChunks.equals(chunks)) TerrainManager.chunkUpdate(this, previousChunks);
-    }
-
-    /**
-     * Updates this terrain in the list of registered terrains and chunks, removing this instance and adding it again,
-     * in order to keep the list sorted by terrain priority.
-     */
-    protected void priorityUpdate() {
-        // If this terrain is registered to save, then update the index in terrains list, so it remains sorted.
-        if (save) TerrainManager.priorityUpdate(this);
     }
 
     /**
@@ -614,7 +608,6 @@ public class Terrain implements Serializable {
     public void setPriority(int priority) {
         if (this.priority == priority) return; // Don't mark terrain as changed.
         this.priority = priority;
-        priorityUpdate();
         markAsChanged();
     }
 

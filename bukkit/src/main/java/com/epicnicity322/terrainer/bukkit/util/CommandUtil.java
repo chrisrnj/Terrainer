@@ -161,7 +161,7 @@ public final class CommandUtil {
                 HumanEntity p = event.getWhoClicked();
                 p.closeInventory();
                 // If the player took too long to select and the terrain is no longer available, return.
-                if (!TerrainManager.terrains(terrain.world()).contains(terrain) || isNotAllowedToFind(terrain, p, allowModerators, permissionOthers, permissionWorld)) {
+                if (!TerrainManager.allTerrains().contains(terrain) || isNotAllowedToFind(terrain, p, allowModerators, permissionOthers, permissionWorld)) {
                     lang.send(p, lang.get("Matcher.Changed"));
                     return;
                 }

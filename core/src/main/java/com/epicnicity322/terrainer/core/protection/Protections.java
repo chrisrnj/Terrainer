@@ -471,10 +471,9 @@ public abstract class Protections<P extends R, R, B, I, E> {
             P damagerPlayer = entityOrShooterToPlayer(damager);
 
             if (damagerPlayer != null) {
-                Set<Terrain> terrains = TerrainManager.terrains(world);
+                Set<Terrain> terrains = TerrainManager.terrainsAt(world, x, y, z);
 
                 for (Terrain terrain : terrains) {
-                    if (!terrain.isWithin(x, y, z)) continue;
                     Boolean state = terrain.flags().getData(Flags.PVP);
                     if (state != null) {
                         if (!state) lang.send(damagerPlayer, lang.get("Protections." + Flags.PVP.id()));

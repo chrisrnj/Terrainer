@@ -60,14 +60,13 @@ public final class TerrainManager {
      */
     public static final @NotNull Comparator<Terrain> PRIORITY_COMPARATOR = Comparator.comparingInt(Terrain::priority).reversed().thenComparing(Terrain::id);
 
-    /**
-     * A map with the World's ID as key and a list of terrains in this world as value. This list is sorted based on the terrain's priority.
-     */
-    private static final @NotNull Map<UUID, TreeSet<Terrain>> registeredTerrains = new ConcurrentHashMap<>();
+    private static final int CHUNK_TERRAINSET_INITIAL_CAPACITY = 2;
+
+    private static final @NotNull Map<UUID, Terrain> registeredTerrains = new ConcurrentHashMap<>();
     /**
      * A map of chunks that have terrains in it.
      */
-    private static final @NotNull Map<WorldChunk, TreeSet<Terrain>> chunks = new ConcurrentHashMap<>();
+    private static final @NotNull Map<WorldChunk, Set<Terrain>> chunks = new ConcurrentHashMap<>();
     /**
      * A dummy chunk used in chunks map as the one that holds global/extremely huge terrains.
      */
@@ -118,11 +117,9 @@ public final class TerrainManager {
      * @param terrain The terrain to add.
      * @return Whether the terrain was added and {@link #loadAutoSave()} should be called.
      */
-    private static synchronized boolean addWithoutAutoSave(@NotNull Terrain terrain) {
-        Set<Terrain> worldTerrains = registeredTerrains.get(terrain.world);
-
-        if (worldTerrains != null && worldTerrains.contains(terrain)) return false;
-        // Calling add event. If it's cancelled, then the terrain should not be added, and false is returned.
+    private static boolean addWithoutAutoSave(@NotNull Terrain terrain) {
+        if (registeredTerrains.containsValue(terrain)) return false;
+        // Calling add event. If it's cancelled, then the terrain should not be added and false is returned.
         if (callOnAdd(terrain)) return false;
 
         // Events passed, terrain should be added.
@@ -131,13 +128,13 @@ public final class TerrainManager {
         remove(terrain.id, false);
 
         // Adding new instance of terrain.
-        registeredTerrains.computeIfAbsent(terrain.world, k -> new TreeSet<>(PRIORITY_COMPARATOR)).add(terrain);
+        registeredTerrains.put(terrain.id, terrain);
 
         // Adding the instance to chunks map, so it can be found with #terrainsAt map.
         if (terrain.chunks.isEmpty()) { // Chunks are empty when the terrain is global/extremely huge.
-            chunks.computeIfAbsent(new WorldChunk(terrain.world, globalChunk), k -> new TreeSet<>(PRIORITY_COMPARATOR)).add(terrain);
+            chunks.computeIfAbsent(new WorldChunk(terrain.world, globalChunk), k -> ConcurrentHashMap.newKeySet(CHUNK_TERRAINSET_INITIAL_CAPACITY)).add(terrain);
         } else {
-            terrain.chunks.forEach(chunk -> chunks.computeIfAbsent(new WorldChunk(terrain.world, chunk), k -> new TreeSet<>(PRIORITY_COMPARATOR)).add(terrain));
+            terrain.chunks.forEach(chunk -> chunks.computeIfAbsent(new WorldChunk(terrain.world, chunk), k -> ConcurrentHashMap.newKeySet(CHUNK_TERRAINSET_INITIAL_CAPACITY)).add(terrain));
         }
 
         // Setting Terrain #save to true, so it's saved automatically.
@@ -192,10 +189,7 @@ public final class TerrainManager {
         found.changed = true;
 
         // Removing from registered terrains.
-        UUID world = found.world;
-        Set<Terrain> worldTerrains = registeredTerrains.get(world);
-        worldTerrains.remove(found);
-        if (worldTerrains.isEmpty()) registeredTerrains.remove(world);
+        registeredTerrains.remove(found.id);
 
         // Removing from chunk map.
         found.chunks.forEach(chunk -> {
@@ -223,31 +217,6 @@ public final class TerrainManager {
     }
 
     /**
-     * Removes the terrain from registered terrains and chunks list and adds it again at the proper index, so the list
-     * of terrains is always sorted based on {@link Terrain#priority}.
-     *
-     * @param terrain The terrain to update in the terrains list.
-     */
-    static void priorityUpdate(@NotNull Terrain terrain) {
-        Set<Terrain> worldTerrains = registeredTerrains.get(terrain.world);
-        if (worldTerrains == null) return;
-        // If the list of world terrains contained the terrain, then add it again at sorted index.
-        // Using removeIf because the terrain will be at a different index for the priority comparator, and it will not be found with a simple TreeSet#remove.
-        if (worldTerrains.removeIf(t -> t == terrain)) worldTerrains.add(terrain);
-
-        // Update in each chunk.
-        if (terrain.chunks.isEmpty()) {
-            Set<Terrain> globalTerrains = chunks.get(new WorldChunk(terrain.world, globalChunk));
-            if (globalTerrains.removeIf(t -> t == terrain)) globalTerrains.add(terrain);
-        } else {
-            terrain.chunks.forEach(chunk -> {
-                Set<Terrain> chunkTerrains = chunks.get(new WorldChunk(terrain.world, chunk));
-                if (chunkTerrains.removeIf(t -> t == terrain)) chunkTerrains.add(terrain);
-            });
-        }
-    }
-
-    /**
      * Removes the terrain from the chunks it was registered in, then adds the terrain again in the new chunks it's
      * currently in.
      *
@@ -272,27 +241,19 @@ public final class TerrainManager {
 
         // Adding it again.
         if (terrain.chunks.isEmpty()) { // Chunks are empty when the terrain is global/huge.
-            chunks.computeIfAbsent(new WorldChunk(terrain.world, globalChunk), k -> new TreeSet<>(PRIORITY_COMPARATOR)).add(terrain);
+            chunks.computeIfAbsent(new WorldChunk(terrain.world, globalChunk), k -> ConcurrentHashMap.newKeySet(CHUNK_TERRAINSET_INITIAL_CAPACITY)).add(terrain);
         } else {
-            terrain.chunks.forEach(chunk -> chunks.computeIfAbsent(new WorldChunk(terrain.world, chunk), k -> new TreeSet<>(PRIORITY_COMPARATOR)).add(terrain));
+            terrain.chunks.forEach(chunk -> chunks.computeIfAbsent(new WorldChunk(terrain.world, chunk), k -> ConcurrentHashMap.newKeySet(CHUNK_TERRAINSET_INITIAL_CAPACITY)).add(terrain));
         }
     }
 
     /**
-     * Concat terrains from all worlds into a single iterable.
+     * Gets the collection of registered terrains from all worlds.
      *
-     * @return An unmodifiable iterable of all currently loaded terrains.
-     * @see #terrains(UUID) It is recommended to get terrains by world, for better performance.
+     * @return An unmodifiable collection of all currently loaded terrains.
      */
-    public static @NotNull Iterable<Terrain> allTerrains() {
-        return Iterables.unmodifiableIterable(Iterables.concat(registeredTerrains.values()));
-    }
-
-    /**
-     * @return The amount of terrains that are currently registered.
-     */
-    public static long terrainsAmount() {
-        return registeredTerrains.values().stream().mapToLong(TreeSet::size).sum();
+    public static @NotNull Collection<Terrain> allTerrains() {
+        return Collections.unmodifiableCollection(registeredTerrains.values());
     }
 
     /**
@@ -303,10 +264,8 @@ public final class TerrainManager {
      * @param world The world of the terrains.
      * @return An unmodifiable set with the terrains located in this world.
      */
-    public static @NotNull Set<Terrain> terrains(@NotNull UUID world) {
-        Set<Terrain> worldTerrains = registeredTerrains.get(world);
-        if (worldTerrains == null) return Collections.emptySet();
-        return Collections.unmodifiableSet(worldTerrains);
+    public static @NotNull Stream<Terrain> terrains(@NotNull UUID world) {
+        return registeredTerrains.values().stream().filter(t -> world.equals(t.world())).sorted(PRIORITY_COMPARATOR);
     }
 
     /**
@@ -318,13 +277,7 @@ public final class TerrainManager {
     @Contract("null -> null")
     public static @Nullable Terrain terrainByID(@Nullable UUID id) {
         if (id == null) return null;
-
-        // Looking for matching ID through all worlds.
-        for (Set<Terrain> terrainList : registeredTerrains.values()) {
-            for (Terrain terrain : terrainList) if (id.equals(terrain.id)) return terrain;
-        }
-
-        return null;
+        return registeredTerrains.get(id);
     }
 
     /**
@@ -410,8 +363,8 @@ public final class TerrainManager {
      */
     public static @NotNull List<Terrain> terrainsOf(@Nullable UUID owner) {
         ArrayList<Terrain> terrainsOf = new ArrayList<>();
-        for (Set<Terrain> terrainList : registeredTerrains.values()) {
-            for (Terrain terrain : terrainList) if (Objects.equals(terrain.owner(), owner)) terrainsOf.add(terrain);
+        for (Terrain terrain : registeredTerrains.values()) {
+            if (Objects.equals(terrain.owner(), owner)) terrainsOf.add(terrain);
         }
         return terrainsOf;
     }

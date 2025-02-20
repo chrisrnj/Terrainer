@@ -154,7 +154,7 @@ public final class PriorityCommand extends Command {
     }
 
     private List<Terrain> getOverlappingTerrains(Terrain terrain) {
-        return TerrainManager.terrains(terrain.world()).stream().filter(terrain::isOverlapping).sorted(TerrainManager.PRIORITY_COMPARATOR).collect(Collectors.toList());
+        return TerrainManager.terrains(terrain.world()).filter(terrain::isOverlapping).collect(Collectors.toList());
     }
 
     private boolean checkIfTerrainsHaveSamePriority(Collection<Terrain> terrains) {
