@@ -44,7 +44,7 @@ import java.util.concurrent.TimeUnit;
 public final class Terrainer {
     private static final @NotNull Path LAST_DISABLE_TIME = Configurations.DATA_FOLDER.resolve(".last");
     private static final @NotNull ScheduledExecutorService dailyTimerExecutor = Executors.newSingleThreadScheduledExecutor();
-    private static @NotNull ConsoleLogger<?> logger = ConsoleLogger.simpleLogger("[Terrainer] ");
+    private static @NotNull ConsoleLogger<?> logger = ConsoleLogger.simpleLogger("&8[&4Terrainer&8]&7 ");
     private static @NotNull LanguageHolder<?, ?> lang = LanguageHolder.simpleLanguage(() -> "", Configurations.LANG_EN_US.getDefaultConfiguration());
     private static @UnknownNullability PlayerUtil<?, ?> playerUtil = null;
     private static volatile @Nullable ScheduledFuture<?> dailyTimer;
