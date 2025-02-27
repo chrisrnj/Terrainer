@@ -175,12 +175,7 @@ public final class FlagCommand extends Command {
 
                     for (Flag<?> flag : Flags.values()) {
                         if (!sender.hasPermission(flag.editPermission())) continue;
-                        String id = flag.id().toLowerCase(Locale.ROOT).replace(' ', '-');
-                        if (id.startsWith(arg)) completions.add(id);
-                    }
-                    for (Flag<?> flag : Flags.customValues()) {
-                        if (!sender.hasPermission(flag.editPermission())) continue;
-                        String id = flag.id().toLowerCase(Locale.ROOT).replace(' ', '-');
+                        String id = flag.commandFriendlyId();
                         if (id.startsWith(arg)) completions.add(id);
                     }
                 }

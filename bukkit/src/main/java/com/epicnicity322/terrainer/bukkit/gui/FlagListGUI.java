@@ -62,10 +62,6 @@ public class FlagListGUI extends ListGUI<FlagListGUI.FlagEntry> {
         for (Flag<?> flag : Flags.values()) {
             if (player.hasPermission(flag.editPermission())) qualified.add(new FlagEntry(terrainReference, flag));
         }
-        for (Flag<?> customFlag : Flags.customValues()) {
-            if (player.hasPermission(customFlag.editPermission()))
-                qualified.add(new FlagEntry(terrainReference, customFlag));
-        }
         qualified.sort(flagNameComparator);
         return qualified;
     }
@@ -83,8 +79,7 @@ public class FlagListGUI extends ListGUI<FlagListGUI.FlagEntry> {
         String state = null;
         if (data != null) {
             try {
-                state = flag.formatter().apply(data);
-                if (state != null) state = ChatColor.translateAlternateColorCodes('&', state);
+                state = ChatColor.translateAlternateColorCodes('&', flag.formatter().apply(data));
             } catch (Throwable t) {
                 Terrainer.logger().log("Unable to find state of the flag '" + flag.id() + "':", ConsoleLogger.Level.ERROR);
                 t.printStackTrace();

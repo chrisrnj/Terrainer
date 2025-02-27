@@ -18,13 +18,18 @@
 
 package com.epicnicity322.terrainer.core.terrain;
 
+import com.epicnicity322.epicpluginlib.core.logger.ConsoleLogger;
 import com.epicnicity322.terrainer.core.Terrainer;
 import com.epicnicity322.terrainer.core.config.Configurations;
+import com.epicnicity322.yamlhandler.Configuration;
+import com.epicnicity322.yamlhandler.ConfigurationSection;
+import org.jetbrains.annotations.ApiStatus;
+import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.io.IOException;
 import java.util.*;
-import java.util.function.Function;
 import java.util.function.Predicate;
 
 /**
@@ -161,6 +166,11 @@ public final class Flags {
      */
     public static final @NotNull Flag<Boolean> ITEM_PICKUP = Flag.newBooleanFlag("Item Pickup", false);
     /**
+     * Allows players to pick up only the items they dropped themselves, such as in death or item drop event.
+     */
+    // TODO:
+    public static final @NotNull Flag<Boolean> ITEM_PICKUP_OWN = Flag.newBooleanFlag("Item Pickup Own", false);
+    /**
      * Allows leaf blocks to decay naturally.
      */
     public static final @NotNull Flag<Boolean> LEAF_DECAY = Flag.newBooleanFlag("Leaf Decay", true);
@@ -244,11 +254,6 @@ public final class Flags {
      */
     public static final @NotNull Flag<Boolean> PLANT_GROW = Flag.newBooleanFlag("Plant Grow", true);
     /**
-     * Allows everyone to use hoes on grass blocks.
-     */
-    //TODO:
-    public static final @NotNull Flag<Boolean> PLOW = Flag.newBooleanFlag("Plow", false);
-    /**
      * Allows everyone to drink or throw potions in the terrain.
      */
     public static final @NotNull Flag<Boolean> POTIONS = Flag.newBooleanFlag("Potions", false);
@@ -290,6 +295,11 @@ public final class Flags {
      */
     public static final @NotNull Flag<Boolean> SPONGES = Flag.newBooleanFlag("Sponges", true);
     /**
+     * Allows everyone to use hoes on grass blocks.
+     */
+    //TODO:
+    public static final @NotNull Flag<Boolean> TILL = Flag.newBooleanFlag("Till", false);
+    /**
      * Allows everyone to trample farmland blocks.
      */
     public static final @NotNull Flag<Boolean> TRAMPLE = Flag.newBooleanFlag("Trample", false);
@@ -298,13 +308,15 @@ public final class Flags {
      */
     public static final @NotNull Flag<Boolean> VULNERABILITY = Flag.newBooleanFlag("Vulnerability", true);
 
-    private static final @NotNull HashSet<Flag<?>> customValues = new HashSet<>();
-
     private static @NotNull Predicate<String> effectChecker = effect -> true;
 
-    private static final @NotNull Function<String, Map<String, Integer>> effectTransformer = input -> {
-        String[] entries = input.split(",");
-        HashMap<String, Integer> map = new HashMap<>((int) (entries.length / 0.75) + 1);
+    /**
+     * Gives the effects to the players in the terrain like a beacon. Upon leaving the terrain, the effects are removed.
+     */
+    @SuppressWarnings("unchecked")
+    public static final @NotNull Flag<Map<String, Integer>> EFFECTS = new Flag<>("Effects", (Class<Map<String, Integer>>) (Class<?>) Map.class, Collections.emptyMap(), input -> {
+        String[] entries = Flag.comma.split(input);
+        HashMap<String, Integer> map = new HashMap<>((int) (entries.length / .75f) + 1);
 
         for (String s : entries) {
             int equalIndex = s.lastIndexOf('=');
@@ -327,45 +339,75 @@ public final class Flags {
             }
         }
         return map;
-    };
+    }, Flag.mapFormatter::apply);
 
-    /**
-     * Gives the effects to the players in the terrain like a beacon. Upon leaving the terrain, the effects are removed.
-     */
-    @SuppressWarnings("unchecked")
-    public static final @NotNull Flag<Map<String, Integer>> EFFECTS = new Flag<>("Effects", (Class<Map<String, Integer>>) (Class<?>) Map.class, Collections.emptyMap(), effectTransformer, Map::toString);
-
-    private static final @NotNull Set<Flag<?>> values = Set.of(ANVILS, ARMOR_STANDS, BLOCK_FORM, BLOCK_SPREAD, BUILD, BUILD_BOATS, BUILD_MINECARTS, BUTTONS, CAULDRONS, CAULDRONS_CHANGE_LEVEL_NATURALLY, COMMAND_BLACKLIST, CONTAINERS, DISPENSERS, DOORS, EAT, EFFECTS, ENEMY_HARM, ENTER, ENTER_CONSOLE_COMMANDS, ENTER_PLAYER_COMMANDS, ENTER_VEHICLES, ENTITY_HARM, ENTITY_INTERACTIONS, EXPLOSION_DAMAGE, FIRE_DAMAGE, FIRE_SPREAD, FLY, FROST_WALK, GLIDE, INTERACTIONS, ITEM_DROP, ITEM_FRAMES, ITEM_PICKUP, LEAF_DECAY, LEAVE, LEAVE_CONSOLE_COMMANDS, LEAVE_MESSAGE, LEAVE_PLAYER_COMMANDS, LIGHTERS, LIQUID_FLOW, MESSAGE_LOCATION, MOB_SPAWN, MODS_CAN_EDIT_FLAGS, MODS_CAN_MANAGE_MODS, OUTSIDE_DISPENSERS, OUTSIDE_PISTONS, OUTSIDE_PROJECTILES, PISTONS, PLANT, PLANT_GROW, PLOW, POTIONS, PREPARE, PRESSURE_PLATES, PROJECTILES, PVP, SHOW_BORDERS, SIGN_CLICK, SIGN_EDIT, SPAWNERS, SPONGES, TRAMPLE, VULNERABILITY);
+    private static final @NotNull HashSet<Flag<?>> values = new HashSet<>(Set.of(ANVILS, ARMOR_STANDS, BLOCK_FORM, BLOCK_SPREAD, BUILD,
+            BUILD_BOATS, BUILD_MINECARTS, BUTTONS, CAULDRONS, CAULDRONS_CHANGE_LEVEL_NATURALLY, COMMAND_BLACKLIST,
+            CONTAINERS, DISPENSERS, DOORS, EAT, EFFECTS, ENEMY_HARM, ENTER, ENTER_CONSOLE_COMMANDS,
+            ENTER_PLAYER_COMMANDS, ENTER_VEHICLES, ENTITY_HARM, ENTITY_INTERACTIONS, EXPLOSION_DAMAGE, FIRE_DAMAGE,
+            FIRE_SPREAD, FLY, FROST_WALK, GLIDE, INTERACTIONS, ITEM_DROP, ITEM_FRAMES, ITEM_PICKUP, ITEM_PICKUP_OWN,
+            LEAF_DECAY, LEAVE, LEAVE_CONSOLE_COMMANDS, LEAVE_MESSAGE, LEAVE_PLAYER_COMMANDS, LIGHTERS, LIQUID_FLOW,
+            MESSAGE_LOCATION, MOB_SPAWN, MODS_CAN_EDIT_FLAGS, MODS_CAN_MANAGE_MODS, OUTSIDE_DISPENSERS, OUTSIDE_PISTONS,
+            OUTSIDE_PROJECTILES, PISTONS, PLANT, PLANT_GROW, POTIONS, PREPARE, PRESSURE_PLATES, PROJECTILES, PVP,
+            SHOW_BORDERS, SIGN_CLICK, SIGN_EDIT, SPAWNERS, SPONGES, TILL, TRAMPLE, VULNERABILITY));
+    private static final @NotNull Set<Flag<?>> unmodifiableValues = Collections.unmodifiableSet(values);
 
     private Flags() {
     }
 
     /**
-     * @return An unmodifiable set of every default flag available.
+     * @return An unmodifiable set of every flag available.
      */
     public static @NotNull Set<Flag<?>> values() {
-        return values;
+        return unmodifiableValues;
     }
 
     /**
-     * Returns a mutable set that contains every third party flag. You may edit this set to add or remove third-party
-     * flags.
+     * Registers a new flag into {@link #values()}. A registered flag can have its value set by the player using the
+     * Flag Management GUI or a command.
      * <p>
-     * Players will be able to add and edit these flags either through the Flag Management GUI, or commands if they have
-     * the flag's permission. If the flag holds serializable objects, the event FlagInputEvent will be called, providing
-     * the player's input string.
+     * This method will add the flag to the {@link Configurations#FLAGS} configuration with the provided values if it
+     * isn't already present.
      * <p>
-     * Display name and description of flags will be taken from Terrainer's language file.
+     * The values can then be edited in the configuration to the user's liking, the paths the values will be available
+     * are:
+     * <ul>
+     *     <li><code>{@link Flag#id()} + ".Display Name"</code></li>
+     *     <li><code>{@link Flag#id()} + ".Lore"</code></li>
+     *     <li><code>{@link Flag#id()} + ".Material"</code></li>
+     *     <li><code>{@link Flag#id()} + ".Default"</code></li>
+     * </ul>
      *
-     * @return A set of registered third-party flags.
-     * @see Flag
+     * @param flag               The flag to register.
+     * @param defaultDisplayName The display name this flag will have in messages and the Flag Management GUI.
+     * @param defaultLore        The lore the item of flag will have in Flag Management GUI.
+     * @param defaultMaterial    The material type the item of this flag will have in Flag Management GUI.
+     * @return The own flag that was added.
      */
-    public static @NotNull HashSet<Flag<?>> customValues() {
-        return customValues;
+    @Contract("_,_,_,_ -> param1")
+    public static <T> @NotNull Flag<T> registerFlag(@NotNull Flag<T> flag, @NotNull String defaultDisplayName, @NotNull String defaultLore, @NotNull String defaultMaterial) {
+        values.add(flag);
+
+        Configuration flags = Configurations.FLAGS.getConfiguration();
+        if (flags.contains(flag.id())) return flag;
+
+        ConfigurationSection section = flags.createSection(flag.id());
+        section.set("Display Name", defaultDisplayName);
+        section.set("Lore", defaultLore);
+        section.set("Material", defaultMaterial);
+        section.set("Default", flag.formatter().apply(flag.defaultValue()));
+
+        try {
+            flags.save(Configurations.FLAGS.getPath());
+        } catch (IOException e) {
+            Terrainer.logger().log("Unable to save flag '" + flag.id() + "' to flags.yml configuration:", ConsoleLogger.Level.ERROR);
+            e.printStackTrace();
+        }
+        return flag;
     }
 
     /**
-     * Finds a flag by name by looking through the {@link #values()} and {@link #customValues()}.
+     * Looks for a flag that has a {@link Flag#commandFriendlyId()} matching the provided value.
      *
      * @param name The name of the flag to find.
      * @return The flag with matching id, if found.
@@ -374,24 +416,37 @@ public final class Flags {
         name = name.replace('_', '-');
 
         for (Flag<?> f : values) {
-            if (name.equalsIgnoreCase(f.id().replace(' ', '-'))) {
-                return f;
-            }
-        }
-        for (Flag<?> f : customValues) {
-            if (name.equalsIgnoreCase(f.id().replace(' ', '-'))) {
-                return f;
-            }
+            if (name.equalsIgnoreCase(f.commandFriendlyId())) return f;
         }
         return null;
     }
 
     /**
-     * Sets the checker of valid potion effect names for {@link Flags#EFFECTS} flag.
+     * Sets the validator of valid potion effect names for {@link Flags#EFFECTS} flag.
      *
      * @param effectChecker The new effect checker.
      */
+    @ApiStatus.Internal
     public static void setEffectChecker(@NotNull Predicate<String> effectChecker) {
         Flags.effectChecker = effectChecker;
+    }
+
+    /**
+     * Sets all currently registered flags' default value to the one specified in {@link Configurations#FLAGS}.
+     */
+    public static void reloadFlagDefaults() {
+        for (Flag<?> f : values) resetFlagDefault(f);
+    }
+
+    private static <T> void resetFlagDefault(@NotNull Flag<T> flag) {
+        Optional<String> customDefault = Configurations.FLAGS.getConfiguration().getString(flag.id() + ".Default");
+        customDefault.ifPresent(s -> {
+            try {
+                flag.defaultValue = flag.transformer().apply(s);
+            } catch (FlagTransformException e) {
+                Terrainer.logger().log("Unable to load custom flag default for flag '" + flag.id() + "' - " + e.getMessage(), ConsoleLogger.Level.WARN);
+                Terrainer.logger().log("The default value '" + flag.formatter().apply(flag.defaultValue()) + "' will be used.", ConsoleLogger.Level.WARN);
+            }
+        });
     }
 }
