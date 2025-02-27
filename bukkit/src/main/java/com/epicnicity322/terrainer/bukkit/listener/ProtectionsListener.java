@@ -586,7 +586,7 @@ public final class ProtectionsListener extends Protections<Player, CommandSender
         BlockState state = null;
 
         if (getExplodedBlockStateMethod) state = event.getExplodedBlockState();
-        // noinspection ConstantValue - the block state may be null on older versions.
+
         if (state != null) {
             if (!blockExplode(block.getWorld().getUID(), state.getX(), state.getY(), state.getZ(), event.blockList()))
                 event.setCancelled(true);
@@ -862,10 +862,8 @@ public final class ProtectionsListener extends Protections<Player, CommandSender
             };
             TaskFactory.CancellableTask task = plugin.getTaskFactory().runDelayed(player, 100, barRemoverRunnable, barRemoverRunnable);
 
-            if (task != null) {
-                // Adding bar to current alive boss bars.
-                bossBarTasks.put(playerID, new BossBarTask(bar, new AtomicReference<>(task)));
-            }
+            // Adding bar to current alive boss bars.
+            if (task != null) bossBarTasks.put(playerID, new BossBarTask(bar, new AtomicReference<>(task)));
         } else {
             BossBar bar = previous.bar;
             AtomicReference<TaskFactory.CancellableTask> barRemoverTask = previous.task;
@@ -877,7 +875,9 @@ public final class ProtectionsListener extends Protections<Player, CommandSender
                 bossBarTasks.remove(playerID);
                 bar.removePlayer(player);
             };
-            barRemoverTask.set(plugin.getTaskFactory().runDelayed(player, 100, barRemoverRunnable, barRemoverRunnable));
+            TaskFactory.CancellableTask task = plugin.getTaskFactory().runDelayed(player, 100, barRemoverRunnable, barRemoverRunnable);
+
+            if (task != null) barRemoverTask.set(task);
         }
     }
 
