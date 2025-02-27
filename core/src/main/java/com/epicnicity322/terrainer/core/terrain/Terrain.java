@@ -51,7 +51,7 @@ public class Terrain implements Serializable {
      */
     public static final int MAX_CHUNK_AMOUNT = 8398404;
     @Serial
-    private static final long serialVersionUID = -3321476017962923730L;
+    private static final long serialVersionUID = 4429608064021503544L;
     final @NotNull UUID world;
     final @NotNull UUID id;
     final @NotNull ZonedDateTime creationDate;
@@ -747,8 +747,13 @@ public class Terrain implements Serializable {
         return true;
     }
 
-    @Override
-    public boolean equals(@Nullable Object o) {
+    /**
+     * Tests every single field of a terrain to check if it's an exact match to this instance.
+     *
+     * @param o The object to test.
+     * @return Whether the object is an exact match of this terrain.
+     */
+    public boolean deepEquals(@Nullable Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         Terrain terrain = (Terrain) o;
@@ -756,8 +761,16 @@ public class Terrain implements Serializable {
     }
 
     @Override
+    public boolean equals(@Nullable Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Terrain terrain = (Terrain) o;
+        return id.equals(terrain.id);
+    }
+
+    @Override
     public int hashCode() {
-        return Objects.hash(id, world, minDiagonal, maxDiagonal, owner, creationDate, priority, name, description, moderators, members, flags, memberFlags);
+        return Objects.hash(id);
     }
 
     @Override

@@ -36,7 +36,7 @@ public final class WorldTerrain extends Terrain {
     static final @NotNull Coordinate min = new Coordinate(Integer.MIN_VALUE, Integer.MIN_VALUE, Integer.MIN_VALUE);
     static final @NotNull Coordinate max = new Coordinate(Integer.MAX_VALUE, Integer.MAX_VALUE, Integer.MAX_VALUE);
     @Serial
-    private static final long serialVersionUID = 9074390861672161118L;
+    private static final long serialVersionUID = 8115562129178335285L;
 
     public WorldTerrain(@NotNull UUID world, @NotNull String name) {
         // The ID of the terrain is the same as of the world's.
@@ -116,11 +116,19 @@ public final class WorldTerrain extends Terrain {
     }
 
     @Override
-    public boolean equals(@Nullable Object o) {
+    public boolean deepEquals(@Nullable Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         WorldTerrain terrain = (WorldTerrain) o;
         return id.equals(terrain.id) && world.equals(terrain.world) && creationDate.equals(terrain.creationDate) && name.equals(terrain.name) && Objects.equals(description, terrain.description) && priority == terrain.priority && moderators.equals(terrain.moderators) && members.equals(terrain.members) && flags.equals(terrain.flags) && memberFlags.equals(terrain.memberFlags);
+    }
+
+    @Override
+    public boolean equals(@Nullable Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        WorldTerrain terrain = (WorldTerrain) o;
+        return id.equals(terrain.id);
     }
 
     @Override
