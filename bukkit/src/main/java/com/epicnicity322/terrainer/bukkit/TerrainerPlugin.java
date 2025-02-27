@@ -258,6 +258,10 @@ public final class TerrainerPlugin extends JavaPlugin {
         }
         if (reload()) logger.log("Configurations loaded successfully.");
 
+        // Flag defaults are only loaded once to avoid potential issues, like players keeping the potion effects of
+        //EFFECTS flag from a previous default.
+        Flags.reloadFlagDefaults();
+
         PluginManager pm = getServer().getPluginManager();
 
         if (pm.getPlugin("Vault") != null) {
