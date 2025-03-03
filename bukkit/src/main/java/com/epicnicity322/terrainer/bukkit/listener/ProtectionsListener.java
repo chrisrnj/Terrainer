@@ -843,7 +843,7 @@ public final class ProtectionsListener extends Protections<Player, CommandSender
     @EventHandler
     public void onTerrainLeave(TerrainLeaveEvent event) {
         Location to = event.to();
-        terrainLeave(event.player(), event.terrains(), event.player().getWorld().getUID(), to.getBlockX(), to.getBlockY(), to.getBlockZ(), event.fromTerrains());
+        terrainLeave(event.player(), event.terrains(), event.player().getWorld().getUID(), to.getBlockX(), to.getBlockY(), to.getBlockZ(), event.fromTerrains(), event.reason());
     }
 
     private void sendBar(@NotNull String message, @NotNull Player player) {

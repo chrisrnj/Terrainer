@@ -828,7 +828,7 @@ public abstract class Protections<P extends R, R, B, I, E> {
         }
     }
 
-    public void terrainLeave(@NotNull P player, @NotNull Set<Terrain> leftTerrains, UUID world, int x, int y, int z, @NotNull Set<Terrain> fromTerrains) {
+    public void terrainLeave(@NotNull P player, @NotNull Set<Terrain> leftTerrains, UUID world, int x, int y, int z, @NotNull Set<Terrain> fromTerrains, @NotNull TerrainEnterLeaveEvent.EnterLeaveReason reason) {
         var pUID = playerUtil.playerUUID(player);
 
         Integer effectsPriority = null;
@@ -893,7 +893,9 @@ public abstract class Protections<P extends R, R, B, I, E> {
         }
 
         // Re-apply effects, in case the player just had their effects removed, and remained in a terrain that had similar effects.
-        TerrainManager.getMapFlagDataAt(Flags.EFFECTS, playerUtil.playerUUID(player), world, x, y, z, false).forEach((effect, amplifier) -> playerUtil.applyEffect(player, effect, amplifier));
+        if (reason != TerrainEnterLeaveEvent.EnterLeaveReason.LEAVE_SERVER) { // Leave must never have the effects re-applied.
+            TerrainManager.getMapFlagDataAt(Flags.EFFECTS, playerUtil.playerUUID(player), world, x, y, z, false, leftTerrains).forEach((effect, amplifier) -> playerUtil.applyEffect(player, effect, amplifier));
+        }
 
         // Dispatching console commands.
         if (consoleCommandsFound != null) {
