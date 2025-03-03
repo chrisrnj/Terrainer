@@ -19,16 +19,21 @@
 package com.epicnicity322.terrainer.core.terrain;
 
 import com.epicnicity322.epicpluginlib.core.logger.ConsoleLogger;
+import com.epicnicity322.epicpluginlib.core.util.PathUtils;
 import com.epicnicity322.terrainer.core.Terrainer;
 import com.epicnicity322.terrainer.core.config.Configurations;
 import com.epicnicity322.yamlhandler.Configuration;
 import com.epicnicity322.yamlhandler.ConfigurationSection;
+import com.epicnicity322.yamlhandler.YamlConfigurationLoader;
+import com.epicnicity322.yamlhandler.exceptions.InvalidConfigurationException;
 import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.yaml.snakeyaml.DumperOptions;
 
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.*;
 import java.util.function.Predicate;
 
@@ -387,22 +392,31 @@ public final class Flags {
     @Contract("_,_,_,_ -> param1")
     public static <T> @NotNull Flag<T> registerFlag(@NotNull Flag<T> flag, @NotNull String defaultDisplayName, @NotNull String defaultLore, @NotNull String defaultMaterial) {
         values.add(flag);
-
-        Configuration flags = Configurations.FLAGS.getConfiguration();
-        if (flags.contains(flag.id())) return flag;
-
-        ConfigurationSection section = flags.createSection(flag.id());
-        section.set("Display Name", defaultDisplayName);
-        section.set("Lore", defaultLore);
-        section.set("Material", defaultMaterial);
-        section.set("Default", flag.formatter().apply(flag.defaultValue()));
+        if (Configurations.FLAGS.getConfiguration().contains(flag.id())) return flag;
 
         try {
-            flags.save(Configurations.FLAGS.getPath());
-        } catch (IOException e) {
+            ConfigurationSection defaultSection = Configurations.FLAGS.getDefaultConfiguration().createSection(flag.id());
+            defaultSection.set("Display Name", defaultDisplayName);
+            defaultSection.set("Lore", defaultLore);
+            defaultSection.set("Material", defaultMaterial);
+            defaultSection.set("Default", flag.formatter().apply(flag.defaultValue()));
+
+            Path flagsPath = Configurations.FLAGS.getPath();
+            Configuration flags = new YamlConfigurationLoader('.', 2, DumperOptions.FlowStyle.BLOCK).load(flagsPath);
+
+            ConfigurationSection section = flags.createSection(flag.id());
+            section.set("Display Name", defaultDisplayName);
+            section.set("Lore", defaultLore);
+            section.set("Material", defaultMaterial);
+            section.set("Default", flag.formatter().apply(flag.defaultValue()));
+
+            PathUtils.deleteAll(flagsPath);
+            flags.save(flagsPath);
+        } catch (IOException | InvalidConfigurationException e) {
             Terrainer.logger().log("Unable to save flag '" + flag.id() + "' to flags.yml configuration:", ConsoleLogger.Level.ERROR);
             e.printStackTrace();
         }
+
         return flag;
     }
 
