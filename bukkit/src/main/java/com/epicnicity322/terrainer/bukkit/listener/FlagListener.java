@@ -37,6 +37,7 @@ import org.bukkit.event.Listener;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.Collections;
 import java.util.Map;
 import java.util.UUID;
 
@@ -70,7 +71,7 @@ public final class FlagListener implements Listener {
         if (!changedTerrain.isWithin(x, y, z)) return;
 
         // Removing previous effects from player.
-        TerrainManager.getMapFlagDataAt(Flags.EFFECTS, player.getUniqueId(), changedTerrain.world(), x, y, z, false).forEach((effect, level) -> TerrainerPlugin.getPlayerUtil().removeEffect(player, effect));
+        TerrainManager.getMapFlagDataAt(Flags.EFFECTS, player.getUniqueId(), changedTerrain.world(), x, y, z, false, Collections.emptySet()).forEach((effect, level) -> TerrainerPlugin.getPlayerUtil().removeEffect(player, effect));
 
         // Getting the effects at the player's location and applying with the new flag value. This will ensure the player has the correct effects according to terrain priority.
         applyNewEffects(player, changedTerrain.world(), x, y, z, changedTerrain, generalFlag, newEffects);

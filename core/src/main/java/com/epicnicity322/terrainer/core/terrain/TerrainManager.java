@@ -678,7 +678,7 @@ public final class TerrainManager {
      * @see #getMapFlagDataAt(Flag, UUID, WorldCoordinate, boolean) Flags related to player actions should use this method instead, because it checks the member-specific data.
      */
     public static <K, V> @NotNull Map<K, V> getMapFlagDataAt(@NotNull Flag<? extends Map<K, V>> flag, @NotNull WorldCoordinate worldCoordinate) {
-        return getMapFlagDataAt(flag, worldCoordinate.world(), (int) worldCoordinate.coordinate().x(), (int) worldCoordinate.coordinate().y(), (int) worldCoordinate.coordinate().z());
+        return getMapFlagDataAt(flag, worldCoordinate.world(), (int) worldCoordinate.coordinate().x(), (int) worldCoordinate.coordinate().y(), (int) worldCoordinate.coordinate().z(), Collections.emptySet());
     }
 
     /**
@@ -687,22 +687,24 @@ public final class TerrainManager {
      * There can be multiple terrains with the same flag on the location, this method concatenates the maps set in the
      * terrains with the highest priority.
      *
-     * @param flag  The flag to look for on the location.
-     * @param world The UUID of the world where the location resides.
-     * @param x     The X coordinate of the block.
-     * @param y     The Y coordinate of the block.
-     * @param z     The Z coordinate of the block.
-     * @param <K>   The type of keys in the map.
-     * @param <V>   The type of mapped values in the map.
+     * @param flag       The flag to look for on the location.
+     * @param world      The UUID of the world where the location resides.
+     * @param x          The X coordinate of the block.
+     * @param y          The Y coordinate of the block.
+     * @param z          The Z coordinate of the block.
+     * @param exclusions The terrains to exclude on the lookup.
+     * @param <K>        The type of keys in the map.
+     * @param <V>        The type of mapped values in the map.
      * @return The data of the flags concatenated in a single map.
-     * @see #getMapFlagDataAt(Flag, UUID, UUID, int, int, int, boolean) Flags related to player actions should use this method instead, because it checks the member-specific data.
+     * @see #getMapFlagDataAt(Flag, UUID, UUID, int, int, int, boolean, Collection) Flags related to player actions should use this method instead, because it checks the member-specific data.
      */
-    public static <K, V> @NotNull Map<K, V> getMapFlagDataAt(@NotNull Flag<? extends Map<K, V>> flag, @NotNull UUID world, int x, int y, int z) {
+    public static <K, V> @NotNull Map<K, V> getMapFlagDataAt(@NotNull Flag<? extends Map<K, V>> flag, @NotNull UUID world, int x, int y, int z, @NotNull Collection<Terrain> exclusions) {
         Map<K, V> mapData = null;
         Integer priorityFound = null;
 
         // Terrain list is sorted by priority.
         for (Terrain terrain : terrainsAt(world, x, y, z)) {
+            if (exclusions.contains(terrain)) continue;
             // Add elements to the map only if this terrain is the same priority as the terrain that the flag was found.
             if (priorityFound != null && priorityFound != terrain.priority()) break;
 
@@ -735,7 +737,7 @@ public final class TerrainManager {
      * @return The data of the flags concatenated in a single map.
      */
     public static <K, V> @NotNull Map<K, V> getMapFlagDataAt(@NotNull Flag<? extends Map<K, V>> flag, @NotNull UUID player, @NotNull WorldCoordinate worldCoordinate, boolean emptyIfPlayerHasRelations) {
-        return getMapFlagDataAt(flag, player, worldCoordinate.world(), (int) worldCoordinate.coordinate().x(), (int) worldCoordinate.coordinate().y(), (int) worldCoordinate.coordinate().z(), emptyIfPlayerHasRelations);
+        return getMapFlagDataAt(flag, player, worldCoordinate.world(), (int) worldCoordinate.coordinate().x(), (int) worldCoordinate.coordinate().y(), (int) worldCoordinate.coordinate().z(), emptyIfPlayerHasRelations, Collections.emptySet());
     }
 
     /**
@@ -753,16 +755,18 @@ public final class TerrainManager {
      * @param y                         The Y coordinate of the block.
      * @param z                         The Z coordinate of the block.
      * @param emptyIfPlayerHasRelations Whether to return an empty list if the player has relations to the terrain with the highest priority.
+     * @param exclusions                The terrains to exclude on the lookup.
      * @param <K>                       The type of keys in the map.
      * @param <V>                       The type of mapped values in the map.
      * @return The data of the flags concatenated in a single map.
      */
-    public static <K, V> @NotNull Map<K, V> getMapFlagDataAt(@NotNull Flag<? extends Map<K, V>> flag, @NotNull UUID player, @NotNull UUID world, int x, int y, int z, boolean emptyIfPlayerHasRelations) {
+    public static <K, V> @NotNull Map<K, V> getMapFlagDataAt(@NotNull Flag<? extends Map<K, V>> flag, @NotNull UUID player, @NotNull UUID world, int x, int y, int z, boolean emptyIfPlayerHasRelations, @NotNull Collection<Terrain> exclusions) {
         Map<K, V> mapData = null;
         Integer priorityFound = null;
 
         // Terrain list is sorted by priority.
         for (Terrain terrain : terrainsAt(world, x, y, z)) {
+            if (exclusions.contains(terrain)) continue;
             // Add elements to the map only if this terrain is the same priority as the terrain that the flag was found.
             if (priorityFound != null && priorityFound != terrain.priority()) break;
             if (emptyIfPlayerHasRelations && hasAnyRelations(player, terrain)) return Collections.emptyMap();
