@@ -79,6 +79,7 @@ public final class InfoCommand extends Command {
 
             if (id != null) {
                 Terrain terrain = TerrainManager.terrainByID(id);
+                //noinspection ArraysAsListWithZeroOrOneArgument - List needs to be modifiable.
                 terrains = terrain != null ? Arrays.asList(terrain) : Collections.emptyList();
             } else {
                 terrains = new ArrayList<>();
