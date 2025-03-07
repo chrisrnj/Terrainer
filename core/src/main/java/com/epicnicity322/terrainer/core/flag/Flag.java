@@ -16,10 +16,11 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.epicnicity322.terrainer.core.terrain;
+package com.epicnicity322.terrainer.core.flag;
 
 import com.epicnicity322.terrainer.core.Terrainer;
 import com.epicnicity322.terrainer.core.config.Configurations;
+import com.epicnicity322.terrainer.core.terrain.Terrain;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 

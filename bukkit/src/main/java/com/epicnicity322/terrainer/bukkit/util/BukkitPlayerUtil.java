@@ -19,10 +19,10 @@
 package com.epicnicity322.terrainer.bukkit.util;
 
 import com.epicnicity322.terrainer.bukkit.TerrainerPlugin;
-import com.epicnicity322.terrainer.core.Coordinate;
 import com.epicnicity322.terrainer.core.Terrainer;
-import com.epicnicity322.terrainer.core.WorldCoordinate;
 import com.epicnicity322.terrainer.core.config.Configurations;
+import com.epicnicity322.terrainer.core.location.Coordinate;
+import com.epicnicity322.terrainer.core.location.WorldCoordinate;
 import com.epicnicity322.terrainer.core.util.PlayerUtil;
 import com.epicnicity322.yamlhandler.Configuration;
 import org.bukkit.Location;

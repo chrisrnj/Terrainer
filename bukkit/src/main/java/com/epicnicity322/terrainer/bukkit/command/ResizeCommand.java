@@ -24,7 +24,7 @@ import com.epicnicity322.epicpluginlib.bukkit.lang.MessageSender;
 import com.epicnicity322.terrainer.bukkit.TerrainerPlugin;
 import com.epicnicity322.terrainer.bukkit.util.BukkitPlayerUtil;
 import com.epicnicity322.terrainer.bukkit.util.CommandUtil;
-import com.epicnicity322.terrainer.core.WorldCoordinate;
+import com.epicnicity322.terrainer.core.location.WorldCoordinate;
 import com.epicnicity322.terrainer.core.terrain.Terrain;
 import com.epicnicity322.terrainer.core.terrain.WorldTerrain;
 import com.epicnicity322.terrainer.core.util.PlayerUtil;

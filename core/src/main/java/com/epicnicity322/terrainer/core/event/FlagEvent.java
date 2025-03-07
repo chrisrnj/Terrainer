@@ -18,7 +18,7 @@
 
 package com.epicnicity322.terrainer.core.event;
 
-import com.epicnicity322.terrainer.core.terrain.Flag;
+import com.epicnicity322.terrainer.core.flag.Flag;
 import org.jetbrains.annotations.NotNull;
 
 /**

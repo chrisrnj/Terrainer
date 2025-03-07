@@ -16,14 +16,9 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.epicnicity322.terrainer.core;
-
-import org.jetbrains.annotations.NotNull;
+package com.epicnicity322.terrainer.core.location;
 
 import java.io.Serializable;
 
-public record Chunk(int x, int z) implements Serializable {
-    public static @NotNull Chunk fromBlockCoordinates(int x, int z) {
-        return new Chunk(x >> 4, z >> 4);
-    }
+public record Coordinate(double x, double y, double z) implements Serializable {
 }

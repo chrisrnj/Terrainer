@@ -16,9 +16,12 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.epicnicity322.terrainer.core;
+package com.epicnicity322.terrainer.core.location;
+
+import org.jetbrains.annotations.NotNull;
 
 import java.io.Serializable;
+import java.util.UUID;
 
-public record Coordinate(double x, double y, double z) implements Serializable {
+public record WorldChunk(@NotNull UUID world, @NotNull Chunk chunk) implements Serializable {
 }

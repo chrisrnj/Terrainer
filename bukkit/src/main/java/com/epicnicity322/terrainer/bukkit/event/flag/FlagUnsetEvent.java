@@ -19,7 +19,7 @@
 package com.epicnicity322.terrainer.bukkit.event.flag;
 
 import com.epicnicity322.terrainer.core.event.flag.IFlagUnsetEvent;
-import com.epicnicity322.terrainer.core.terrain.Flag;
+import com.epicnicity322.terrainer.core.flag.Flag;
 import com.epicnicity322.terrainer.core.terrain.Terrain;
 import org.bukkit.Bukkit;
 import org.bukkit.event.Cancellable;

@@ -19,7 +19,7 @@
 package com.epicnicity322.terrainer.core.event.terrain;
 
 import com.epicnicity322.terrainer.core.event.SenderEvent;
-import com.epicnicity322.terrainer.core.terrain.Flags;
+import com.epicnicity322.terrainer.core.flag.Flags;
 
 /**
  * When a terrain is claimed or defined using commands.

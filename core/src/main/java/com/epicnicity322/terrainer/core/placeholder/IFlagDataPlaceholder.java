@@ -19,9 +19,9 @@
 package com.epicnicity322.terrainer.core.placeholder;
 
 import com.epicnicity322.terrainer.core.Terrainer;
+import com.epicnicity322.terrainer.core.flag.Flag;
+import com.epicnicity322.terrainer.core.flag.Flags;
 import com.epicnicity322.terrainer.core.placeholder.formatter.TerrainPlaceholderFormatter;
-import com.epicnicity322.terrainer.core.terrain.Flag;
-import com.epicnicity322.terrainer.core.terrain.Flags;
 import com.epicnicity322.terrainer.core.terrain.Terrain;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;

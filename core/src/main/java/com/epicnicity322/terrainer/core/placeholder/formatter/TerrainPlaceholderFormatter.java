@@ -18,7 +18,7 @@
 
 package com.epicnicity322.terrainer.core.placeholder.formatter;
 
-import com.epicnicity322.terrainer.core.WorldCoordinate;
+import com.epicnicity322.terrainer.core.location.WorldCoordinate;
 import com.epicnicity322.terrainer.core.terrain.Terrain;
 import com.epicnicity322.terrainer.core.terrain.TerrainManager;
 import org.jetbrains.annotations.NotNull;

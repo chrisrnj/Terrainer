@@ -23,7 +23,7 @@ import com.epicnicity322.epicpluginlib.bukkit.command.CommandRunnable;
 import com.epicnicity322.epicpluginlib.bukkit.lang.MessageSender;
 import com.epicnicity322.terrainer.bukkit.TerrainerPlugin;
 import com.epicnicity322.terrainer.bukkit.util.CommandUtil;
-import com.epicnicity322.terrainer.core.terrain.Flags;
+import com.epicnicity322.terrainer.core.flag.Flags;
 import com.epicnicity322.terrainer.core.terrain.Terrain;
 import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;

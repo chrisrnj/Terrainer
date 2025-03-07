@@ -16,7 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.epicnicity322.terrainer.core.terrain;
+package com.epicnicity322.terrainer.core.flag;
 
 import com.epicnicity322.epicpluginlib.core.logger.ConsoleLogger;
 import com.epicnicity322.epicpluginlib.core.util.PathUtils;

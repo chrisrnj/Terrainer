@@ -18,10 +18,10 @@
 
 package com.epicnicity322.terrainer.core.terrain;
 
-import com.epicnicity322.terrainer.core.Chunk;
-import com.epicnicity322.terrainer.core.Coordinate;
 import com.epicnicity322.terrainer.core.Terrainer;
-import com.epicnicity322.terrainer.core.WorldCoordinate;
+import com.epicnicity322.terrainer.core.location.Chunk;
+import com.epicnicity322.terrainer.core.location.Coordinate;
+import com.epicnicity322.terrainer.core.location.WorldCoordinate;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -36,7 +36,7 @@ public final class WorldTerrain extends Terrain {
     static final @NotNull Coordinate min = new Coordinate(Integer.MIN_VALUE, Integer.MIN_VALUE, Integer.MIN_VALUE);
     static final @NotNull Coordinate max = new Coordinate(Integer.MAX_VALUE, Integer.MAX_VALUE, Integer.MAX_VALUE);
     @Serial
-    private static final long serialVersionUID = 8115562129178335285L;
+    private static final long serialVersionUID = -4194791547407605454L;
 
     public WorldTerrain(@NotNull UUID world, @NotNull String name) {
         // The ID of the terrain is the same as of the world's.

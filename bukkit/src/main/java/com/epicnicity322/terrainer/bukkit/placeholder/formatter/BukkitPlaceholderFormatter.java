@@ -19,8 +19,8 @@
 package com.epicnicity322.terrainer.bukkit.placeholder.formatter;
 
 import com.epicnicity322.terrainer.bukkit.TerrainerPlugin;
-import com.epicnicity322.terrainer.core.Coordinate;
-import com.epicnicity322.terrainer.core.WorldCoordinate;
+import com.epicnicity322.terrainer.core.location.Coordinate;
+import com.epicnicity322.terrainer.core.location.WorldCoordinate;
 import com.epicnicity322.terrainer.core.placeholder.formatter.PlaceholderFormatter;
 import com.epicnicity322.terrainer.core.util.PlayerUtil;
 import org.bukkit.Bukkit;

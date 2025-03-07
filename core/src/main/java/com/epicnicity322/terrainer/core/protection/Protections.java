@@ -19,11 +19,11 @@
 package com.epicnicity322.terrainer.core.protection;
 
 import com.epicnicity322.epicpluginlib.core.lang.LanguageHolder;
-import com.epicnicity322.terrainer.core.Coordinate;
 import com.epicnicity322.terrainer.core.config.Configurations;
 import com.epicnicity322.terrainer.core.event.TerrainEnterLeaveEvent;
-import com.epicnicity322.terrainer.core.terrain.Flag;
-import com.epicnicity322.terrainer.core.terrain.Flags;
+import com.epicnicity322.terrainer.core.flag.Flag;
+import com.epicnicity322.terrainer.core.flag.Flags;
+import com.epicnicity322.terrainer.core.location.Coordinate;
 import com.epicnicity322.terrainer.core.terrain.Terrain;
 import com.epicnicity322.terrainer.core.terrain.TerrainManager;
 import com.epicnicity322.terrainer.core.util.PlayerUtil;

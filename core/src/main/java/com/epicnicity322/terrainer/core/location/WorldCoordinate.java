@@ -16,22 +16,12 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.epicnicity322.terrainer.core.terrain;
+package com.epicnicity322.terrainer.core.location;
 
 import org.jetbrains.annotations.NotNull;
 
-import java.io.Serial;
+import java.io.Serializable;
+import java.util.UUID;
 
-/**
- * Exception thrown when the flag's data type could not be transformed from a String using the {@link Flag#transformer()}.
- * <p>
- * The message of this exception will be sent to the player, informing why the flag could not be applied to the terrain.
- */
-public class FlagTransformException extends RuntimeException {
-    @Serial
-    private static final long serialVersionUID = -4350695619649389840L;
-
-    public FlagTransformException(@NotNull String message) {
-        super(message);
-    }
+public record WorldCoordinate(@NotNull UUID world, @NotNull Coordinate coordinate) implements Serializable {
 }

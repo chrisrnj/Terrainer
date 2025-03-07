@@ -20,7 +20,7 @@ package com.epicnicity322.terrainer.core.event.flag;
 
 import com.epicnicity322.terrainer.core.event.MemberFlagSetUnsetEvent;
 import com.epicnicity322.terrainer.core.event.SenderEvent;
-import com.epicnicity322.terrainer.core.terrain.Flag;
+import com.epicnicity322.terrainer.core.flag.Flag;
 import org.jetbrains.annotations.NotNull;
 
 /**

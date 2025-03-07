@@ -20,11 +20,13 @@ package com.epicnicity322.terrainer.core.terrain;
 
 import com.epicnicity322.epicpluginlib.core.logger.ConsoleLogger;
 import com.epicnicity322.epicpluginlib.core.util.PathUtils;
-import com.epicnicity322.terrainer.core.Chunk;
-import com.epicnicity322.terrainer.core.Coordinate;
 import com.epicnicity322.terrainer.core.Terrainer;
-import com.epicnicity322.terrainer.core.WorldCoordinate;
 import com.epicnicity322.terrainer.core.config.Configurations;
+import com.epicnicity322.terrainer.core.flag.Flag;
+import com.epicnicity322.terrainer.core.flag.Flags;
+import com.epicnicity322.terrainer.core.location.Chunk;
+import com.epicnicity322.terrainer.core.location.Coordinate;
+import com.epicnicity322.terrainer.core.location.WorldCoordinate;
 import com.epicnicity322.terrainer.core.util.PlayerUtil;
 import com.epicnicity322.yamlhandler.Configuration;
 import com.epicnicity322.yamlhandler.ConfigurationSection;
@@ -51,7 +53,7 @@ public class Terrain implements Serializable {
      */
     public static final int MAX_CHUNK_AMOUNT = 8398404;
     @Serial
-    private static final long serialVersionUID = 4429608064021503544L;
+    private static final long serialVersionUID = 1790382179341098027L;
     final @NotNull UUID world;
     final @NotNull UUID id;
     final @NotNull ZonedDateTime creationDate;
@@ -886,7 +888,7 @@ public class Terrain implements Serializable {
     public final class FlagMap implements Serializable {
         private static final int INITIAL_CAPACITY = 8;
         @Serial
-        private static final long serialVersionUID = -2028321748760154015L;
+        private static final long serialVersionUID = 6569450535286474884L;
 
         @Nullable HashMap<String, Object> map;
         private @Nullable Map<String, Object> unmodifiableMap;
@@ -1094,7 +1096,7 @@ public class Terrain implements Serializable {
     public final class MemberFlagMap implements Serializable {
         private static final int INITIAL_CAPACITY = 4;
         @Serial
-        private static final long serialVersionUID = -6314163403738853033L;
+        private static final long serialVersionUID = -2957723599778602521L;
 
         private @Nullable HashMap<UUID, FlagMap> map;
 

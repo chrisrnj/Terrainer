@@ -20,11 +20,12 @@ package com.epicnicity322.terrainer.core.util;
 
 import com.epicnicity322.epicpluginlib.core.lang.LanguageHolder;
 import com.epicnicity322.epicpluginlib.core.logger.ConsoleLogger;
-import com.epicnicity322.terrainer.core.Coordinate;
 import com.epicnicity322.terrainer.core.Terrainer;
-import com.epicnicity322.terrainer.core.WorldChunk;
-import com.epicnicity322.terrainer.core.WorldCoordinate;
 import com.epicnicity322.terrainer.core.config.Configurations;
+import com.epicnicity322.terrainer.core.flag.Flags;
+import com.epicnicity322.terrainer.core.location.Coordinate;
+import com.epicnicity322.terrainer.core.location.WorldChunk;
+import com.epicnicity322.terrainer.core.location.WorldCoordinate;
 import com.epicnicity322.terrainer.core.terrain.Terrain;
 import com.epicnicity322.terrainer.core.terrain.TerrainManager;
 import com.epicnicity322.terrainer.core.terrain.WorldTerrain;
@@ -134,7 +135,7 @@ public abstract class PlayerUtil<P extends R, R> {
 
     /**
      * Sets a tag on the player to return their ability to fly once they're not in a terrain with
-     * {@link com.epicnicity322.terrainer.core.terrain.Flags#FLY} denied.
+     * {@link Flags#FLY} denied.
      *
      * @param player The player to set the tag of flight return.
      * @param value  Whether to add or remove the tag.
