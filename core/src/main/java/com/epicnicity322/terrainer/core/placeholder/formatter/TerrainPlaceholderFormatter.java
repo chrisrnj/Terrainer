@@ -56,7 +56,7 @@ public interface TerrainPlaceholderFormatter<O, P extends O> extends PriorityPla
         } catch (IllegalArgumentException e) {
             // Getting terrain by name.
             String finalTerrain = terrain;
-            return StreamSupport.stream(TerrainManager.allTerrains().spliterator(), false)
+            return TerrainManager.allTerrains().stream()
                     .filter(t -> t.name().equals(finalTerrain))
                     .filter(t -> t.priority() <= priority)
                     .filter(t -> terrainFilter(t, player, params))
