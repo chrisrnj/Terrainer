@@ -78,7 +78,7 @@ public final class ListCommand extends Command {
         TreeSet<Terrain> terrains = new TreeSet<>(comparator);
 
         if (target == CommandUtil.TargetResponse.ALL) {
-            TerrainManager.allTerrains().forEach(terrains::add);
+            terrains.addAll(TerrainManager.allTerrains());
         } else {
             UUID id = target == CommandUtil.TargetResponse.CONSOLE ? null : target.id();
             for (Terrain t : TerrainManager.allTerrains()) {
