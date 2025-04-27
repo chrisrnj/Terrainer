@@ -1,6 +1,6 @@
 /*
  * Terrainer - A minecraft terrain claiming protection plugin.
- * Copyright (C) 2024 Christiano Rangel
+ * Copyright (C) 2025 Christiano Rangel
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,6 +18,7 @@
 
 package com.epicnicity322.terrainer.core.flag;
 
+import com.epicnicity322.epicpluginlib.core.util.StringUtils;
 import com.epicnicity322.terrainer.core.Terrainer;
 import com.epicnicity322.terrainer.core.config.Configurations;
 import com.epicnicity322.terrainer.core.terrain.Terrain;
@@ -48,25 +49,26 @@ public class Flag<T> {
         if (builder.isEmpty()) return "";
         return builder.substring(0, builder.length() - 1);
     };
-    private static final @NotNull Function<Boolean, String> booleanFormatter = bool -> Terrainer.lang().get(bool ? "Flags.Allow" : "Flags.Deny");
-    private static final @NotNull Function<Collection<?>, String> collectionFormatter = col -> {
+    static final @NotNull Function<Boolean, String> booleanFormatter = bool -> Terrainer.lang().get(bool ? "Flags.Allow" : "Flags.Deny");
+    static final @NotNull Function<Collection<?>, String> collectionFormatter = col -> {
         StringBuilder builder = new StringBuilder();
         for (Object o : col) builder.append(o.toString()).append(',');
         if (builder.isEmpty()) return "";
         return builder.substring(0, builder.length() - 1);
     };
-    private static final @NotNull Function<String, Boolean> booleanTransformer = input -> input.equalsIgnoreCase("true") || input.equalsIgnoreCase("allow");
-    private static final @NotNull Function<String, String> stringTransformer = input -> input;
-    private static final @NotNull Function<String, Set<String>> setTransformer = input -> Set.of(comma.split(input));
-    private static final @NotNull Function<String, List<String>> listTransformer = input -> List.of(comma.split(input));
-    private static final @NotNull Function<String, Integer> integerTransformer = input -> {
+    static final @NotNull Function<String, Boolean> booleanTransformer = input -> input.equalsIgnoreCase("true") || input.equalsIgnoreCase("allow");
+    static final @NotNull Function<String, String> stringTransformer = input -> input;
+    static final @NotNull Function<String, Set<String>> setTransformer = input -> Set.of(comma.split(input));
+    static final @NotNull Function<String, List<String>> listTransformer = input -> List.of(comma.split(input));
+    static final @NotNull Function<String, Integer> integerTransformer = input -> {
+        if (!StringUtils.isNumeric(input)) return 0;
         try {
             return Integer.parseInt(input);
         } catch (NumberFormatException e) {
             return 0;
         }
     };
-    private static final @NotNull Function<String, Map<String, String>> stringMapTransformer = input -> {
+    static final @NotNull Function<String, Map<String, String>> stringMapTransformer = input -> {
         String[] entries = comma.split(input);
         HashMap<String, String> map = new HashMap<>((int) (entries.length / .75f) + 1);
 
@@ -80,7 +82,7 @@ public class Flag<T> {
         }
         return Collections.unmodifiableMap(map);
     };
-    private static final @NotNull Function<String, Map<String, Integer>> integerMapTransformer = input -> {
+    static final @NotNull Function<String, Map<String, Integer>> integerMapTransformer = input -> {
         String[] entries = comma.split(input);
         HashMap<String, Integer> map = new HashMap<>((int) (entries.length / .75f) + 1);
 

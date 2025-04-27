@@ -1,6 +1,6 @@
 /*
  * Terrainer - A minecraft terrain claiming protection plugin.
- * Copyright (C) 2024 Christiano Rangel
+ * Copyright (C) 2025 Christiano Rangel
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -44,11 +44,11 @@ public final class Flags {
     /**
      * Allows everyone to use anvils.
      */
-    public static final @NotNull Flag<Boolean> ANVILS = Flag.newBooleanFlag("Anvils", false);
+    public static final @NotNull PlayerFlag<Boolean> ANVILS = PlayerFlag.newBooleanFlag("Anvils", false);
     /**
      * Allows everyone to use armor stands.
      */
-    public static final @NotNull Flag<Boolean> ARMOR_STANDS = Flag.newBooleanFlag("Armor Stands", false);
+    public static final @NotNull PlayerFlag<Boolean> ARMOR_STANDS = PlayerFlag.newBooleanFlag("Armor Stands", false);
     /**
      * Allows blocks such as ice, snow, cobblestone, obsidian, concrete to form.
      */
@@ -60,23 +60,23 @@ public final class Flags {
     /**
      * Allows everyone to build in a terrain, even non-members.
      */
-    public static final @NotNull Flag<Boolean> BUILD = Flag.newBooleanFlag("Build", false);
+    public static final @NotNull PlayerFlag<Boolean> BUILD = PlayerFlag.newBooleanFlag("Build", false);
     /**
      * Allows everyone to place and break boats.
      */
-    public static final @NotNull Flag<Boolean> BUILD_BOATS = Flag.newBooleanFlag("Build Boats", false);
+    public static final @NotNull PlayerFlag<Boolean> BUILD_BOATS = PlayerFlag.newBooleanFlag("Build Boats", false);
     /**
      * Allows everyone to place and break minecarts.
      */
-    public static final @NotNull Flag<Boolean> BUILD_MINECARTS = Flag.newBooleanFlag("Build Minecarts", false);
+    public static final @NotNull PlayerFlag<Boolean> BUILD_MINECARTS = PlayerFlag.newBooleanFlag("Build Minecarts", false);
     /**
      * Allows everyone to use buttons and levers.
      */
-    public static final @NotNull Flag<Boolean> BUTTONS = Flag.newBooleanFlag("Buttons", false);
+    public static final @NotNull PlayerFlag<Boolean> BUTTONS = PlayerFlag.newBooleanFlag("Buttons", false);
     /**
      * Allows everyone to use cauldrons.
      */
-    public static final @NotNull Flag<Boolean> CAULDRONS = Flag.newBooleanFlag("Cauldrons", false);
+    public static final @NotNull PlayerFlag<Boolean> CAULDRONS = PlayerFlag.newBooleanFlag("Cauldrons", false);
     /**
      * Allows cauldrons to be filled with dripstone or rain, or to evaporate due to a dry biome.
      */
@@ -84,51 +84,51 @@ public final class Flags {
     /**
      * A list of commands, separated by comma, that are not allowed to be executed in the terrain. Add * to the list to make it a whitelist.
      */
-    public static final @NotNull Flag<Set<String>> COMMAND_BLACKLIST = Flag.newSetFlag("Command Blacklist", null);
+    public static final @NotNull PlayerFlag<Set<String>> COMMAND_BLACKLIST = PlayerFlag.newSetFlag("Command Blacklist", null);
     /**
      * Allows everyone to open barrels, chests, hoppers, and other containers.
      */
-    public static final @NotNull Flag<Boolean> CONTAINERS = Flag.newBooleanFlag("Containers", false);
+    public static final @NotNull PlayerFlag<Boolean> CONTAINERS = PlayerFlag.newBooleanFlag("Containers", false);
     /**
      * Allows dispensers inside the terrain to fire.
      */
-    public static final @NotNull Flag<Boolean> DISPENSERS = Flag.newBooleanFlag("Dispensers", true);
+    public static final @NotNull PlayerFlag<Boolean> DISPENSERS = PlayerFlag.newBooleanFlag("Dispensers", true);
     /**
      * Allows everyone to open and close doors, trapdoors and gates.
      */
-    public static final @NotNull Flag<Boolean> DOORS = Flag.newBooleanFlag("Doors", false);
+    public static final @NotNull PlayerFlag<Boolean> DOORS = PlayerFlag.newBooleanFlag("Doors", false);
     /**
      * Prevents players from eating food in terrains.
      */
-    public static final @NotNull Flag<Boolean> EAT = Flag.newBooleanFlag("Eat", true);
+    public static final @NotNull PlayerFlag<Boolean> EAT = PlayerFlag.newBooleanFlag("Eat", true);
     /**
      * Prevents players from harming enemy entities.
      */
-    public static final @NotNull Flag<Boolean> ENEMY_HARM = Flag.newBooleanFlag("Enemy Harm", true);
+    public static final @NotNull PlayerFlag<Boolean> ENEMY_HARM = PlayerFlag.newBooleanFlag("Enemy Harm", true);
     /**
      * Allows everyone to enter the terrain.
      */
-    public static final @NotNull Flag<Boolean> ENTER = Flag.newBooleanFlag("Enter", true);
+    public static final @NotNull PlayerFlag<Boolean> ENTER = PlayerFlag.newBooleanFlag("Enter", true);
     /**
      * A list of commands to execute on console when a player enters the terrain. Use %p for the player's name, %t for the terrain's ID.
      */
-    public static final @NotNull Flag<List<String>> ENTER_CONSOLE_COMMANDS = Flag.newListFlag("Enter Console Commands", null);
+    public static final @NotNull PlayerFlag<List<String>> ENTER_CONSOLE_COMMANDS = PlayerFlag.newListFlag("Enter Console Commands", null);
     /**
      * A list of commands to execute as the player when a player enters the terrain. Use %p for the player's name, %t for the terrain's ID.
      */
-    public static final @NotNull Flag<List<String>> ENTER_PLAYER_COMMANDS = Flag.newListFlag("Enter Player Commands", null);
+    public static final @NotNull PlayerFlag<List<String>> ENTER_PLAYER_COMMANDS = PlayerFlag.newListFlag("Enter Player Commands", null);
     /**
      * Allows everyone to enter vehicles.
      */
-    public static final @NotNull Flag<Boolean> ENTER_VEHICLES = Flag.newBooleanFlag("Enter Vehicles", false);
+    public static final @NotNull PlayerFlag<Boolean> ENTER_VEHICLES = PlayerFlag.newBooleanFlag("Enter Vehicles", false);
     /**
      * Allows everyone to harm mobs.
      */
-    public static final @NotNull Flag<Boolean> ENTITY_HARM = Flag.newBooleanFlag("Entity Harm", false);
+    public static final @NotNull PlayerFlag<Boolean> ENTITY_HARM = PlayerFlag.newBooleanFlag("Entity Harm", false);
     /**
      * Allows everyone to interact with entities, breed entities in a terrain.
      */
-    public static final @NotNull Flag<Boolean> ENTITY_INTERACTIONS = Flag.newBooleanFlag("Entity Interactions", false);
+    public static final @NotNull PlayerFlag<Boolean> ENTITY_INTERACTIONS = PlayerFlag.newBooleanFlag("Entity Interactions", false);
     /**
      * Allows blocks being damaged by explosives.
      */
@@ -144,37 +144,37 @@ public final class Flags {
     /**
      * Prevents players from flying.
      */
-    public static final @NotNull Flag<Boolean> FLY = Flag.newBooleanFlag("Fly", true);
+    public static final @NotNull PlayerFlag<Boolean> FLY = PlayerFlag.newBooleanFlag("Fly", true);
     /**
      * Allows everyone to freeze water using frost walker enchanted boots.
      */
-    public static final @NotNull Flag<Boolean> FROST_WALK = Flag.newBooleanFlag("Frost Walk", false);
+    public static final @NotNull PlayerFlag<Boolean> FROST_WALK = PlayerFlag.newBooleanFlag("Frost Walk", false);
     /**
      * Prevents players from gliding using elytras.
      */
-    public static final @NotNull Flag<Boolean> GLIDE = Flag.newBooleanFlag("Glide", true);
+    public static final @NotNull PlayerFlag<Boolean> GLIDE = PlayerFlag.newBooleanFlag("Glide", true);
     /**
      * Allows non-members interacting with any interactable block, such as beacons, dragon eggs, flower pots, jukeboxes,
      * noteblocks, respawn anchors etc.
      */
-    public static final @NotNull Flag<Boolean> INTERACTIONS = Flag.newBooleanFlag("Interactions", false);
+    public static final @NotNull PlayerFlag<Boolean> INTERACTIONS = PlayerFlag.newBooleanFlag("Interactions", false);
     /**
      * Allows everyone to drop items.
      */
-    public static final @NotNull Flag<Boolean> ITEM_DROP = Flag.newBooleanFlag("Item Drop", false);
+    public static final @NotNull PlayerFlag<Boolean> ITEM_DROP = PlayerFlag.newBooleanFlag("Item Drop", false);
     /**
      * Allows everyone to rotate and place items on item frames. Taking items off requires {@link Flags#BUILD}.
      */
-    public static final @NotNull Flag<Boolean> ITEM_FRAMES = Flag.newBooleanFlag("Item Frames", false);
+    public static final @NotNull PlayerFlag<Boolean> ITEM_FRAMES = PlayerFlag.newBooleanFlag("Item Frames", false);
     /**
      * Allows everyone to pick up items in a terrain.
      */
-    public static final @NotNull Flag<Boolean> ITEM_PICKUP = Flag.newBooleanFlag("Item Pickup", false);
+    public static final @NotNull PlayerFlag<Boolean> ITEM_PICKUP = PlayerFlag.newBooleanFlag("Item Pickup", false);
     /**
      * Allows players to pick up only the items they dropped themselves, such as in death or item drop event.
      */
     // TODO:
-    public static final @NotNull Flag<Boolean> ITEM_PICKUP_OWN = Flag.newBooleanFlag("Item Pickup Own", false);
+    public static final @NotNull PlayerFlag<Boolean> ITEM_PICKUP_OWN = PlayerFlag.newBooleanFlag("Item Pickup Own", false);
     /**
      * Allows leaf blocks to decay naturally.
      */
@@ -182,16 +182,16 @@ public final class Flags {
     /**
      * Allows everyone to leave the terrain.
      */
-    public static final @NotNull Flag<Boolean> LEAVE = Flag.newBooleanFlag("Leave", true);
+    public static final @NotNull PlayerFlag<Boolean> LEAVE = PlayerFlag.newBooleanFlag("Leave", true);
     /**
      * A list of commands to execute on console when a player leaves the terrain. Use %p for the player's name, %t for the terrain's ID.
      */
-    public static final @NotNull Flag<List<String>> LEAVE_CONSOLE_COMMANDS = Flag.newListFlag("Leave Console Commands", null);
+    public static final @NotNull PlayerFlag<List<String>> LEAVE_CONSOLE_COMMANDS = PlayerFlag.newListFlag("Leave Console Commands", null);
     /**
      * Sends a leave message to the player leaving the terrain. When this flag has no data, the default farewell message
      * in language is used.
      */
-    public static final @NotNull Flag<String> LEAVE_MESSAGE = new Flag<>("Leave Message", "", input -> {
+    public static final @NotNull PlayerFlag<String> LEAVE_MESSAGE = new PlayerFlag<>("Leave Message", "", input -> {
         int max = Configurations.CONFIG.getConfiguration().getNumber("Max Description Length").orElse(30).intValue();
         if (input.length() > max) {
             throw new FlagTransformException(Terrainer.lang().get("Description.Max").replace("<max>", Integer.toString(max)));
@@ -201,11 +201,11 @@ public final class Flags {
     /**
      * A list of commands to execute as the player when a player leaves the terrain. Use %p for the player's name, %t for the terrain's ID.
      */
-    public static final @NotNull Flag<List<String>> LEAVE_PLAYER_COMMANDS = Flag.newListFlag("Leave Player Commands", null);
+    public static final @NotNull PlayerFlag<List<String>> LEAVE_PLAYER_COMMANDS = PlayerFlag.newListFlag("Leave Player Commands", null);
     /**
      * Allows everyone to use lighters such as fireballs or flint and steel.
      */
-    public static final @NotNull Flag<Boolean> LIGHTERS = Flag.newBooleanFlag("Lighters", false);
+    public static final @NotNull PlayerFlag<Boolean> LIGHTERS = PlayerFlag.newBooleanFlag("Lighters", false);
     /**
      * Allows water and lava to flow.
      */
@@ -214,7 +214,7 @@ public final class Flags {
      * Changes the location where enter and leave messages will be shown. By default, terrains send messages in the
      * "title", but the values "actionbar", "bossbar", "chat", and "none" are supported.
      */
-    public static final @NotNull Flag<String> MESSAGE_LOCATION = new Flag<>("Message Location", "title", input -> {
+    public static final @NotNull PlayerFlag<String> MESSAGE_LOCATION = new PlayerFlag<>("Message Location", "title", input -> {
         input = input.toLowerCase(Locale.ROOT);
         return switch (input) {
             case "actionbar", "bossbar", "chat", "none", "title" -> input;
@@ -228,11 +228,11 @@ public final class Flags {
     /**
      * Allows moderators to edit terrain flags, except for flags that control moderator permissions.
      */
-    public static final @NotNull Flag<Boolean> MODS_CAN_EDIT_FLAGS = Flag.newBooleanFlag("Mods Can Edit Flags", true);
+    public static final @NotNull PlayerFlag<Boolean> EDIT_FLAGS = PlayerFlag.newBooleanFlag("Edit Flags", true);
     /**
      * Whether moderators can grant or revoke the moderation role of other players in a terrain.
      */
-    public static final @NotNull Flag<Boolean> MODS_CAN_MANAGE_MODS = Flag.newBooleanFlag("Mods Can Manage Mods", false);
+    public static final @NotNull PlayerFlag<Boolean> MANAGE_MODERATORS = PlayerFlag.newBooleanFlag("Manage Moderators", false);
     /**
      * Allows dispensers outside the terrain firing into the inside.
      */
@@ -244,7 +244,7 @@ public final class Flags {
     /**
      * Allows outside projectiles to land inside the terrain.
      */
-    public static final @NotNull Flag<Boolean> OUTSIDE_PROJECTILES = Flag.newBooleanFlag("Outside Projectiles", false);
+    public static final @NotNull PlayerFlag<Boolean> OUTSIDE_PROJECTILES = PlayerFlag.newBooleanFlag("Outside Projectiles", false);
     /**
      * Allows pistons inside the terrain moving blocks.
      */
@@ -253,7 +253,7 @@ public final class Flags {
      * Allows everyone to plant and break crops on farmland.
      */
     //TODO:
-    public static final @NotNull Flag<Boolean> PLANT = Flag.newBooleanFlag("Plant", false);
+    public static final @NotNull PlayerFlag<Boolean> PLANT = PlayerFlag.newBooleanFlag("Plant", false);
     /**
      * Allows trees, crops, grass, etc. to grow naturally or from bone meal.
      */
@@ -261,24 +261,24 @@ public final class Flags {
     /**
      * Allows everyone to drink or throw potions in the terrain.
      */
-    public static final @NotNull Flag<Boolean> POTIONS = Flag.newBooleanFlag("Potions", false);
+    public static final @NotNull PlayerFlag<Boolean> POTIONS = PlayerFlag.newBooleanFlag("Potions", false);
     /**
      * Allows everyone to use preparing blocks, such as cartography tables, crafting tables, enchanting tables,
      * grindstones, looms, smithing tables, and stonecutters.
      */
-    public static final @NotNull Flag<Boolean> PREPARE = Flag.newBooleanFlag("Prepare", true);
+    public static final @NotNull PlayerFlag<Boolean> PREPARE = PlayerFlag.newBooleanFlag("Prepare", true);
     /**
      * Allows everyone to press pressure plates.
      */
-    public static final @NotNull Flag<Boolean> PRESSURE_PLATES = Flag.newBooleanFlag("Pressure Plates", false);
+    public static final @NotNull PlayerFlag<Boolean> PRESSURE_PLATES = PlayerFlag.newBooleanFlag("Pressure Plates", false);
     /**
      * Allows everyone to shoot projectiles.
      */
-    public static final @NotNull Flag<Boolean> PROJECTILES = Flag.newBooleanFlag("Projectiles", false);
+    public static final @NotNull PlayerFlag<Boolean> PROJECTILES = PlayerFlag.newBooleanFlag("Projectiles", false);
     /**
      * Allows players to engage in combat.
      */
-    public static final @NotNull Flag<Boolean> PVP = Flag.newBooleanFlag("PvP", false);
+    public static final @NotNull PlayerFlag<Boolean> PVP = PlayerFlag.newBooleanFlag("PvP", false);
     /**
      * Show particles at the terrain's boundaries.
      */
@@ -286,11 +286,11 @@ public final class Flags {
     /**
      * Allows everyone to right-click signs.
      */
-    public static final @NotNull Flag<Boolean> SIGN_CLICK = Flag.newBooleanFlag("Sign Click", false);
+    public static final @NotNull PlayerFlag<Boolean> SIGN_CLICK = PlayerFlag.newBooleanFlag("Sign Click", false);
     /**
      * Allows everyone to edit signs.
      */
-    public static final @NotNull Flag<Boolean> SIGN_EDIT = Flag.newBooleanFlag("Sign Edit", false);
+    public static final @NotNull PlayerFlag<Boolean> SIGN_EDIT = PlayerFlag.newBooleanFlag("Sign Edit", false);
     /**
      * Allows spawners to spawn mobs.
      */
@@ -303,15 +303,15 @@ public final class Flags {
      * Allows everyone to use hoes on grass blocks.
      */
     //TODO:
-    public static final @NotNull Flag<Boolean> TILL = Flag.newBooleanFlag("Till", false);
+    public static final @NotNull PlayerFlag<Boolean> TILL = PlayerFlag.newBooleanFlag("Till", false);
     /**
      * Allows everyone to trample farmland blocks.
      */
-    public static final @NotNull Flag<Boolean> TRAMPLE = Flag.newBooleanFlag("Trample", false);
+    public static final @NotNull PlayerFlag<Boolean> TRAMPLE = PlayerFlag.newBooleanFlag("Trample", false);
     /**
      * Do not freeze player's health and saturation.
      */
-    public static final @NotNull Flag<Boolean> VULNERABILITY = Flag.newBooleanFlag("Vulnerability", true);
+    public static final @NotNull PlayerFlag<Boolean> VULNERABILITY = PlayerFlag.newBooleanFlag("Vulnerability", true);
 
     private static @NotNull Predicate<String> effectChecker = effect -> true;
 
@@ -319,7 +319,7 @@ public final class Flags {
      * Gives the effects to the players in the terrain like a beacon. Upon leaving the terrain, the effects are removed.
      */
     @SuppressWarnings("unchecked")
-    public static final @NotNull Flag<Map<String, Integer>> EFFECTS = new Flag<>("Effects", (Class<Map<String, Integer>>) (Class<?>) Map.class, Collections.emptyMap(), input -> {
+    public static final @NotNull PlayerFlag<Map<String, Integer>> EFFECTS = new PlayerFlag<>("Effects", (Class<Map<String, Integer>>) (Class<?>) Map.class, Collections.emptyMap(), input -> {
         String[] entries = Flag.comma.split(input);
         HashMap<String, Integer> map = new HashMap<>((int) (entries.length / .75f) + 1);
 
@@ -352,7 +352,7 @@ public final class Flags {
             ENTER_PLAYER_COMMANDS, ENTER_VEHICLES, ENTITY_HARM, ENTITY_INTERACTIONS, EXPLOSION_DAMAGE, FIRE_DAMAGE,
             FIRE_SPREAD, FLY, FROST_WALK, GLIDE, INTERACTIONS, ITEM_DROP, ITEM_FRAMES, ITEM_PICKUP, ITEM_PICKUP_OWN,
             LEAF_DECAY, LEAVE, LEAVE_CONSOLE_COMMANDS, LEAVE_MESSAGE, LEAVE_PLAYER_COMMANDS, LIGHTERS, LIQUID_FLOW,
-            MESSAGE_LOCATION, MOB_SPAWN, MODS_CAN_EDIT_FLAGS, MODS_CAN_MANAGE_MODS, OUTSIDE_DISPENSERS, OUTSIDE_PISTONS,
+            MESSAGE_LOCATION, MOB_SPAWN, EDIT_FLAGS, MANAGE_MODERATORS, OUTSIDE_DISPENSERS, OUTSIDE_PISTONS,
             OUTSIDE_PROJECTILES, PISTONS, PLANT, PLANT_GROW, POTIONS, PREPARE, PRESSURE_PLATES, PROJECTILES, PVP,
             SHOW_BORDERS, SIGN_CLICK, SIGN_EDIT, SPAWNERS, SPONGES, TILL, TRAMPLE, VULNERABILITY));
     private static final @NotNull Set<Flag<?>> unmodifiableValues = Collections.unmodifiableSet(values);
