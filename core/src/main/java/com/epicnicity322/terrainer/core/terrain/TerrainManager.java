@@ -31,6 +31,8 @@ import com.epicnicity322.terrainer.core.flag.Flags;
 import com.epicnicity322.terrainer.core.location.Chunk;
 import com.epicnicity322.terrainer.core.location.WorldChunk;
 import com.epicnicity322.terrainer.core.location.WorldCoordinate;
+import com.epicnicity322.terrainer.core.util.LongTaskFeedback;
+import com.epicnicity322.terrainer.core.util.TerrainerUtil;
 import com.google.common.collect.Iterables;
 import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.Contract;
@@ -801,28 +803,31 @@ public final class TerrainManager {
      * @param name  The name of the world to set as the terrain's name.
      */
     public static void loadWorld(@NotNull UUID world, @NotNull String name) {
-        Terrain savedWorld = remove(world, false);
+        Terrain savedWorld = terrainByID(world);
 
         // Converting saved world to WorldTerrain. If none was found, this means this is a new world, so creating new.
         if (savedWorld == null) {
             savedWorld = new WorldTerrain(world, name);
             if (!add(savedWorld)) return;
-        } else {
+        } else if (!(savedWorld instanceof WorldTerrain)) {
+            remove(world, false);
             savedWorld = new WorldTerrain(savedWorld, name);
             if (!addWithoutAutoSave(savedWorld)) return;
         }
 
         if (Configurations.CONFIG.getConfiguration().getBoolean("Alert Dangerous Flags").orElse(false)) {
-            alertDangerousFlagAllowed(savedWorld, Flags.EXPLOSION_DAMAGE);
-            alertDangerousFlagAllowed(savedWorld, Flags.FIRE_DAMAGE);
-            alertDangerousFlagAllowed(savedWorld, Flags.FIRE_SPREAD);
+            alertDangerousFlagAllowed(savedWorld);
         }
     }
 
-    private static void alertDangerousFlagAllowed(@NotNull Terrain terrain, @NotNull Flag<Boolean> flag) {
-        Boolean state = terrain.flags().getData(flag);
-        if (state == null || state) {
-            Terrainer.logger().log("&r" + flag.id() + "&r is &cALLOWED&r for " + terrain.name());
+    private static void alertDangerousFlagAllowed(@NotNull Terrain terrain) {
+        var allowedFlags = Stream.of(Flags.EXPLOSION_DAMAGE, Flags.FIRE_DAMAGE, Flags.FIRE_SPREAD).filter(flag -> {
+            Boolean state = terrain.flags().getData(flag);
+            return state == null || state;
+        }).toList();
+
+        if (!allowedFlags.isEmpty()) {
+            Terrainer.logger().log(String.format("&r%s&r %s &cALLOWED&r for %s.", TerrainerUtil.listToString(allowedFlags, Flag::id), allowedFlags.size() == 1 ? "is" : "are", terrain.name()));
         }
     }
 
@@ -838,8 +843,20 @@ public final class TerrainManager {
             Files.createDirectories(TERRAINS_FOLDER);
             return;
         }
-        try (Stream<Path> terrainFiles = Files.list(TERRAINS_FOLDER)) {
-            terrainFiles.filter(file -> file.toString().endsWith(".terrain")).forEach(terrainFile -> {
+        if (!Files.isDirectory(TERRAINS_FOLDER)) return;
+
+        long amount;
+        try (Stream<Path> terrainFiles = Files.walk(TERRAINS_FOLDER).filter(file -> file.toString().endsWith(".terrain"))) {
+            amount = terrainFiles.count();
+            if (amount == 0) return;
+        }
+
+        Terrainer.logger().log("Loading terrains...");
+
+        LongTaskFeedback feedback = new LongTaskFeedback(amount, 7, (progress, current) -> Terrainer.logger().log("Loading terrains... &8[" + progress + "&8] (&7" + current + "&8/&7" + amount + "&8)"));
+
+        try (Stream<Path> terrainFiles = Files.walk(TERRAINS_FOLDER).filter(file -> file.toString().endsWith(".terrain")).parallel()) {
+            terrainFiles.forEach(terrainFile -> {
                 try {
                     addWithoutAutoSave(Terrain.fromFile(terrainFile));
                 } catch (Exception e) {
@@ -855,6 +872,7 @@ public final class TerrainManager {
                         Terrainer.logger().log("Something went wrong while renaming the file.", ConsoleLogger.Level.ERROR);
                     }
                 }
+                feedback.increment();
             });
         }
     }

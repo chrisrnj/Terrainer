@@ -1,6 +1,6 @@
 /*
  * Terrainer - A minecraft terrain claiming protection plugin.
- * Copyright (C) 2024 Christiano Rangel
+ * Copyright (C) 2025 Christiano Rangel
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -238,17 +238,18 @@ public final class Configurations {
               # Bypass: terrainer.wand.info.nocooldown
               Cooldown: 3600 #seconds
             
-            # The commands to execute when a player joins the server in a terrain, and the TerrainEnterEvent is cancelled.
-            # An example of this happening is if the player had permission to enter a terrain which ENTRY flag is denied,
-            #and when they left the server their permission to the terrain was revoked. So when they join later,
-            #TerrainEnterEvent will be cancelled because the player is not allowed, then these commands will execute.
-            # This is not exclusive to ENTRY flag denied, any hooking plugin might cancel TerrainEnterEvent in any occasion.
+            # The commands to execute when a player joins the server in a terrain, and the TerrainCanEnterEvent is cancelled.
+            # The enter event can be canceled under specific conditions. For example, if a player logs out while inside
+            #a terrain where the ENTER flag is set to false, and their permission to enter that terrain is revoked, they
+            #should be unable to re-enter upon reconnecting. When they join the server again, entry to that terrain will be
+            #denied, triggering the following commands to teleport them to the default area.
+            # This is not exclusive to ENTER flag denied, any hooking plugin might cancel TerrainCanEnterEvent in any occasion.
             # It is suggested to teleport the player to a place where entry is always allowed, either that or kick the
             #player from the server.
             # Use %p for the player's name.
             Commands When TerrainEnterEvent Cancelled on Join or Create:
-            - 'tp %p 0 64 0'
-            #- 'spawn %p'
+            - 'tp %p 0 70 0'
+            - 'spawn %p'
             #- 'kick %p You tried to join in a terrain where ENTRY is denied.'
             
             Protections And Performance:
@@ -268,9 +269,10 @@ public final class Configurations {
               # Creature Spawn Event is responsible for handling Mob Spawn and Spawner Spawn flags. Disabling it can
               #improve performance, but at a cost of losing those flags.
               Disable Creature Spawn Event: false
-              # Players will be able to enter terrains with ENTER flag denied IF there's a higher priority terrain on the
-              #same location with ENTER flag allowed. Disable it to protect the player from leaving a terrain with ENTER
-              #allowed into a terrain with ENTER denied. This will also affect FLIGHT and GLIDE protections.
+              # If enabled, players will be able to enter terrains where the ENTER flag is denied, provided there is a
+              #higher-priority terrain at the same location with the ENTER flag allowed.
+              # By default, this option is disabled, preventing players moving from a terrain where ENTER is allowed
+              #into one where it is prohibited. This will also affect FLIGHT and GLIDE.
               Allow Higher Priority Entrances: false
             
             Input:
@@ -700,9 +702,10 @@ public final class Configurations {
               World: 'world'
             
             Target:
-              And: 'and'
+              And: ' and '
               Console: 'Console'
               Everyone: 'Everyone'
+              List Separator: ', '
               None: 'None'
               You: 'You'
             

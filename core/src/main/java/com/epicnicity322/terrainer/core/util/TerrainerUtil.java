@@ -1,6 +1,6 @@
 /*
  * Terrainer - A minecraft terrain claiming protection plugin.
- * Copyright (C) 2024 Christiano Rangel
+ * Copyright (C) 2025 Christiano Rangel
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -38,9 +38,9 @@ public final class TerrainerUtil {
             if (applied.isBlank()) continue;
             formatted.append(applied);
             if (i + 1 == size) {
-                formatted.append(", ").append(Terrainer.lang().get("Target.And")).append(" ");
+                formatted.append(Terrainer.lang().get("Target.And"));
             } else if (i != size) {
-                formatted.append(", ");
+                formatted.append(Terrainer.lang().get("Target.List Separator"));
             }
             i++;
         }
