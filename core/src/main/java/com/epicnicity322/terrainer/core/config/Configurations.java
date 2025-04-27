@@ -712,7 +712,7 @@ public final class Configurations {
             Permission:
               Error:
                 Console: '&4You can not manage permissions of console.'
-                Mods Can Manage Mods Denied: '&4Moderators are not allowed to manage moderation roles in this terrain.'
+                Manage Other Moderators Denied: '&4You are not allowed to manage moderation roles in this terrain.'
                 Multiple: '&4You can only manage permission of one player at a time.'
                 Owner: '&4This player owns the terrain.'
               Moderator:
@@ -872,11 +872,11 @@ public final class Configurations {
               Allow: '&a&lALLOW'
               Deny: '&c&lDENY'
               Undefined: '&7&lUndefined'
-              Set: '&7Flag <flag>&7 set for the terrain &f<name>&7 with value: &f<state>&7.'
-              Unset: '&7Flag <flag>&7 removed from terrain &f<name>&7.'
+              Set: '&7Flag &f<flag>&7 set for the terrain &f<name>&7 with value: &f<state>&7.'
+              Unset: '&7Flag &f<flag>&7 removed from terrain &f<name>&7.'
               Default Alert: '&7Terrain &f<name>&7 will now use the default value of <flag>&7: &f<state>&7.'
               Error:
-                Default: '&4Unable to set flag <flag>&4: &f<message>'
+                Default: '&4Unable to set flag &f<flag>&4: &f<message>'
                 Message Location: '&4The only accepted values for message location are: &7ActionBar&4, &7BossBar&4, &7Chat&4, &7Title&4 or &7NONE&4.'
                 Not Owner: '&4Only the owner is allowed to edit this flag.'
                 Unknown: '&4Something went wrong while setting this flag. Please contact an administrator.'

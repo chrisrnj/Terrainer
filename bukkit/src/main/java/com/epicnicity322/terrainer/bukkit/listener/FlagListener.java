@@ -1,6 +1,6 @@
 /*
  * Terrainer - A minecraft terrain claiming protection plugin.
- * Copyright (C) 2024 Christiano Rangel
+ * Copyright (C) 2025 Christiano Rangel
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -43,7 +43,7 @@ import java.util.UUID;
 
 /**
  * A listener of flag set and unset events. Used for applying effects when the {@link Flags#EFFECTS} is set/unset, and
- * for enforcing the flags {@link Flags#MODS_CAN_MANAGE_MODS} and {@link Flags#MODS_CAN_EDIT_FLAGS}.
+ * for enforcing the flags {@link Flags#MANAGE_MODERATORS} and {@link Flags#EDIT_FLAGS}.
  * <p>
  * Players with permission {@link Flag#editPermission()} + ".others" are always allowed to edit the flags in terrains
  * they don't own.
@@ -103,7 +103,7 @@ public final class FlagListener implements Listener {
     public void onUserFlagSet(UserFlagSetEvent event) {
         Flag<?> flag = event.flag();
 
-        if (flag != Flags.MODS_CAN_MANAGE_MODS && flag != Flags.MODS_CAN_EDIT_FLAGS) return;
+        if (flag != Flags.MANAGE_MODERATORS && flag != Flags.EDIT_FLAGS) return;
         if (event.sender().hasPermission(flag.editPermission() + ".others")) return;
         if (!(event.sender() instanceof Player player)) return;
 
@@ -117,7 +117,7 @@ public final class FlagListener implements Listener {
     public void onUserFlagUnset(UserFlagUnsetEvent event) {
         Flag<?> flag = event.flag();
 
-        if (flag != Flags.MODS_CAN_MANAGE_MODS && flag != Flags.MODS_CAN_EDIT_FLAGS) return;
+        if (flag != Flags.MANAGE_MODERATORS && flag != Flags.EDIT_FLAGS) return;
         if (event.sender().hasPermission(flag.editPermission() + ".others")) return;
         if (!(event.sender() instanceof Player player)) return;
 

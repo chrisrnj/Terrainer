@@ -1,6 +1,6 @@
 /*
  * Terrainer - A minecraft terrain claiming protection plugin.
- * Copyright (C) 2024 Christiano Rangel
+ * Copyright (C) 2025 Christiano Rangel
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -55,9 +55,14 @@ public abstract class PermissionCommand extends Command implements Permission {
     }
 
     private static boolean canManageModerators(@NotNull CommandSender sender, @NotNull Terrain terrain) {
-        Boolean denyModsManagingMods = (denyModsManagingMods = terrain.flags().getData(Flags.MODS_CAN_MANAGE_MODS)) != null && !denyModsManagingMods;
+        if (sender.hasPermission(Flags.MANAGE_MODERATORS.bypassPermission()) || !(sender instanceof Player player) || player.getUniqueId().equals(terrain.owner())) {
+            return true;
+        }
 
-        return sender.hasPermission("terrainer.bypass.modscanmanagemods") || !denyModsManagingMods || !(sender instanceof Player player) || player.getUniqueId().equals(terrain.owner());
+        Boolean canManageOtherMods = terrain.memberFlags().getData(player.getUniqueId(), Flags.MANAGE_MODERATORS);
+        if (canManageOtherMods == null) canManageOtherMods = terrain.flags().getData(Flags.MANAGE_MODERATORS);
+
+        return canManageOtherMods != null && canManageOtherMods;
     }
 
     public void setMemberAliases(@NotNull String @Nullable [] memberAliases) {
@@ -110,7 +115,7 @@ public abstract class PermissionCommand extends Command implements Permission {
             if (args.length > 1) {
                 if (args[1].equalsIgnoreCase("moderator") || contains(moderatorAliases, args[1])) {
                     if (!canManageModerators(sender, terrain)) {
-                        lang.send(sender, lang.get("Permission.Error.Mods Can Manage Mods Denied"));
+                        lang.send(sender, lang.get("Permission.Error.Manage Other Moderators Denied"));
                         return;
                     }
                     mod = true;
@@ -158,7 +163,7 @@ public abstract class PermissionCommand extends Command implements Permission {
                 }
             } else {
                 if (terrain.moderators().view().contains(toAdd) && !PermissionCommand.canManageModerators(sender, terrain)) {
-                    lang.send(sender, lang.get("Permission.Error.Mods Can Manage Mods Denied"));
+                    lang.send(sender, lang.get("Permission.Error.Manage Other Moderators Denied"));
                     return;
                 }
                 if (terrain.members().view().contains(toAdd)) {
@@ -208,7 +213,7 @@ public abstract class PermissionCommand extends Command implements Permission {
             } else {
                 boolean isMod = terrain.moderators().view().contains(toAdd);
                 if (isMod && !PermissionCommand.canManageModerators(sender, terrain)) {
-                    lang.send(sender, lang.get("Permission.Error.Mods Can Manage Mods Denied"));
+                    lang.send(sender, lang.get("Permission.Error.Manage Other Moderators Denied"));
                     return;
                 }
                 if (!terrain.members().view().contains(toAdd) && !isMod) {
