@@ -1,6 +1,6 @@
 /*
  * Terrainer - A minecraft terrain claiming protection plugin.
- * Copyright (C) 2024 Christiano Rangel
+ * Copyright (C) 2025 Christiano Rangel
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -32,15 +32,19 @@ import com.epicnicity322.terrainer.bukkit.event.flag.FlagSetEvent;
 import com.epicnicity322.terrainer.bukkit.event.flag.FlagUnsetEvent;
 import com.epicnicity322.terrainer.bukkit.event.terrain.TerrainAddEvent;
 import com.epicnicity322.terrainer.bukkit.event.terrain.TerrainRemoveEvent;
+import com.epicnicity322.terrainer.bukkit.hook.EconomyHandler;
+import com.epicnicity322.terrainer.bukkit.hook.NMSHandler;
 import com.epicnicity322.terrainer.bukkit.hook.economy.VaultHook;
 import com.epicnicity322.terrainer.bukkit.hook.nms.ReflectionHook;
 import com.epicnicity322.terrainer.bukkit.hook.placeholderapi.TerrainerPlaceholderExpansion;
 import com.epicnicity322.terrainer.bukkit.listener.*;
-import com.epicnicity322.terrainer.bukkit.util.*;
+import com.epicnicity322.terrainer.bukkit.util.BukkitPlayerUtil;
+import com.epicnicity322.terrainer.bukkit.util.TaskFactory;
+import com.epicnicity322.terrainer.bukkit.util.ToggleableListener;
 import com.epicnicity322.terrainer.core.Terrainer;
 import com.epicnicity322.terrainer.core.TerrainerVersion;
 import com.epicnicity322.terrainer.core.config.Configurations;
-import com.epicnicity322.terrainer.core.terrain.Flags;
+import com.epicnicity322.terrainer.core.flag.Flags;
 import com.epicnicity322.terrainer.core.terrain.TerrainManager;
 import com.epicnicity322.terrainer.core.util.PlayerUtil;
 import com.epicnicity322.yamlhandler.Configuration;
@@ -323,25 +327,21 @@ public final class TerrainerPlugin extends JavaPlugin {
 
         loadCommands();
 
-        // Terrains might hold data of other plugins, so they only load after the server is done loading.
-        taskFactory.runGlobalAsyncTask(() -> {
-            try {
-                logger.log("Loading terrains...");
-                TerrainManager.load();
+        try {
+            TerrainManager.load();
 
-                // Loading worlds and world load listener.
-                for (World world : getServer().getWorlds()) TerrainManager.loadWorld(world.getUID(), world.getName());
-                pm.registerEvents(new WorldLoadListener(), this);
+            // Loading worlds and world load listener.
+            for (World world : getServer().getWorlds()) TerrainManager.loadWorld(world.getUID(), world.getName());
+            pm.registerEvents(new WorldLoadListener(), this);
 
-                logger.log(TerrainManager.allTerrains().size() + " terrains loaded.");
-            } catch (IOException e) {
-                logger.log("Unable to load terrains due to exception:", ConsoleLogger.Level.ERROR);
-                e.printStackTrace();
-            }
-            HandlerList.unregisterAll(preLoginListener);
+            logger.log(TerrainManager.allTerrains().size() + " terrains loaded.");
+        } catch (IOException e) {
+            logger.log("Unable to load terrains due to exception:", ConsoleLogger.Level.ERROR);
+            e.printStackTrace();
+        }
 
-            Terrainer.loadDailyTimer();
-        });
+        Terrainer.loadDailyTimer();
+        taskFactory.runGlobalTask(() -> HandlerList.unregisterAll(preLoginListener));
     }
 
     @SuppressWarnings("deprecation")
