@@ -1,6 +1,6 @@
 /*
  * Terrainer - A minecraft terrain claiming protection plugin.
- * Copyright (C) 2024 Christiano Rangel
+ * Copyright (C) 2025 Christiano Rangel
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,7 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.epicnicity322.terrainer.bukkit.util;
+package com.epicnicity322.terrainer.bukkit.hook;
 
 import com.epicnicity322.terrainer.core.util.PlayerUtil;
 import org.bukkit.entity.Player;

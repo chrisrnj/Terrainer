@@ -18,7 +18,7 @@
 
 package com.epicnicity322.terrainer.bukkit.hook.economy;
 
-import com.epicnicity322.terrainer.bukkit.util.EconomyHandler;
+import com.epicnicity322.terrainer.bukkit.hook.EconomyHandler;
 import net.milkbowl.vault.economy.Economy;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
