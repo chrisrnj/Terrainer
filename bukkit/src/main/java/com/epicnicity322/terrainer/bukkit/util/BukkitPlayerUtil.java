@@ -1,6 +1,6 @@
 /*
  * Terrainer - A minecraft terrain claiming protection plugin.
- * Copyright (C) 2024 Christiano Rangel
+ * Copyright (C) 2025 Christiano Rangel
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -118,7 +118,11 @@ public final class BukkitPlayerUtil extends PlayerUtil<Player, CommandSender> {
         //noinspection deprecation - backwards compatibility
         PotionEffectType type = PotionEffectType.getByName(effect);
         if (type == null) return;
-        player.addPotionEffect(new PotionEffect(type, Integer.MAX_VALUE, power, false, false));
+        if (plugin.getServer().isPrimaryThread()) {
+            player.addPotionEffect(new PotionEffect(type, Integer.MAX_VALUE, power, false, false));
+        } else {
+            plugin.getTaskFactory().runDelayed(player, 1, () -> player.addPotionEffect(new PotionEffect(type, Integer.MAX_VALUE, power, false, false)), null);
+        }
     }
 
     @Override
