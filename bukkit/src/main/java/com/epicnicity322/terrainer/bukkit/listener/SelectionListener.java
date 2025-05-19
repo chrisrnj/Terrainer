@@ -1,6 +1,6 @@
 /*
  * Terrainer - A minecraft terrain claiming protection plugin.
- * Copyright (C) 2024 Christiano Rangel
+ * Copyright (C) 2025 Christiano Rangel
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,7 +21,7 @@ package com.epicnicity322.terrainer.bukkit.listener;
 import com.epicnicity322.epicpluginlib.bukkit.lang.MessageSender;
 import com.epicnicity322.epicpluginlib.bukkit.util.InventoryUtils;
 import com.epicnicity322.terrainer.bukkit.TerrainerPlugin;
-import com.epicnicity322.terrainer.bukkit.command.InfoCommand;
+import com.epicnicity322.terrainer.bukkit.command.impl.InfoCommand;
 import com.epicnicity322.terrainer.bukkit.util.BukkitPlayerUtil;
 import com.epicnicity322.terrainer.core.config.Configurations;
 import com.epicnicity322.terrainer.core.location.Coordinate;
@@ -91,7 +91,7 @@ public final class SelectionListener implements Listener {
      * Refresh the items to the current settings in {@link Configurations#CONFIG}.
      */
     @ApiStatus.Internal
-    public static void reloadItems(@NotNull NamespacedKey selectorWandKey, @NotNull NamespacedKey infoWandKey) {
+    public void reloadItems() {
         Configuration config = Configurations.CONFIG.getConfiguration();
         selector = InventoryUtils.getItemStack("Selector Wand", config, TerrainerPlugin.getLanguage());
         selectorUnique = config.getBoolean("Selector Wand.Unique").orElse(true);
