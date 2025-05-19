@@ -18,7 +18,6 @@
 
 package com.epicnicity322.terrainer.bukkit;
 
-import com.epicnicity322.epicpluginlib.bukkit.command.Command;
 import com.epicnicity322.epicpluginlib.bukkit.command.CommandManager;
 import com.epicnicity322.epicpluginlib.bukkit.lang.MessageSender;
 import com.epicnicity322.epicpluginlib.bukkit.logger.Logger;
@@ -27,7 +26,8 @@ import com.epicnicity322.epicpluginlib.core.EpicPluginLib;
 import com.epicnicity322.epicpluginlib.core.config.ConfigurationHolder;
 import com.epicnicity322.epicpluginlib.core.logger.ConsoleLogger;
 import com.epicnicity322.epicpluginlib.core.tools.GitHubUpdateChecker;
-import com.epicnicity322.terrainer.bukkit.command.*;
+import com.epicnicity322.terrainer.bukkit.command.TerrainerCommand;
+import com.epicnicity322.terrainer.bukkit.command.impl.*;
 import com.epicnicity322.terrainer.bukkit.event.flag.FlagSetEvent;
 import com.epicnicity322.terrainer.bukkit.event.flag.FlagUnsetEvent;
 import com.epicnicity322.terrainer.bukkit.event.terrain.TerrainAddEvent;
@@ -49,7 +49,10 @@ import com.epicnicity322.terrainer.core.terrain.TerrainManager;
 import com.epicnicity322.terrainer.core.util.PlayerUtil;
 import com.epicnicity322.yamlhandler.Configuration;
 import com.epicnicity322.yamlhandler.ConfigurationSection;
-import org.bukkit.*;
+import org.bukkit.Bukkit;
+import org.bukkit.Material;
+import org.bukkit.NamespacedKey;
+import org.bukkit.World;
 import org.bukkit.command.PluginCommand;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -82,20 +85,6 @@ public final class TerrainerPlugin extends JavaPlugin {
     private static final @NotNull AtomicReference<TaskFactory.CancellableTask> updateChecker = new AtomicReference<>();
     private static @Nullable TerrainerPlugin instance;
     private static @Nullable EconomyHandler economyHandler;
-    private static @NotNull NMSHandler nmsHandler = new NMSHandler() {
-        @Override
-        public @NotNull PlayerUtil.SpawnedMarker spawnMarkerEntity(@NotNull Player player, int x, int y, int z, boolean edge, boolean selection) {
-            return new PlayerUtil.SpawnedMarker(0, new UUID(0, 0), new Object());
-        }
-
-        @Override
-        public void killEntity(@NotNull Player player, @NotNull PlayerUtil.SpawnedMarker marker) {
-        }
-
-        @Override
-        public void updateSelectionMarkerToTerrainMarker(@NotNull PlayerUtil.SpawnedMarker marker, @NotNull Player player) {
-        }
-    };
 
     static {
         Terrainer.setLang(lang);
@@ -108,24 +97,25 @@ public final class TerrainerPlugin extends JavaPlugin {
         lang.addLanguage("ES_LA", Configurations.LANG_EN_US);
     }
 
-    private final @NotNull BukkitPlayerUtil playerUtil = new BukkitPlayerUtil(this, defaultBlockLimits, defaultClaimLimits, nestedTerrainsCountTowardsBlockLimit, perWorldBlockLimit, perWorldClaimLimit, sumIfTheresMultipleBlockLimitPermissions, sumIfTheresMultipleClaimLimitPermissions);
-    private final @NotNull NamespacedKey selectorWandKey = new NamespacedKey(this, "selector-wand");
-    private final @NotNull NamespacedKey infoWandKey = new NamespacedKey(this, "info-wand");
+    private final @NotNull BukkitPlayerUtil playerUtil = new BukkitPlayerUtil(this, getNMSHandler(), defaultBlockLimits, defaultClaimLimits, nestedTerrainsCountTowardsBlockLimit, perWorldBlockLimit, perWorldClaimLimit, sumIfTheresMultipleBlockLimitPermissions, sumIfTheresMultipleClaimLimitPermissions);
+    private final @NotNull TaskFactory taskFactory = new TaskFactory(this);
     private final @NotNull BordersCommand bordersCommand = new BordersCommand(this);
     private final @NotNull InfoCommand infoCommand = new InfoCommand(bordersCommand);
-    private final @NotNull Set<Command> commands = Set.of(bordersCommand, new ClaimCommand(), new ConfirmCommand(), new DefineCommand(), new DeleteCommand(), new DescriptionCommand(), new FlagCommand(), new PermissionCommand.GrantCommand(), new PermissionCommand.RevokeCommand(), infoCommand, new LimitCommand(), new ListCommand(), new PosCommand.Pos1Command(), new PosCommand.Pos2Command(), new Pos3DCommand.Pos13DCommand(), new Pos3DCommand.Pos23DCommand(), new PriorityCommand(), new ReloadCommand(), new RenameCommand(), new ResizeCommand(), new ShopCommand(), new TeleportCommand(this), new TransferCommand(), new WandCommand(selectorWandKey, infoWandKey));
-    private final @NotNull PreLoginListener preLoginListener = new PreLoginListener();
-    private final @NotNull TaskFactory taskFactory = new TaskFactory(this);
+    private final @NotNull SelectionListener selectionListener = new SelectionListener(new NamespacedKey(this, "selector-wand"), new NamespacedKey(this, "info-wand"), infoCommand);
+    private final @NotNull Set<TerrainerCommand> commands = Set.of(bordersCommand, new ClaimCommand(), new ConfirmCommand(), new DefineCommand(), new DeleteCommand(), new DescriptionCommand(), new FlagCommand(), new PermissionCommand.GrantCommand(), new PermissionCommand.RevokeCommand(), infoCommand, new LimitCommand(), new ListCommand(infoCommand), new PosCommand.Pos1Command(), new PosCommand.Pos2Command(), new Pos3DCommand.Pos13DCommand(), new Pos3DCommand.Pos23DCommand(), new PriorityCommand(), new ReloadCommand(), new RenameCommand(), new ResizeCommand(), new ShopCommand(), new TeleportCommand(this), new TransferCommand(), new WandCommand());
     private final @NotNull AtomicBoolean enterLeaveEvents = new AtomicBoolean(true);
+    private final @NotNull PreLoginListener preLoginListener = new PreLoginListener();
     private final @NotNull ProtectionsListener protectionsListener;
     private final @NotNull PistonListener pistonListener;
     private final @NotNull BlockFromToListener blockFromToListener;
     private final @NotNull CreatureSpawnListener creatureSpawnListener;
     private final @NotNull EnterLeaveListener enterLeaveListener = new EnterLeaveListener();
     private final @NotNull EntityMoveListener entityMoveListener = new EntityMoveListener();
+    private final boolean reloadDetected;
 
     public TerrainerPlugin() {
         instance = this;
+        reloadDetected = !getServer().getWorlds().isEmpty() || !getServer().getOnlinePlayers().isEmpty();
         Terrainer.setPlayerUtil(playerUtil);
         logger.setLogger(getLogger());
         protectionsListener = new ProtectionsListener(this, bordersCommand);
@@ -149,8 +139,28 @@ public final class TerrainerPlugin extends JavaPlugin {
         return economyHandler;
     }
 
-    public static @NotNull NMSHandler getNMSHandler() {
-        return nmsHandler;
+    private static @NotNull NMSHandler getNMSHandler() {
+        try {
+            return new ReflectionHook();
+        } catch (Throwable t) {
+            logger.log("Unknown issue happened while using reflection. Markers will not work!", ConsoleLogger.Level.WARN);
+            t.printStackTrace();
+            // Dummy NMSHandler.
+            return new NMSHandler() {
+                @Override
+                public @NotNull PlayerUtil.SpawnedMarker spawnMarkerEntity(@NotNull Player player, int x, int y, int z, boolean edge, boolean selection) {
+                    return new PlayerUtil.SpawnedMarker(0, new UUID(0, 0), new Object());
+                }
+
+                @Override
+                public void killEntity(@NotNull Player player, @NotNull PlayerUtil.SpawnedMarker marker) {
+                }
+
+                @Override
+                public void updateSelectionMarkerToTerrainMarker(@NotNull PlayerUtil.SpawnedMarker marker, @NotNull Player player) {
+                }
+            };
+        }
     }
 
     /**
@@ -221,17 +231,11 @@ public final class TerrainerPlugin extends JavaPlugin {
         instance.enterLeaveEvents.set(!config.getBoolean("Protections And Performance.Disable Enter Leave Events").orElse(false));
         instance.reloadListeners();
 
-        // Borders Particle
-        String particleName = config.getString("Borders.Particle").orElse("CLOUD").toUpperCase(Locale.ROOT);
-        try {
-            instance.bordersCommand.setParticle(Particle.valueOf(particleName));
-        } catch (IllegalArgumentException e) {
-            logger.log("A particle with name '" + particleName + "' was not found. Using CLOUD as particle for borders.");
-            instance.bordersCommand.setParticle(Particle.CLOUD);
-        }
-
         // Selection and Info Items
-        SelectionListener.reloadItems(instance.selectorWandKey, instance.infoWandKey);
+        instance.selectionListener.reloadItems();
+
+        // Command aliases and settings
+        instance.commands.forEach(TerrainerCommand::reloadCommand);
 
         // Update checker
         instance.reloadUpdater();
@@ -264,10 +268,11 @@ public final class TerrainerPlugin extends JavaPlugin {
 
         // Flag defaults are only loaded once to avoid potential issues, like players keeping the potion effects of
         //EFFECTS flag from a previous default.
-        Flags.reloadFlagDefaults();
+        Flags.loadFlagDefaults();
 
         PluginManager pm = getServer().getPluginManager();
 
+        // Hooks
         if (pm.getPlugin("Vault") != null) {
             try {
                 economyHandler = new VaultHook();
@@ -276,7 +281,6 @@ public final class TerrainerPlugin extends JavaPlugin {
                 logger.log("Vault was found, but there is no economy handling plugin.", ConsoleLogger.Level.WARN);
             }
         }
-
         if (pm.getPlugin("PlaceholderAPI") != null) {
             try {
                 new TerrainerPlaceholderExpansion().register();
@@ -286,47 +290,43 @@ public final class TerrainerPlugin extends JavaPlugin {
             }
         }
 
-        try {
-            nmsHandler = new ReflectionHook();
-        } catch (Throwable t) {
-            logger.log("Unknown issue happened while using reflection. Markers will not work!", ConsoleLogger.Level.WARN);
-            t.printStackTrace();
-        }
-
+        // Listeners
         if (ReflectionUtil.getClass("org.bukkit.event.entity.EntityMountEvent") != null) {
             pm.registerEvents(new MountListener(protectionsListener, enterLeaveEvents), this);
         } else if (ReflectionUtil.getClass("org.spigotmc.event.entity.EntityMountEvent") != null) {
             pm.registerEvents(new LegacyMountListener(protectionsListener, enterLeaveEvents), this);
         } else {
-            logger.log("Could not find entity mount/dismount events, protections related to these events will not be enforced.", ConsoleLogger.Level.ERROR);
+            logger.log("Could not find entity mount/dismount events, protections related to those events will not be enforced.", ConsoleLogger.Level.ERROR);
         }
         pm.registerEvents(protectionsListener, this);
         pm.registerEvents(new FlagListener(), this);
-        pm.registerEvents(new SelectionListener(selectorWandKey, infoWandKey, infoCommand), this);
+        pm.registerEvents(selectionListener, this);
 
         TerrainManager.setOnTerrainAddListener(event -> {
             var add = new TerrainAddEvent(event.terrain());
-            pm.callEvent(add);
+            getServer().getPluginManager().callEvent(add);
             return add.isCancelled();
         });
         TerrainManager.setOnTerrainRemoveListener(event -> {
             var remove = new TerrainRemoveEvent(event.terrain());
-            pm.callEvent(remove);
+            getServer().getPluginManager().callEvent(remove);
             return remove.isCancelled();
         });
         TerrainManager.setOnFlagSetListener(event -> {
             var set = new FlagSetEvent<>(event);
-            pm.callEvent(set);
+            getServer().getPluginManager().callEvent(set);
             return set.isCancelled();
         });
         TerrainManager.setOnFlagUnsetListener(event -> {
             var unset = new FlagUnsetEvent<>(event);
-            pm.callEvent(unset);
+            getServer().getPluginManager().callEvent(unset);
             return unset.isCancelled();
         });
 
+        // Commands
         loadCommands();
 
+        // Terrains
         try {
             TerrainManager.load();
 
@@ -340,8 +340,14 @@ public final class TerrainerPlugin extends JavaPlugin {
             e.printStackTrace();
         }
 
-        Terrainer.loadDailyTimer();
-        taskFactory.runGlobalTask(() -> HandlerList.unregisterAll(preLoginListener));
+        taskFactory.runGlobalAsyncTask(() -> {
+            // Daily tasks once all worlds are loaded. (Terrain pruner, taxes, etc...)
+            Terrainer.loadDailyTimer();
+            HandlerList.unregisterAll(preLoginListener);
+            if (reloadDetected) {
+                logger.log("You should never reload Terrainer, otherwise bad things could happen, such as: Protections failing, players keeping infinite potion effects, or some terrains ceasing to exist!", ConsoleLogger.Level.ERROR);
+            }
+        });
     }
 
     @SuppressWarnings("deprecation")
@@ -361,7 +367,7 @@ public final class TerrainerPlugin extends JavaPlugin {
             var players = Bukkit.getOnlinePlayers();
             if (!players.isEmpty()) logger.log("Terrainer will kick all players to prevent damage to terrains.");
             for (Player p : players) {
-                p.kickPlayer(lang.getColored("Protections.Kick Message").replace("<default>", Objects.requireNonNullElse(getServer().getShutdownMessage(), "Server stopped")));
+                p.kickPlayer(lang.getColored("Protections.Shutdown Kick Message").replace("<default>", Objects.requireNonNullElse(getServer().getShutdownMessage(), "Server stopped")));
             }
         }
 
