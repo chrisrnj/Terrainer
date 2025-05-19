@@ -36,6 +36,7 @@ import java.util.HashMap;
 import java.util.function.Consumer;
 
 public abstract class ListGUI<T> {
+    protected final @NotNull Inventory inventory;
     private final @NotNull HashMap<Integer, ArrayList<T>> pages;
     private final @NotNull HashMap<Integer, Consumer<InventoryClickEvent>> buttons;
 
