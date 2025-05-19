@@ -1,6 +1,6 @@
 /*
  * Terrainer - A minecraft terrain claiming protection plugin.
- * Copyright (C) 2024 Christiano Rangel
+ * Copyright (C) 2025 Christiano Rangel
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -107,7 +107,7 @@ public final class TerrainManager {
      * @return Whether the terrain was added or not.
      */
     public static boolean add(@NotNull Terrain terrain) {
-        if (addWithoutAutoSave(terrain)) {
+        if (addWithoutAutoSave(terrain, true)) {
             terrain.changed = true;
             loadAutoSave();
             return true;
@@ -118,13 +118,14 @@ public final class TerrainManager {
     /**
      * Adds the terrain to {@link #allTerrains()} without calling {@link #loadAutoSave()}.
      *
-     * @param terrain The terrain to add.
+     * @param terrain    The terrain to add.
+     * @param callEvents Whether to call the add event.
      * @return Whether the terrain was added and {@link #loadAutoSave()} should be called.
      */
-    private static boolean addWithoutAutoSave(@NotNull Terrain terrain) {
+    private static boolean addWithoutAutoSave(@NotNull Terrain terrain, boolean callEvents) {
         if (registeredTerrains.containsValue(terrain)) return false;
         // Calling add event. If it's cancelled, then the terrain should not be added and false is returned.
-        if (callOnAdd(terrain)) return false;
+        if (callEvents && callOnAdd(terrain)) return false;
 
         // Events passed, terrain should be added.
 
@@ -812,7 +813,7 @@ public final class TerrainManager {
         } else if (!(savedWorld instanceof WorldTerrain)) {
             remove(world, false);
             savedWorld = new WorldTerrain(savedWorld, name);
-            if (!addWithoutAutoSave(savedWorld)) return;
+            if (!addWithoutAutoSave(savedWorld, false)) return;
         }
 
         if (Configurations.CONFIG.getConfiguration().getBoolean("Alert Dangerous Flags").orElse(false)) {
@@ -834,7 +835,7 @@ public final class TerrainManager {
     /**
      * Reads all terrains from disk and registers them into the terrains list. No existing terrains are actually updated,
      * this only deserializes {@link Terrain} objects in {@link #TERRAINS_FOLDER} and adds them to the terrains list using
-     * {@link TerrainManager#addWithoutAutoSave(Terrain)}.
+     * {@link TerrainManager#addWithoutAutoSave(Terrain, boolean)}.
      *
      * @see #save()
      */
@@ -858,7 +859,7 @@ public final class TerrainManager {
         try (Stream<Path> terrainFiles = Files.walk(TERRAINS_FOLDER).filter(file -> file.toString().endsWith(".terrain")).parallel()) {
             terrainFiles.forEach(terrainFile -> {
                 try {
-                    addWithoutAutoSave(Terrain.fromFile(terrainFile));
+                    addWithoutAutoSave(Terrain.fromFile(terrainFile), false);
                 } catch (Exception e) {
                     Terrainer.logger().log("Unable to read file '" + terrainFile.getFileName() + "' as a Terrain object:", ConsoleLogger.Level.ERROR);
                     e.printStackTrace();
