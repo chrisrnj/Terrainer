@@ -27,6 +27,7 @@ import com.epicnicity322.terrainer.core.terrain.Terrain;
 import com.epicnicity322.terrainer.core.terrain.TerrainManager;
 import com.epicnicity322.terrainer.core.terrain.WorldTerrain;
 import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.command.CommandSender;
@@ -42,6 +43,7 @@ import java.util.function.Supplier;
 public final class CommandUtil {
     private static final @NotNull CommandRunnable noPermissionRunnable = (label, sender, args) -> TerrainerPlugin.getLanguage().send(sender, TerrainerPlugin.getLanguage().get("General.No Permission"));
     private static final boolean hasCachedOfflinePlayers = ReflectionUtil.getMethod(Bukkit.class, "getOfflinePlayerIfCached", String.class) != null;
+    private static final @NotNull HashMap<String, Long> commandExecutionTimes = new HashMap<>();
 
     private CommandUtil() {
     }
@@ -53,10 +55,10 @@ public final class CommandUtil {
     /**
      * This method helps find a {@link Terrain} based on the command arguments passed to it.
      * <p>
-     * If the command includes "--t" followed by the name of a terrain, that terrain with matching name will be
+     * If the command includes "-t" followed by the name of a terrain, that terrain with matching name will be
      * returned, and any other preceding arguments will also be returned.
      * <p>
-     * If the "--t" argument is not specified, the terrain at the sender's location is inferred.
+     * If the "-t" argument is not specified, the terrain at the sender's location is inferred.
      * <p>
      * If a terrain with the given name or {@link UUID} is not found, the method will suggest using a more precise
      * command to specify the terrain.
@@ -80,19 +82,19 @@ public final class CommandUtil {
         ArrayList<String> preceding = new ArrayList<>();
         StringBuilder exampleSyntax = new StringBuilder();
 
-        // Splitting command arguments into preceding and terrain name based on where --t is.
+        // Splitting command arguments into preceding and terrain name based on where -t is.
         for (int i = 1; i < args.length; ++i) {
             String s = args[i];
             if (join) {
                 terrainNameBuilder.append(s);
-                if (i != (args.length - 1)) terrainNameBuilder.append(" ");
+                if (i != (args.length - 1)) terrainNameBuilder.append(' ');
                 continue;
             }
-            if (s.equals("--t")) {
+            if (s.equals("-t")) {
                 join = true;
             } else {
                 preceding.add(s);
-                exampleSyntax.append(s).append(" ");
+                exampleSyntax.append(s).append(' ');
             }
         }
 
@@ -102,7 +104,7 @@ public final class CommandUtil {
 
         // If no terrain was specified in the command, look for terrain in player's location.
         if (terrainName.isEmpty()) {
-            exampleSyntax.append("--t ").append(lang.get("Invalid Arguments.Terrain"));
+            exampleSyntax.append("-t ").append(lang.get("Invalid Arguments.Terrain"));
             if (!(sender instanceof Player player)) {
                 lang.send(sender, lang.get("Invalid Arguments.Error").replace("<label>", label).replace("<label2>", args[0]).replace("<args>", exampleSyntax));
                 return;
@@ -228,6 +230,43 @@ public final class CommandUtil {
     }
 
     /**
+     * Tests whether a player is still within the cooldown of the provided command, and sends a message informing them
+     * in case they are.
+     *
+     * @param sender   The player to test for a cooldown.
+     * @param command  The name of the command, used as a key for distinction of execution times and bypass permission.
+     * @param cooldown The amount of time in milliseconds of the cooldown.
+     * @return Whether the player is still within the command's cooldown.
+     * @see #updateCooldown(CommandSender, String)
+     */
+    public static boolean testCooldown(@NotNull CommandSender sender, @NotNull String command, long cooldown) {
+        if (sender.hasPermission("terrainer.bypass.cooldown." + command) || !(sender instanceof Player player))
+            return false;
+
+        Long lastExecution = commandExecutionTimes.get(player.getUniqueId() + command);
+        long currentTime = System.currentTimeMillis();
+
+        if (lastExecution == null || currentTime - lastExecution > cooldown) return false;
+
+        TerrainerPlugin.getLanguage().send(sender, TerrainerPlugin.getLanguage().get("General.Cooldown").replace("<remaining>", Long.toString((cooldown - (currentTime - lastExecution)) / 1000)));
+        return true;
+    }
+
+    /**
+     * Stores the current time of {@link System#currentTimeMillis()} as the last time the command was successfully
+     * executed.
+     *
+     * @param sender  The player to store the command's execution time.
+     * @param command The name of the command, used as a key for distinction of execution times.
+     * @see #testCooldown(CommandSender, String, long)
+     */
+    public static void updateCooldown(@NotNull CommandSender sender, @NotNull String command) {
+        if (sender instanceof Player player) {
+            commandExecutionTimes.put(player.getUniqueId() + command, System.currentTimeMillis());
+        }
+    }
+
+    /**
      * Tries to get the offline player. This uses the Paper method {@link Bukkit#getOfflinePlayerIfCached(String)}, so if
      * the server is not a variation of Paper, null is always returned.
      *
@@ -246,26 +285,78 @@ public final class CommandUtil {
         StringBuilder name = new StringBuilder();
         for (int i = start; i < args.length; ++i) {
             name.append(args[i]);
-            if (i != (args.length - 1)) name.append(" ");
+            if (i != (args.length - 1)) name.append(' ');
         }
         return name.toString();
     }
 
     /**
-     * Adds the "--t {@literal <terrain>}" completion to the list of completions.
+     * Adds the "-t {@literal <terrain>}" completion to the list of completions.
      *
      * @param completions      The list of completions.
-     * @param permissionOthers The permission that allows the sender to find other people's terrains.
+     * @param permissionOthers The permission that allows the sender to find other people's terrains. {@code null} to ignore them.
+     * @param permissionWorld  The permission that allows the sender to find global world terrains. {@code null} to ignore them.
      * @param allowModerators  Allows moderators to find the terrain.
      * @param sender           The person who is tab completing.
      * @param args             The arguments of the tab completion.
      */
-    //TODO
-    public static void addTerrainTabCompletion(@NotNull List<String> completions, @NotNull String permissionOthers, boolean allowModerators, @NotNull CommandSender sender, @NotNull String[] args) {
-        String current = args[args.length - 1];
+    @SuppressWarnings("deprecation")
+    public static void addTerrainTabCompletion(@NotNull List<String> completions, @Nullable String permissionOthers, @Nullable String permissionWorld, boolean allowModerators, @NotNull CommandSender sender, @NotNull String[] args) {
+        boolean identifierPresent = false;
+        StringBuilder builder = new StringBuilder();
 
-        if (args.length > 1 && args[args.length - 2].equals("--t")) {
-            return;
+        for (String arg : args) {
+            if (identifierPresent) builder.append(arg).append(' ');
+            else if (arg.equals("-t")) identifierPresent = true;
+        }
+
+        String completionPrefix = "";
+        String currentArgument;
+
+        if (identifierPresent) {
+            if (builder.isEmpty()) completionPrefix = "-t ";
+            else builder.deleteCharAt(builder.length() - 1); // Remove trailing space.
+            currentArgument = builder.toString();
+        } else {
+            completionPrefix = "-t ";
+            currentArgument = args[args.length - 1];
+        }
+
+        if ((permissionOthers == null || !sender.hasPermission(permissionOthers)) && sender instanceof Player player) {
+            UUID playerId = player.getUniqueId();
+
+            for (Terrain terrain : TerrainManager.allTerrains()) {
+                if (playerId.equals(terrain.owner()) || (allowModerators && terrain.moderators().view().contains(playerId))) {
+                    String name = ChatColor.stripColor(terrain.name());
+                    if (name.startsWith(currentArgument)) completions.add(completionPrefix + name);
+                }
+            }
+        } else {
+            boolean ignoreWorldTerrains = permissionWorld == null || !sender.hasPermission(permissionWorld);
+
+            for (Terrain terrain : TerrainManager.allTerrains()) {
+                if (ignoreWorldTerrains && terrain instanceof WorldTerrain) continue;
+
+                String name = ChatColor.stripColor(terrain.name());
+                if (name.startsWith(currentArgument)) completions.add(completionPrefix + name);
+            }
+        }
+    }
+
+    /**
+     * Adds the tab completion of the target arguments that are used by {@link #target(int, String, CommandSender, String[])} to the completions list.
+     *
+     * @param completions The list to add the completions to.
+     * @param args        The arguments of the tab completion.
+     */
+    public static void addTargetTabCompletion(@NotNull List<String> completions, @NotNull String[] args) {
+        String current = args[args.length - 1].toLowerCase(Locale.ROOT);
+        if (current.isEmpty()) completions.add("*");
+        if ("me".startsWith(current)) completions.add("me");
+        if ("null".startsWith(current)) completions.add("null");
+
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            if (player.getName().toLowerCase(Locale.ROOT).startsWith(current)) completions.add(player.getName());
         }
     }
 
