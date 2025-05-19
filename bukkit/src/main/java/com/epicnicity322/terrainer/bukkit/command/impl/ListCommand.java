@@ -1,6 +1,6 @@
 /*
  * Terrainer - A minecraft terrain claiming protection plugin.
- * Copyright (C) 2024 Christiano Rangel
+ * Copyright (C) 2025 Christiano Rangel
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,41 +16,39 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.epicnicity322.terrainer.bukkit.command;
+package com.epicnicity322.terrainer.bukkit.command.impl;
 
-import com.epicnicity322.epicpluginlib.bukkit.command.Command;
 import com.epicnicity322.epicpluginlib.bukkit.command.CommandRunnable;
+import com.epicnicity322.epicpluginlib.bukkit.command.TabCompleteRunnable;
 import com.epicnicity322.epicpluginlib.bukkit.lang.MessageSender;
 import com.epicnicity322.epicpluginlib.core.util.ObjectUtils;
 import com.epicnicity322.terrainer.bukkit.TerrainerPlugin;
+import com.epicnicity322.terrainer.bukkit.command.TerrainerCommand;
 import com.epicnicity322.terrainer.bukkit.gui.TerrainListGUI;
 import com.epicnicity322.terrainer.bukkit.util.CommandUtil;
 import com.epicnicity322.terrainer.core.config.Configurations;
-import com.epicnicity322.terrainer.core.location.Coordinate;
 import com.epicnicity322.terrainer.core.terrain.Terrain;
 import com.epicnicity322.terrainer.core.terrain.TerrainManager;
-import com.epicnicity322.terrainer.core.util.TerrainerUtil;
 import com.epicnicity322.yamlhandler.Configuration;
 import net.md_5.bungee.api.chat.ClickEvent;
 import net.md_5.bungee.api.chat.HoverEvent;
 import net.md_5.bungee.api.chat.TextComponent;
 import net.md_5.bungee.api.chat.hover.content.Text;
-import org.bukkit.Bukkit;
-import org.bukkit.World;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.HumanEntity;
 import org.jetbrains.annotations.NotNull;
 
-import java.time.format.DateTimeFormatter;
 import java.util.*;
+import java.util.stream.IntStream;
 
-public final class ListCommand extends Command {
-    private static final @NotNull Comparator<Terrain> comparator = (t1, t2) -> {
-        int i = t1.name().compareTo(t2.name());
-        // Allow terrains with repeated names.
-        if (i == 0) return t1.id().compareTo(t2.id());
-        return i;
-    };
+public final class ListCommand extends TerrainerCommand {
+    private static final @NotNull Comparator<Terrain> terrainComparator = Comparator.comparing(Terrain::name).thenComparing(Terrain::id);
+
+    private final @NotNull InfoCommand infoCommand;
+
+    public ListCommand(@NotNull InfoCommand infoCommand) {
+        this.infoCommand = infoCommand;
+    }
 
     @Override
     public @NotNull String getName() {
@@ -67,15 +65,19 @@ public final class ListCommand extends Command {
         return CommandUtil.noPermissionRunnable();
     }
 
+    @Override
+    public void reloadCommand() {
+        setAliases(TerrainerPlugin.getLanguage().get("Commands.List.Command"));
+    }
+
     @SuppressWarnings("deprecation")
     @Override
     public void run(@NotNull String label, @NotNull CommandSender sender, @NotNull String[] args) {
         MessageSender lang = TerrainerPlugin.getLanguage();
         CommandUtil.TargetResponse target = CommandUtil.target(1, "terrainer.list.others", sender, args);
-
         if (target == null) return;
 
-        TreeSet<Terrain> terrains = new TreeSet<>(comparator);
+        TreeSet<Terrain> terrains = new TreeSet<>(terrainComparator);
 
         if (target == CommandUtil.TargetResponse.ALL) {
             terrains.addAll(TerrainManager.allTerrains());
@@ -99,25 +101,28 @@ public final class ListCommand extends Command {
             return;
         }
 
-        if (!(sender instanceof HumanEntity player) || (args.length > 2 && args[2].equalsIgnoreCase("--chat"))) {
+        int page = 1;
+
+        if (args.length > 2) {
+            try {
+                page = Integer.parseInt(args[2]);
+            } catch (NumberFormatException e) {
+                lang.send(sender, lang.get("General.Not A Number").replace("<value>", args[2]));
+                return;
+            }
+        }
+
+        String chat = lang.get("Commands.List.Chat");
+
+        // Display list in chat if explicitly asked for, or if sender is not a player.
+        if (!(sender instanceof HumanEntity player) || (args.length > 3 && (args[3].equalsIgnoreCase("--chat") || args[3].equalsIgnoreCase(chat)))) {
             Configuration config = Configurations.CONFIG.getConfiguration();
-            int page = 1;
             HashMap<Integer, ArrayList<Terrain>> pages = ObjectUtils.splitIntoPages(terrains, config.getNumber("List.Chat.Max Per Page").orElse(20).intValue());
             int total = pages.size();
+            if (page > total) page = total;
+            if (page < 1) page = 1;
 
-            if (args.length > 3) {
-                try {
-                    page = Integer.parseInt(args[3]);
-                    if (page > total) page = total;
-                    if (page < 1) page = 1;
-                } catch (NumberFormatException e) {
-                    lang.send(sender, lang.get("General.Not A Number").replace("<value>", args[3]));
-                    return;
-                }
-            }
-
-            String header = (who.equals(lang.get("Target.You")) ? lang.get("Terrain List.Chat.Header.Default") : lang.get("Terrain List.Chat.Header.Other").replace("<other>", who))
-                    .replace("<page>", Integer.toString(page)).replace("<total>", Integer.toString(total));
+            String header = (who.equals(lang.get("Target.You")) ? lang.get("Terrain List.Chat.Header.Default") : lang.get("Terrain List.Chat.Header.Other").replace("<other>", who)).replace("<page>", Integer.toString(page)).replace("<total>", Integer.toString(total));
             lang.send(sender, header);
 
             ArrayList<Terrain> currentPage = pages.get(page);
@@ -126,11 +131,7 @@ public final class ListCommand extends Command {
 
             for (Terrain t : currentPage) {
                 var entry = new TextComponent(lang.getColored("Terrain List.Chat." + ((i++ & 1) == 0 ? "Entry" : "Alternate Entry")).replace("<name>", t.name()));
-                entry.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new Text(lang.getColored("Terrain List.Chat.Entry Hover")
-                        .replace("<id>", t.id().toString())
-                        .replace("<desc>", ObjectUtils.getOrDefault(t.description(), "null"))
-                        .replace("<area>", Double.toString(t.area()))
-                        .replace("<owner>", TerrainerPlugin.getPlayerUtil().ownerName(t.owner())))));
+                entry.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new Text(lang.getColored("Terrain List.Chat.Entry Hover").replace("<id>", t.id().toString()).replace("<desc>", ObjectUtils.getOrDefault(t.description(), "null")).replace("<area>", Double.toString(t.area())).replace("<owner>", TerrainerPlugin.getPlayerUtil().ownerName(t.owner())))));
                 entry.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/tr info " + t.id()));
                 component.addExtra(entry);
                 if (i != currentPage.size()) component.addExtra(lang.getColored("Terrain List.Chat.Separator"));
@@ -139,10 +140,8 @@ public final class ListCommand extends Command {
             sender.spigot().sendMessage(component);
 
             if (page != total) {
-                var footer = new TextComponent(lang.getColored("Terrain List.Chat.Footer").replace("<label>", label)
-                        .replace("<arg>", args.length > 1 ? args[1] : "me")
-                        .replace("<next>", Integer.toString(page + 1)));
-                footer.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/" + label + " list " + (args.length > 1 ? args[1] : "me") + " --chat " + (page + 1)));
+                var footer = new TextComponent(lang.getColored("Terrain List.Chat.Footer").replace("<label>", label).replace("<arg>", args.length > 1 ? args[1] : "me").replace("<next>", Integer.toString(page + 1)));
+                footer.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/" + label + " list " + (args.length > 1 ? args[1] : "me") + ' ' + (page + 1) + " --chat"));
                 sender.spigot().sendMessage(footer);
             }
         } else {
@@ -151,12 +150,24 @@ public final class ListCommand extends Command {
                 // TODO: Open terrain editing GUI if the player has permission to edit it.
                 HumanEntity p = event.getWhoClicked();
                 p.closeInventory();
-                Coordinate min = t.minDiagonal();
-                Coordinate max = t.maxDiagonal();
-                World w = Bukkit.getWorld(t.world());
-                String worldName = w == null ? t.world().toString() : w.getName();
-                lang.send(p, lang.get("Info.Text").replace("<name>", t.name()).replace("<id>", t.id().toString()).replace("<owner>", TerrainerPlugin.getPlayerUtil().ownerName(t.owner())).replace("<desc>", t.description()).replace("<date>", t.creationDate().format(DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm:ss"))).replace("<area>", Double.toString(t.area())).replace("<world>", worldName).replace("<x1>", Double.toString(min.x())).replace("<y1>", Double.toString(min.y())).replace("<z1>", Double.toString(min.z())).replace("<x2>", Double.toString(max.x())).replace("<y2>", Double.toString(max.y())).replace("<z2>", Double.toString(max.z())).replace("<mods>", TerrainerUtil.listToString(t.moderators().view(), TerrainerPlugin.getPlayerUtil()::ownerName)).replace("<members>", TerrainerUtil.listToString(t.members().view(), TerrainerPlugin.getPlayerUtil()::ownerName)).replace("<flags>", TerrainerUtil.listToString(t.flags().view().keySet(), id -> id)).replace("<priority>", Integer.toString(t.priority())));
-            }).open(player);
+                infoCommand.sendInfo(p, new ArrayList<>(Collections.singletonList(t)));
+            }, page).open(player);
         }
+    }
+
+    @Override
+    protected @NotNull TabCompleteRunnable getTabCompleteRunnable() {
+        return (completions, label, sender, args) -> {
+            if (args.length == 2) {
+                if (sender.hasPermission("terrainer.list.others"))
+                    CommandUtil.addTargetTabCompletion(completions, args);
+                else if ("me".startsWith(args[1])) completions.add("me");
+            } else if (args.length == 3) {
+                if (args[2].isEmpty()) IntStream.range(1, 5).forEach(i -> completions.add(Integer.toString(i)));
+            } else if (args.length == 4) {
+                String chat = TerrainerPlugin.getLanguage().get("Commands.List.Chat");
+                if (chat.startsWith(args[3])) completions.add(chat);
+            }
+        };
     }
 }
