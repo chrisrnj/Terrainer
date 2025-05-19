@@ -1,6 +1,6 @@
 /*
  * Terrainer - A minecraft terrain claiming protection plugin.
- * Copyright (C) 2024 Christiano Rangel
+ * Copyright (C) 2025 Christiano Rangel
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,12 +16,12 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.epicnicity322.terrainer.bukkit.command;
+package com.epicnicity322.terrainer.bukkit.command.impl;
 
-import com.epicnicity322.epicpluginlib.bukkit.command.Command;
 import com.epicnicity322.epicpluginlib.bukkit.command.CommandRunnable;
 import com.epicnicity322.epicpluginlib.bukkit.lang.MessageSender;
 import com.epicnicity322.terrainer.bukkit.TerrainerPlugin;
+import com.epicnicity322.terrainer.bukkit.command.TerrainerCommand;
 import com.epicnicity322.terrainer.bukkit.event.terrain.UserCreateTerrainEvent;
 import com.epicnicity322.terrainer.bukkit.event.terrain.UserNameTerrainEvent;
 import com.epicnicity322.terrainer.bukkit.util.BukkitPlayerUtil;
@@ -46,7 +46,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 
-public final class ClaimCommand extends Command {
+public final class ClaimCommand extends TerrainerCommand {
     @Override
     public @NotNull String getName() {
         return "claim";
@@ -60,6 +60,11 @@ public final class ClaimCommand extends Command {
     @Override
     protected @NotNull CommandRunnable getNoPermissionRunnable() {
         return CommandUtil.noPermissionRunnable();
+    }
+
+    @Override
+    public void reloadCommand() {
+        setAliases(TerrainerPlugin.getLanguage().get("Commands.Claim.Command"));
     }
 
     @SuppressWarnings("deprecation")

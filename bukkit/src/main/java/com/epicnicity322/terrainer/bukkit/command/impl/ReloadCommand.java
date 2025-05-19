@@ -1,6 +1,6 @@
 /*
  * Terrainer - A minecraft terrain claiming protection plugin.
- * Copyright (C) 2024 Christiano Rangel
+ * Copyright (C) 2025 Christiano Rangel
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,26 +16,24 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.epicnicity322.terrainer.bukkit.command;
+package com.epicnicity322.terrainer.bukkit.command.impl;
 
-import com.epicnicity322.epicpluginlib.bukkit.command.Command;
 import com.epicnicity322.epicpluginlib.bukkit.command.CommandRunnable;
 import com.epicnicity322.terrainer.bukkit.TerrainerPlugin;
-import com.epicnicity322.terrainer.bukkit.gui.ShopGUI;
+import com.epicnicity322.terrainer.bukkit.command.TerrainerCommand;
 import com.epicnicity322.terrainer.bukkit.util.CommandUtil;
 import org.bukkit.command.CommandSender;
-import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
-public final class ShopCommand extends Command {
+public final class ReloadCommand extends TerrainerCommand {
     @Override
     public @NotNull String getName() {
-        return "shop";
+        return "reload";
     }
 
     @Override
     public @NotNull String getPermission() {
-        return "terrainer.shop";
+        return "terrainer.reload";
     }
 
     @Override
@@ -44,12 +42,18 @@ public final class ShopCommand extends Command {
     }
 
     @Override
-    public void run(@NotNull String label, @NotNull CommandSender sender, @NotNull String[] args) {
-        if (!(sender instanceof Player player)) {
-            TerrainerPlugin.getLanguage().send(sender, TerrainerPlugin.getLanguage().get("General.Not A Player"));
-            return;
-        }
+    public void reloadCommand() {
+        setAliases(TerrainerPlugin.getLanguage().get("Commands.Reload.Command"));
+    }
 
-        new ShopGUI(player);
+    @Override
+    public void run(@NotNull String label, @NotNull CommandSender sender, @NotNull String[] args) {
+        var lang = TerrainerPlugin.getLanguage();
+
+        if (TerrainerPlugin.reload()) {
+            lang.send(sender, lang.get("Reload.Success"));
+        } else {
+            lang.send(sender, lang.get("Reload.Error"));
+        }
     }
 }

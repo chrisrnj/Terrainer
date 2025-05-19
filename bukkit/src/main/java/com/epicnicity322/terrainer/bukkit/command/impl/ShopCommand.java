@@ -1,6 +1,6 @@
 /*
  * Terrainer - A minecraft terrain claiming protection plugin.
- * Copyright (C) 2024 Christiano Rangel
+ * Copyright (C) 2025 Christiano Rangel
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,24 +16,26 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.epicnicity322.terrainer.bukkit.command;
+package com.epicnicity322.terrainer.bukkit.command.impl;
 
-import com.epicnicity322.epicpluginlib.bukkit.command.Command;
 import com.epicnicity322.epicpluginlib.bukkit.command.CommandRunnable;
 import com.epicnicity322.terrainer.bukkit.TerrainerPlugin;
+import com.epicnicity322.terrainer.bukkit.command.TerrainerCommand;
+import com.epicnicity322.terrainer.bukkit.gui.ShopGUI;
 import com.epicnicity322.terrainer.bukkit.util.CommandUtil;
 import org.bukkit.command.CommandSender;
+import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
-public final class ReloadCommand extends Command {
+public final class ShopCommand extends TerrainerCommand {
     @Override
     public @NotNull String getName() {
-        return "reload";
+        return "shop";
     }
 
     @Override
     public @NotNull String getPermission() {
-        return "terrainer.reload";
+        return "terrainer.shop";
     }
 
     @Override
@@ -42,13 +44,17 @@ public final class ReloadCommand extends Command {
     }
 
     @Override
-    public void run(@NotNull String label, @NotNull CommandSender sender, @NotNull String[] args) {
-        var lang = TerrainerPlugin.getLanguage();
+    public void reloadCommand() {
+        setAliases(TerrainerPlugin.getLanguage().get("Commands.Shop.Command"));
+    }
 
-        if (TerrainerPlugin.reload()) {
-            lang.send(sender, lang.get("Reload.Success"));
-        } else {
-            lang.send(sender, lang.get("Reload.Error"));
+    @Override
+    public void run(@NotNull String label, @NotNull CommandSender sender, @NotNull String[] args) {
+        if (!(sender instanceof Player player)) {
+            TerrainerPlugin.getLanguage().send(sender, TerrainerPlugin.getLanguage().get("General.Not A Player"));
+            return;
         }
+
+        new ShopGUI(player);
     }
 }
