@@ -1,6 +1,6 @@
 /*
  * Terrainer - A minecraft terrain claiming protection plugin.
- * Copyright (C) 2024 Christiano Rangel
+ * Copyright (C) 2025 Christiano Rangel
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,14 +16,16 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.epicnicity322.terrainer.bukkit.command;
+package com.epicnicity322.terrainer.bukkit.command.impl;
 
-import com.epicnicity322.epicpluginlib.bukkit.command.Command;
 import com.epicnicity322.epicpluginlib.bukkit.command.CommandRunnable;
+import com.epicnicity322.epicpluginlib.bukkit.command.TabCompleteRunnable;
 import com.epicnicity322.epicpluginlib.bukkit.lang.MessageSender;
 import com.epicnicity322.terrainer.bukkit.TerrainerPlugin;
+import com.epicnicity322.terrainer.bukkit.command.TerrainerCommand;
 import com.epicnicity322.terrainer.bukkit.util.BukkitPlayerUtil;
 import com.epicnicity322.terrainer.bukkit.util.CommandUtil;
+import com.epicnicity322.terrainer.core.config.Configurations;
 import com.epicnicity322.terrainer.core.terrain.Terrain;
 import com.epicnicity322.terrainer.core.terrain.WorldTerrain;
 import com.epicnicity322.terrainer.core.util.PlayerUtil;
@@ -40,7 +42,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 
-public final class TransferCommand extends Command {
+public final class TransferCommand extends TerrainerCommand {
     @Override
     public @NotNull String getName() {
         return "transfer";
@@ -57,26 +59,38 @@ public final class TransferCommand extends Command {
     }
 
     @Override
+    public int getMinArgsAmount() {
+        return 2;
+    }
+
+    @Override
+    protected @NotNull CommandRunnable getNotEnoughArgsRunnable() {
+        return (label, sender, args) -> {
+            MessageSender lang = TerrainerPlugin.getLanguage();
+            lang.send(sender, lang.get("Invalid Arguments.Error").replace("<label>", label).replace("<label2>", args[0]).replace("<args>", lang.get("Invalid Arguments.Player") + " " + lang.get("Invalid Arguments.Terrain Optional") + (sender.hasPermission("terrainer.transfer.force") ? " [" + lang.get("Commands.Transfer.Force") + "]" : "")));
+        };
+    }
+
+    @Override
+    public void reloadCommand() {
+        setAliases(TerrainerPlugin.getLanguage().get("Commands.Transfer.Command"));
+    }
+
+    @Override
     public void run(@NotNull String label, @NotNull CommandSender sender0, @NotNull String[] args0) {
-        MessageSender lang = TerrainerPlugin.getLanguage();
-        CommandUtil.findTerrain("terrainer.transfer.others", "terrainer.transfer.world", false, label, sender0, args0, lang.getColored("Transfer.Select"), arguments -> {
+        CommandUtil.findTerrain("terrainer.transfer.others", "terrainer.transfer.world", false, label, sender0, args0, TerrainerPlugin.getLanguage().getColored("Transfer.Select"), arguments -> {
+            MessageSender lang = TerrainerPlugin.getLanguage();
             Terrain terrain = arguments.terrain();
             CommandSender sender = arguments.sender();
+            String[] args = arguments.preceding();
 
             if (terrain instanceof WorldTerrain) {
                 lang.send(sender, lang.get("Transfer.Error.World Terrain"));
                 return;
             }
 
-            String[] args = arguments.preceding();
-
             if (terrain.owner() == null && !sender.hasPermission("terrainer.transfer.console")) {
                 lang.send(sender, lang.get("Transfer.Error.Not Allowed"));
-                return;
-            }
-
-            if (args.length == 0) {
-                lang.send(sender, lang.get("Invalid Arguments.Error").replace("<label>", label).replace("<label2>", args0[0]).replace("<args>", lang.get("Invalid Arguments.Player") + " " + lang.get("Invalid Arguments.Terrain Optional") + (sender.hasPermission("terrainer.transfer.force") ? " [" + lang.get("Commands.Transfer.Force") + "]" : "")));
                 return;
             }
 
@@ -87,7 +101,7 @@ public final class TransferCommand extends Command {
             UUID newOwnerID;
 
             if (target == CommandUtil.TargetResponse.ALL) {
-                lang.send(sender, lang.get("Invalid Arguments.Error").replace("<label>", label).replace("<label2>", args0[0]).replace("<args>", lang.get("Invalid Arguments.Player") + " " + lang.get("Invalid Arguments.Terrain Optional") + (sender.hasPermission("terrainer.transfer.force") ? " [" + lang.get("Commands.Transfer.Force") + "]" : "")));
+                getNotEnoughArgsRunnable().run(label, sender, args0);
                 return;
             }
 
@@ -111,7 +125,8 @@ public final class TransferCommand extends Command {
                     return;
                 }
 
-                if (args.length > 1 && args[1].equalsIgnoreCase(lang.get("Commands.Transfer.Force")) && sender.hasPermission("terrainer.transfer.force")) {
+                if (args.length > 1 && (args[1].equalsIgnoreCase("--force") || args[1].equalsIgnoreCase(lang.get("Commands.Transfer.Force"))) && sender.hasPermission("terrainer.transfer.force")) {
+                    // newOwner null will make so the terrain is transferred without requesting the player to accept.
                     newOwner = null;
                 } else {
                     newOwner = Bukkit.getPlayer(newOwnerID);
@@ -128,6 +143,9 @@ public final class TransferCommand extends Command {
                     }
                     if (!newOwner.hasPermission("terrainer.world." + world.getName())) {
                         lang.send(sender, lang.get("Transfer.Error.World Prohibited").replace("<player>", who).replace("<terrain>", terrain.name()));
+                        return;
+                    }
+                    if (CommandUtil.testCooldown(sender, "transfer", Configurations.CONFIG.getConfiguration().getNumber("Cooldowns.Transfer").orElse(900).longValue() * 1000)) {
                         return;
                     }
 
@@ -166,6 +184,8 @@ public final class TransferCommand extends Command {
                 terrain.setOwner(newOwnerID);
                 lang.send(sender, lang.get("Transfer.Success").replace("<terrain>", name).replace("<who>", who));
             } else {
+                CommandUtil.updateCooldown(sender, "transfer");
+
                 WeakReference<Terrain> terrainRef = new WeakReference<>(terrain);
                 int confirmationHash = Objects.hash("transfer", terrain.id());
 
@@ -192,5 +212,26 @@ public final class TransferCommand extends Command {
                 }, confirmationHash);
             }
         });
+    }
+
+    @Override
+    protected @NotNull TabCompleteRunnable getTabCompleteRunnable() {
+        return (completions, label, sender, args) -> {
+            if (args.length == 2) {
+                CommandUtil.addTargetTabCompletion(completions, args);
+                if (!sender.hasPermission("terrainer.transfer.toconsole")) completions.remove("null");
+                completions.remove("*");
+            } else if (args.length == 3) {
+                String force = TerrainerPlugin.getLanguage().get("Commands.Transfer.Force");
+
+                if (sender.hasPermission("terrainer.transfer.force") && force.startsWith(args[2])) {
+                    completions.add(force);
+                } else {
+                    CommandUtil.addTerrainTabCompletion(completions, "terrainer.transfer.others", null, false, sender, args);
+                }
+            } else {
+                CommandUtil.addTerrainTabCompletion(completions, "terrainer.transfer.others", null, false, sender, args);
+            }
+        };
     }
 }
