@@ -1,6 +1,6 @@
 /*
  * Terrainer - A minecraft terrain claiming protection plugin.
- * Copyright (C) 2024 Christiano Rangel
+ * Copyright (C) 2025 Christiano Rangel
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,12 +16,13 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.epicnicity322.terrainer.bukkit.command;
+package com.epicnicity322.terrainer.bukkit.command.impl;
 
-import com.epicnicity322.epicpluginlib.bukkit.command.Command;
 import com.epicnicity322.epicpluginlib.bukkit.command.CommandRunnable;
+import com.epicnicity322.epicpluginlib.bukkit.command.TabCompleteRunnable;
 import com.epicnicity322.epicpluginlib.bukkit.lang.MessageSender;
 import com.epicnicity322.terrainer.bukkit.TerrainerPlugin;
+import com.epicnicity322.terrainer.bukkit.command.TerrainerCommand;
 import com.epicnicity322.terrainer.bukkit.util.CommandUtil;
 import com.epicnicity322.terrainer.core.location.Coordinate;
 import com.epicnicity322.terrainer.core.location.WorldCoordinate;
@@ -35,14 +36,13 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.Locale;
 import java.util.UUID;
+import java.util.stream.IntStream;
 
-interface Position {
-    boolean isFirst();
-}
-
-public abstract class PosCommand extends Command implements Position {
+public abstract class PosCommand extends TerrainerCommand {
     private PosCommand() {
     }
+
+    protected abstract boolean isFirst();
 
     @Override
     public @NotNull String getPermission() {
@@ -81,6 +81,10 @@ public abstract class PosCommand extends Command implements Position {
         }
         World world = null;
         if (args.length > 3) {
+            if (!sender.hasPermission("terrainer.select.command.coordinates.world")) {
+                lang.send(sender, lang.get("Select.Error.Coordinates"));
+                return;
+            }
             world = Bukkit.getWorld(args[3]);
             if (world == null) {
                 try {
@@ -126,6 +130,32 @@ public abstract class PosCommand extends Command implements Position {
         }
     }
 
+    @Override
+    protected @NotNull TabCompleteRunnable getTabCompleteRunnable() {
+        return (completions, label, sender, args) -> {
+            if (!sender.hasPermission("terrainer.select.command.coordinates")) return;
+
+            if (args.length == 2) {
+                if (args[1].isEmpty()) {
+                    if (sender instanceof Player p) completions.add(Integer.toString(p.getLocation().getBlockX()));
+                    else IntStream.range(-5, 6).forEach(i -> completions.add(Integer.toString(i)));
+                }
+            } else if (args.length == 3) {
+                if (args[2].isEmpty()) {
+                    if (sender instanceof Player p) completions.add(Integer.toString(p.getLocation().getBlockZ()));
+                    else IntStream.range(-5, 6).forEach(i -> completions.add(Integer.toString(i)));
+                }
+            } else if (args.length == 4) {
+                if (!sender.hasPermission("terrainer.select.command.coordinates.world")) return;
+                for (World world : Bukkit.getWorlds()) {
+                    String name = world.getName();
+                    if (!sender.hasPermission("terrainer.world." + name.toLowerCase(Locale.ROOT))) continue;
+                    if (name.startsWith(args[3])) completions.add(name);
+                }
+            }
+        };
+    }
+
     public static final class Pos1Command extends PosCommand {
         @Override
         public boolean isFirst() {
@@ -135,6 +165,11 @@ public abstract class PosCommand extends Command implements Position {
         @Override
         public @NotNull String getName() {
             return "pos1";
+        }
+
+        @Override
+        public void reloadCommand() {
+            setAliases(TerrainerPlugin.getLanguage().get("Commands.Select.Command First"));
         }
     }
 
@@ -147,6 +182,11 @@ public abstract class PosCommand extends Command implements Position {
         @Override
         public @NotNull String getName() {
             return "pos2";
+        }
+
+        @Override
+        public void reloadCommand() {
+            setAliases(TerrainerPlugin.getLanguage().get("Commands.Select.Command Second"));
         }
     }
 }
