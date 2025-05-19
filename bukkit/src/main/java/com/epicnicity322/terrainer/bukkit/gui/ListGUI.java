@@ -1,6 +1,6 @@
 /*
  * Terrainer - A minecraft terrain claiming protection plugin.
- * Copyright (C) 2024 Christiano Rangel
+ * Copyright (C) 2025 Christiano Rangel
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -38,10 +38,12 @@ import java.util.function.Consumer;
 public abstract class ListGUI<T> {
     private final @NotNull HashMap<Integer, ArrayList<T>> pages;
     private final @NotNull HashMap<Integer, Consumer<InventoryClickEvent>> buttons;
-    private final @NotNull Inventory inventory;
 
-    @SuppressWarnings("deprecation")
     public ListGUI(@NotNull Collection<T> collection, @NotNull String title) {
+        this(collection, title, 1);
+    }
+
+    public ListGUI(@NotNull Collection<T> collection, @NotNull String title, int startingPage) {
         pages = ObjectUtils.splitIntoPages(collection, 45);
         int initialCapacity;
         int inventorySize;
@@ -57,10 +59,11 @@ public abstract class ListGUI<T> {
             inventorySize = 54;
         }
 
+        //noinspection deprecation
         inventory = Bukkit.createInventory(null, inventorySize, title);
         buttons = new HashMap<>(initialCapacity);
         InventoryUtils.fill(Material.GLASS_PANE, inventory, 0, 8);
-        populate(1);
+        populate(startingPage);
     }
 
     protected abstract @NotNull ItemStack item(@NotNull T obj);

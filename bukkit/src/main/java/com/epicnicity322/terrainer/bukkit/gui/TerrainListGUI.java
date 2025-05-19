@@ -1,6 +1,6 @@
 /*
  * Terrainer - A minecraft terrain claiming protection plugin.
- * Copyright (C) 2024 Christiano Rangel
+ * Copyright (C) 2025 Christiano Rangel
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -38,7 +38,11 @@ public class TerrainListGUI extends ListGUI<WeakReference<Terrain>> {
     private final @NotNull BiConsumer<InventoryClickEvent, Terrain> onClick;
 
     public TerrainListGUI(@NotNull Collection<Terrain> terrains, @NotNull String title, @NotNull BiConsumer<InventoryClickEvent, Terrain> onClick) {
-        super(terrains.stream().map(WeakReference::new).collect(Collectors.toList()), title);
+        this(terrains, title, onClick, 1);
+    }
+
+    public TerrainListGUI(@NotNull Collection<Terrain> terrains, @NotNull String title, @NotNull BiConsumer<InventoryClickEvent, Terrain> onClick, int startingPage) {
+        super(terrains.stream().map(WeakReference::new).collect(Collectors.toList()), title, startingPage);
         this.onClick = onClick;
     }
 
