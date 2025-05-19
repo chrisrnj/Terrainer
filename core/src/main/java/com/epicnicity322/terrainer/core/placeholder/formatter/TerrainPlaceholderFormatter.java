@@ -1,6 +1,6 @@
 /*
  * Terrainer - A minecraft terrain claiming protection plugin.
- * Copyright (C) 2024 Christiano Rangel
+ * Copyright (C) 2025 Christiano Rangel
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,7 +25,6 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.UUID;
-import java.util.stream.StreamSupport;
 
 public interface TerrainPlaceholderFormatter<O, P extends O> extends PriorityPlaceholderFormatter<O, P> {
     String TERRAIN_NAMESPACE = "_terrain_";
@@ -78,6 +77,7 @@ public interface TerrainPlaceholderFormatter<O, P extends O> extends PriorityPla
 
     @Nullable
     default String formatPlaceholder(@Nullable O player, @NotNull String params, @Nullable Terrain terrain) {
+        //noinspection unchecked
         return player != null && isOnline(player) ? this.formatOnlinePlaceholder((P) player, params, terrain) : this.formatOnlinePlaceholder(null, params, terrain);
     }
 
