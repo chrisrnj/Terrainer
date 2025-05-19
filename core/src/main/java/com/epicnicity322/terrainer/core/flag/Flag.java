@@ -35,7 +35,7 @@ import java.util.regex.Pattern;
  * data, as more than one terrain might have the same {@link Flag} instance.
  * <p>
  * Flags can be edited through the Flag Management GUI or the "/tr flag" command, provided they are registered in the
- * set of flags {@link Flags#registerFlag(Flag, String, String, String)}.
+ * set of flags {@link Flags#registerFlag(Flag, String, String, String, Object)}.
  *
  * @param <T> The type of data this flag can hold.
  */
@@ -56,7 +56,14 @@ public class Flag<T> {
         if (builder.isEmpty()) return "";
         return builder.substring(0, builder.length() - 1);
     };
-    static final @NotNull Function<String, Boolean> booleanTransformer = input -> input.equalsIgnoreCase("true") || input.equalsIgnoreCase("allow");
+    static final @NotNull Function<String, Boolean> booleanTransformer = input -> {
+        if (input.equalsIgnoreCase("true") || input.equalsIgnoreCase(Terrainer.lang().get("Commands.Flag.Allow"))) {
+            return true;
+        } else if (!input.equalsIgnoreCase("false") && !input.equalsIgnoreCase(Terrainer.lang().get("Commands.Flag.Deny"))) {
+            throw new FlagTransformException(Terrainer.lang().get("Flags.Error.Boolean"));
+        }
+        return false;
+    };
     static final @NotNull Function<String, String> stringTransformer = input -> input;
     static final @NotNull Function<String, Set<String>> setTransformer = input -> Set.of(comma.split(input));
     static final @NotNull Function<String, List<String>> listTransformer = input -> List.of(comma.split(input));
