@@ -1,6 +1,6 @@
 /*
  * Terrainer - A minecraft terrain claiming protection plugin.
- * Copyright (C) 2024 Christiano Rangel
+ * Copyright (C) 2025 Christiano Rangel
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,12 +16,13 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.epicnicity322.terrainer.bukkit.command;
+package com.epicnicity322.terrainer.bukkit.command.impl;
 
-import com.epicnicity322.epicpluginlib.bukkit.command.Command;
 import com.epicnicity322.epicpluginlib.bukkit.command.CommandRunnable;
+import com.epicnicity322.epicpluginlib.bukkit.command.TabCompleteRunnable;
 import com.epicnicity322.epicpluginlib.bukkit.lang.MessageSender;
 import com.epicnicity322.terrainer.bukkit.TerrainerPlugin;
+import com.epicnicity322.terrainer.bukkit.command.TerrainerCommand;
 import com.epicnicity322.terrainer.bukkit.util.CommandUtil;
 import com.epicnicity322.terrainer.core.terrain.Terrain;
 import com.epicnicity322.terrainer.core.terrain.TerrainManager;
@@ -34,7 +35,7 @@ import org.jetbrains.annotations.NotNull;
 import java.lang.ref.WeakReference;
 import java.util.Objects;
 
-public final class DeleteCommand extends Command {
+public final class DeleteCommand extends TerrainerCommand {
     @Override
     public @NotNull String getName() {
         return "delete";
@@ -51,6 +52,11 @@ public final class DeleteCommand extends Command {
     }
 
     @Override
+    public void reloadCommand() {
+        setAliases(TerrainerPlugin.getLanguage().get("Commands.Delete.Command"));
+    }
+
+    @Override
     public void run(@NotNull String label, @NotNull CommandSender sender0, @NotNull String[] args) {
         MessageSender lang = TerrainerPlugin.getLanguage();
         CommandUtil.findTerrain("terrainer.delete.others", "terrainer.delete.world", false, label, sender0, args, lang.getColored("Delete.Select"), commandArguments -> {
@@ -59,7 +65,7 @@ public final class DeleteCommand extends Command {
             // If world terrain is not found in list of loaded worlds, remove like a regular terrain.
             boolean worldTerrain = terrain instanceof WorldTerrain && Bukkit.getWorlds().stream().anyMatch(world -> world.getUID().equals(terrain.world()));
 
-            lang.send(sender, lang.get("Delete." + (worldTerrain ? "World " : "") + "Confirmation").replace("<label>", label).replace("<label2>", lang.get("Commands.Confirm.Confirm")).replace("<name>", terrain.name()));
+            lang.send(sender, lang.get("Delete." + (worldTerrain ? "World " : "") + "Confirmation").replace("<label>", label).replace("<label2>", lang.get("Commands.Confirm.Command")).replace("<name>", terrain.name()));
 
             String name = terrain.name();
             WeakReference<Terrain> terrainRef = new WeakReference<>(terrain);
@@ -85,5 +91,10 @@ public final class DeleteCommand extends Command {
                 return lang.getColored("Delete.Confirmation Description").replace("<name>", terrain1 == null ? name : terrain1.name());
             }, confirmationHash);
         });
+    }
+
+    @Override
+    protected @NotNull TabCompleteRunnable getTabCompleteRunnable() {
+        return (completions, label, sender, args) -> CommandUtil.addTerrainTabCompletion(completions, "terrainer.delete.others", "terrainer.delete.world", false, sender, args);
     }
 }

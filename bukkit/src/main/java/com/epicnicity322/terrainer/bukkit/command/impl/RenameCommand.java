@@ -1,6 +1,6 @@
 /*
  * Terrainer - A minecraft terrain claiming protection plugin.
- * Copyright (C) 2024 Christiano Rangel
+ * Copyright (C) 2025 Christiano Rangel
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,12 +16,13 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.epicnicity322.terrainer.bukkit.command;
+package com.epicnicity322.terrainer.bukkit.command.impl;
 
-import com.epicnicity322.epicpluginlib.bukkit.command.Command;
 import com.epicnicity322.epicpluginlib.bukkit.command.CommandRunnable;
+import com.epicnicity322.epicpluginlib.bukkit.command.TabCompleteRunnable;
 import com.epicnicity322.epicpluginlib.bukkit.lang.MessageSender;
 import com.epicnicity322.terrainer.bukkit.TerrainerPlugin;
+import com.epicnicity322.terrainer.bukkit.command.TerrainerCommand;
 import com.epicnicity322.terrainer.bukkit.event.terrain.UserNameTerrainEvent;
 import com.epicnicity322.terrainer.bukkit.util.CommandUtil;
 import com.epicnicity322.terrainer.core.config.Configurations;
@@ -33,7 +34,7 @@ import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
 import org.jetbrains.annotations.NotNull;
 
-public final class RenameCommand extends Command {
+public final class RenameCommand extends TerrainerCommand {
     @Override
     public @NotNull String getName() {
         return "rename";
@@ -47,6 +48,11 @@ public final class RenameCommand extends Command {
     @Override
     protected @NotNull CommandRunnable getNoPermissionRunnable() {
         return CommandUtil.noPermissionRunnable();
+    }
+
+    @Override
+    public void reloadCommand() {
+        setAliases(TerrainerPlugin.getLanguage().get("Commands.Rename.Command"));
     }
 
     @SuppressWarnings("deprecation")
@@ -100,5 +106,18 @@ public final class RenameCommand extends Command {
                 lang.send(sender, lang.get("Rename.Re" + (reset ? "set" : "named")).replace("<new>", newName).replace("<old>", previousName));
             }
         });
+    }
+
+    @Override
+    protected @NotNull TabCompleteRunnable getTabCompleteRunnable() {
+        return (completions, label, sender, args) -> {
+            if (args.length == 2) {
+                if (args[1].startsWith("-t")) {
+                    CommandUtil.addTerrainTabCompletion(completions, "terrainer.rename.others", null, false, sender, args);
+                } else if (args[1].isEmpty()) completions.add("New Name");
+            } else {
+                CommandUtil.addTerrainTabCompletion(completions, "terrainer.rename.others", null, false, sender, args);
+            }
+        };
     }
 }

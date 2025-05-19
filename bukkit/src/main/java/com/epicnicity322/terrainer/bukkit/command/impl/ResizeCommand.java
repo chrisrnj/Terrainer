@@ -1,6 +1,6 @@
 /*
  * Terrainer - A minecraft terrain claiming protection plugin.
- * Copyright (C) 2024 Christiano Rangel
+ * Copyright (C) 2025 Christiano Rangel
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,12 +16,13 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.epicnicity322.terrainer.bukkit.command;
+package com.epicnicity322.terrainer.bukkit.command.impl;
 
-import com.epicnicity322.epicpluginlib.bukkit.command.Command;
 import com.epicnicity322.epicpluginlib.bukkit.command.CommandRunnable;
+import com.epicnicity322.epicpluginlib.bukkit.command.TabCompleteRunnable;
 import com.epicnicity322.epicpluginlib.bukkit.lang.MessageSender;
 import com.epicnicity322.terrainer.bukkit.TerrainerPlugin;
+import com.epicnicity322.terrainer.bukkit.command.TerrainerCommand;
 import com.epicnicity322.terrainer.bukkit.util.BukkitPlayerUtil;
 import com.epicnicity322.terrainer.bukkit.util.CommandUtil;
 import com.epicnicity322.terrainer.core.location.WorldCoordinate;
@@ -39,7 +40,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 
-public final class ResizeCommand extends Command {
+public final class ResizeCommand extends TerrainerCommand {
     @Override
     public @NotNull String getName() {
         return "resize";
@@ -53,6 +54,11 @@ public final class ResizeCommand extends Command {
     @Override
     protected @NotNull CommandRunnable getNoPermissionRunnable() {
         return CommandUtil.noPermissionRunnable();
+    }
+
+    @Override
+    public void reloadCommand() {
+        setAliases(TerrainerPlugin.getLanguage().get("Commands.Resize.Command"));
     }
 
     @Override
@@ -97,6 +103,7 @@ public final class ResizeCommand extends Command {
             ConfirmCommand.requestConfirmation(playerID, sender1 -> {
                 ConfirmCommand.cancelConfirmation(playerID, confirmationHash);
                 PlayerUtil.setCurrentlyResizing(playerID, null);
+
                 Terrain terrain1 = terrainRef.get();
                 if (terrain1 == null) return;
                 WorldCoordinate[] selections1 = PlayerUtil.selections(playerID);
@@ -144,9 +151,7 @@ public final class ResizeCommand extends Command {
                     case "SUCCESS" -> {
                         Player player = owner == null ? null : Bukkit.getPlayer(owner);
 
-                        lang.send(sender1, lang.get("Resize.Success").replace("<terrain>", terrain1.name())
-                                .replace("<used>", Long.toString((long) claimResponse.variable()))
-                                .replace("<max>", player == null ? lang.get("Placeholder Values.Infinite Limit") : Long.toString(util.blockLimit(player))));
+                        lang.send(sender1, lang.get("Resize.Success").replace("<terrain>", terrain1.name()).replace("<used>", Long.toString((long) claimResponse.variable())).replace("<max>", player == null ? lang.get("Placeholder Values.Infinite Limit") : Long.toString(util.blockLimit(player))));
                         terrain1.setDiagonals(selections1[0].coordinate(), selections1[1].coordinate());
                         if (player != null) util.updateSelectionMarkersToTerrainMarkers(player);
                     }
@@ -161,5 +166,10 @@ public final class ResizeCommand extends Command {
                 return lang.getColored("Resize.Confirmation Description").replace("<terrain>", terrain1 == null ? name : terrain1.name());
             }, confirmationHash);
         });
+    }
+
+    @Override
+    protected @NotNull TabCompleteRunnable getTabCompleteRunnable() {
+        return (completions, label, sender, args) -> CommandUtil.addTerrainTabCompletion(completions, "terrainer.resize.others", null, false, sender, args);
     }
 }

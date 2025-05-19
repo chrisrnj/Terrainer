@@ -1,6 +1,6 @@
 /*
  * Terrainer - A minecraft terrain claiming protection plugin.
- * Copyright (C) 2024 Christiano Rangel
+ * Copyright (C) 2025 Christiano Rangel
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,14 +16,15 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.epicnicity322.terrainer.bukkit.command;
+package com.epicnicity322.terrainer.bukkit.command.impl;
 
-import com.epicnicity322.epicpluginlib.bukkit.command.Command;
 import com.epicnicity322.epicpluginlib.bukkit.command.CommandRunnable;
+import com.epicnicity322.epicpluginlib.bukkit.command.TabCompleteRunnable;
 import com.epicnicity322.epicpluginlib.bukkit.lang.MessageSender;
 import com.epicnicity322.epicpluginlib.core.logger.ConsoleLogger;
 import com.epicnicity322.epicpluginlib.core.util.ObjectUtils;
 import com.epicnicity322.terrainer.bukkit.TerrainerPlugin;
+import com.epicnicity322.terrainer.bukkit.command.TerrainerCommand;
 import com.epicnicity322.terrainer.bukkit.util.CommandUtil;
 import com.epicnicity322.terrainer.core.Terrainer;
 import net.md_5.bungee.api.chat.ClickEvent;
@@ -38,8 +39,9 @@ import java.util.HashMap;
 import java.util.UUID;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
+import java.util.stream.IntStream;
 
-public final class ConfirmCommand extends Command {
+public final class ConfirmCommand extends TerrainerCommand {
     private static final @NotNull UUID console = UUID.randomUUID();
     private static final @NotNull HashMap<UUID, ArrayList<PendingConfirmation>> requests = new HashMap<>(4);
 
@@ -143,6 +145,11 @@ public final class ConfirmCommand extends Command {
         return CommandUtil.noPermissionRunnable();
     }
 
+    @Override
+    public void reloadCommand() {
+        setAliases(TerrainerPlugin.getLanguage().get("Commands.Confirm.Command"));
+    }
+
     @SuppressWarnings("deprecation")
     @Override
     public void run(@NotNull String label, @NotNull CommandSender sender, @NotNull String[] args) {
@@ -157,6 +164,7 @@ public final class ConfirmCommand extends Command {
         Integer id = null;
 
         if (args.length > 1) {
+            // Displaying list of pending confirmations.
             if (args[1].equalsIgnoreCase("list") || args[1].equalsIgnoreCase(lang.get("Commands.Confirm.List"))) {
                 HashMap<Integer, ArrayList<PendingConfirmation>> pages = ObjectUtils.splitIntoPages(confirmations, 5);
                 int page = 1;
@@ -221,9 +229,7 @@ public final class ConfirmCommand extends Command {
             if (confirmations.size() > 1) {
                 lang.send(sender, lang.get("Confirm.Error.Multiple").replace("<command>", "/" + label + " " + args[0] + " " + lang.get("Commands.Confirm.List")));
                 return;
-            } else {
-                id = 0;
-            }
+            } else id = 0;
         }
 
         try {
@@ -238,6 +244,23 @@ public final class ConfirmCommand extends Command {
             Terrainer.logger().log("Something went wrong while running the confirmation " + id + " for player " + sender.getName() + ":", ConsoleLogger.Level.WARN);
             e.printStackTrace();
         }
+    }
+
+    @Override
+    protected @NotNull TabCompleteRunnable getTabCompleteRunnable() {
+        return (completions, label, sender, args) -> {
+            if (args.length != 2) return;
+
+            if (args[1].isEmpty()) {
+                ArrayList<PendingConfirmation> pendingRequests = requests.get(sender instanceof Player player ? player.getUniqueId() : console);
+                if (pendingRequests != null && !pendingRequests.isEmpty()) {
+                    IntStream.range(0, pendingRequests.size()).forEach(i -> completions.add(Integer.toString(i)));
+                }
+            }
+
+            String list = TerrainerPlugin.getLanguage().get("Commands.Confirm.List");
+            if (list.startsWith(args[1])) completions.add(list);
+        };
     }
 
     private record PendingConfirmation(@NotNull Consumer<CommandSender> onConfirm,
