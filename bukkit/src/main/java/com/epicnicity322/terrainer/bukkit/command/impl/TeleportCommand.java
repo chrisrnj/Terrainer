@@ -1,6 +1,6 @@
 /*
  * Terrainer - A minecraft terrain claiming protection plugin.
- * Copyright (C) 2024 Christiano Rangel
+ * Copyright (C) 2025 Christiano Rangel
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,18 +16,20 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.epicnicity322.terrainer.bukkit.command;
+package com.epicnicity322.terrainer.bukkit.command.impl;
 
-import com.epicnicity322.epicpluginlib.bukkit.command.Command;
 import com.epicnicity322.epicpluginlib.bukkit.command.CommandRunnable;
+import com.epicnicity322.epicpluginlib.bukkit.command.TabCompleteRunnable;
 import com.epicnicity322.epicpluginlib.bukkit.lang.MessageSender;
 import com.epicnicity322.terrainer.bukkit.TerrainerPlugin;
+import com.epicnicity322.terrainer.bukkit.command.TerrainerCommand;
 import com.epicnicity322.terrainer.bukkit.listener.EnterLeaveListener;
 import com.epicnicity322.terrainer.bukkit.util.CommandUtil;
 import com.epicnicity322.terrainer.bukkit.util.TaskFactory;
 import com.epicnicity322.terrainer.core.config.Configurations;
 import com.epicnicity322.terrainer.core.location.Coordinate;
 import com.epicnicity322.terrainer.core.terrain.Terrain;
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.command.CommandSender;
@@ -44,7 +46,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.UUID;
 
-public final class TeleportCommand extends Command implements Listener {
+public final class TeleportCommand extends TerrainerCommand implements Listener {
     private static final @NotNull HashMap<UUID, List<TaskFactory.CancellableTask>> teleportingPlayers = new HashMap<>();
     private final @NotNull TerrainerPlugin plugin;
 
@@ -65,6 +67,11 @@ public final class TeleportCommand extends Command implements Listener {
     @Override
     protected @NotNull CommandRunnable getNoPermissionRunnable() {
         return CommandUtil.noPermissionRunnable();
+    }
+
+    @Override
+    public void reloadCommand() {
+        setAliases(TerrainerPlugin.getLanguage().get("Commands.Teleport.Command"));
     }
 
     @Override
@@ -97,7 +104,7 @@ public final class TeleportCommand extends Command implements Listener {
             } else if (sender instanceof Player p) {
                 player = p;
             } else {
-                lang.send(sender, lang.get("Invalid Arguments.Error").replace("<label>", label).replace("<label2>", args0[0]).replace("<args>", lang.get("Invalid Arguments.Player")));
+                lang.send(sender, lang.get("Invalid Arguments.Error").replace("<label>", label).replace("<label2>", args0[0]).replace("<args>", lang.get("Invalid Arguments.Player") + " " + lang.get("Invalid Arguments.Terrain Optional")));
                 return;
             }
 
@@ -110,33 +117,37 @@ public final class TeleportCommand extends Command implements Listener {
             if (delay > 0 && sender == player && !sender.hasPermission("terrainer.teleport.nodelay")) {
                 UUID pUID = player.getUniqueId();
 
-                if (teleportingPlayers.containsKey(pUID)) {
-                    lang.send(sender, lang.get("Teleport.Error.Already Teleporting"));
-                    return;
+                synchronized (teleportingPlayers) {
+                    if (teleportingPlayers.containsKey(pUID)) {
+                        lang.send(sender, lang.get("Teleport.Error.Already Teleporting"));
+                        return;
+                    }
+
+                    var tasks = new ArrayList<TaskFactory.CancellableTask>(delay);
+                    int countdown = delay;
+
+                    lang.send(sender, lang.get("Teleport.Delay").replace("<delay>", Integer.toString(countdown--)));
+
+                    for (int i = 1; i < delay; i++) {
+                        int j = countdown--;
+                        tasks.add(plugin.getTaskFactory().runDelayed(player, i * 20L, () -> lang.send(sender, lang.get("Teleport.Delay").replace("<delay>", Integer.toString(j))), null));
+                    }
+
+                    String tName = terrain.name();
+                    tasks.add(plugin.getTaskFactory().runDelayed(player, delay * 20L, () -> {
+                        synchronized (teleportingPlayers) {
+                            teleportingPlayers.remove(pUID);
+                            // Unregistering movement listener.
+                            if (teleportingPlayers.isEmpty()) HandlerList.unregisterAll(this);
+                        }
+                        teleport(player, tpLoc, sender, tName, isWithinY);
+                    }, null));
+
+                    // Registering movement listener.
+                    if (teleportingPlayers.isEmpty())
+                        plugin.getServer().getPluginManager().registerEvents(this, plugin);
+                    teleportingPlayers.put(pUID, tasks);
                 }
-
-                var tasks = new ArrayList<TaskFactory.CancellableTask>(delay);
-                int countdown = delay;
-
-                lang.send(sender, lang.get("Teleport.Delay").replace("<delay>", Integer.toString(countdown--)));
-
-                for (int i = 1; i < delay; i++) {
-                    int j = countdown--;
-                    tasks.add(plugin.getTaskFactory().runDelayed(player, i * 20L, () -> lang.send(sender, lang.get("Teleport.Delay").replace("<delay>", Integer.toString(j))), null));
-                }
-
-                String tName = terrain.name();
-                tasks.add(plugin.getTaskFactory().runDelayed(player, delay * 20L, () -> {
-                    teleportingPlayers.remove(pUID);
-                    // Unregistering movement listener.
-                    if (teleportingPlayers.isEmpty()) HandlerList.unregisterAll(this);
-                    teleport(player, tpLoc, sender, tName, isWithinY);
-
-                }, null));
-
-                // Registering movement listener.
-                if (teleportingPlayers.isEmpty()) plugin.getServer().getPluginManager().registerEvents(this, plugin);
-                teleportingPlayers.put(pUID, tasks);
             } else {
                 teleport(player, tpLoc, sender, terrain.name(), isWithinY);
             }
@@ -175,16 +186,35 @@ public final class TeleportCommand extends Command implements Listener {
         }
 
         Player player = event.getPlayer();
-        List<TaskFactory.CancellableTask> tasks = teleportingPlayers.remove(player.getUniqueId());
+        synchronized (teleportingPlayers) {
+            List<TaskFactory.CancellableTask> tasks = teleportingPlayers.remove(player.getUniqueId());
 
-        if (tasks != null) {
-            tasks.forEach(TaskFactory.CancellableTask::cancel);
-            TerrainerPlugin.getLanguage().send(player, TerrainerPlugin.getLanguage().get("Teleport.Error.Moved"));
+            if (tasks != null) {
+                tasks.forEach(TaskFactory.CancellableTask::cancel);
+                TerrainerPlugin.getLanguage().send(player, TerrainerPlugin.getLanguage().get("Teleport.Error.Moved"));
 
-            // Unregistering movement listener.
-            if (teleportingPlayers.isEmpty()) {
-                HandlerList.unregisterAll(this);
+                // Unregistering movement listener.
+                if (teleportingPlayers.isEmpty()) {
+                    HandlerList.unregisterAll(this);
+                }
             }
         }
+    }
+
+    @Override
+    protected @NotNull TabCompleteRunnable getTabCompleteRunnable() {
+        return (completions, label, sender, args) -> {
+            if (args.length == 2) {
+                if (sender.hasPermission("terrainer.teleport.otherplayers")) {
+                    for (Player player : Bukkit.getOnlinePlayers()) {
+                        if (player.getName().startsWith(args[1])) completions.add(player.getName());
+                    }
+                    if (!completions.isEmpty()) return; // Don't add terrain tab completion if player names were added.
+                }
+                CommandUtil.addTerrainTabCompletion(completions, "terrainer.teleport.otherterrains", "terrainer.teleport.world", true, sender, args);
+            } else {
+                CommandUtil.addTerrainTabCompletion(completions, "terrainer.teleport.otherterrains", "terrainer.teleport.world", true, sender, args);
+            }
+        };
     }
 }
