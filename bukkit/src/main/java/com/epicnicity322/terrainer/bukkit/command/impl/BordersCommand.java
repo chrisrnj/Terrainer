@@ -1,6 +1,6 @@
 /*
  * Terrainer - A minecraft terrain claiming protection plugin.
- * Copyright (C) 2024 Christiano Rangel
+ * Copyright (C) 2025 Christiano Rangel
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,13 +16,14 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.epicnicity322.terrainer.bukkit.command;
+package com.epicnicity322.terrainer.bukkit.command.impl;
 
-import com.epicnicity322.epicpluginlib.bukkit.command.Command;
 import com.epicnicity322.epicpluginlib.bukkit.command.CommandRunnable;
 import com.epicnicity322.terrainer.bukkit.TerrainerPlugin;
+import com.epicnicity322.terrainer.bukkit.command.TerrainerCommand;
 import com.epicnicity322.terrainer.bukkit.util.CommandUtil;
 import com.epicnicity322.terrainer.bukkit.util.TaskFactory;
+import com.epicnicity322.terrainer.core.Terrainer;
 import com.epicnicity322.terrainer.core.config.Configurations;
 import com.epicnicity322.terrainer.core.location.Coordinate;
 import com.epicnicity322.terrainer.core.terrain.Terrain;
@@ -32,16 +33,13 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.Collection;
-import java.util.UUID;
-import java.util.WeakHashMap;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.*;
 
 /**
  * A command that toggles the showing of border particles to the player.
  */
-public final class BordersCommand extends Command {
-    private static final @NotNull ConcurrentHashMap<UUID, TaskFactory.CancellableTask> viewers = new ConcurrentHashMap<>();
+public final class BordersCommand extends TerrainerCommand {
+    private static final @NotNull HashMap<UUID, TaskFactory.CancellableTask> viewers = new HashMap<>();
     private final @NotNull TerrainerPlugin plugin;
     private @NotNull Particle particle = Particle.CLOUD;
 
@@ -64,13 +62,27 @@ public final class BordersCommand extends Command {
         return CommandUtil.noPermissionRunnable();
     }
 
-    public void setParticle(@NotNull Particle particle) {
-        this.particle = particle;
+    @Override
+    public void reloadCommand() {
+        // Borders Particle
+        String particleName = Configurations.CONFIG.getConfiguration().getString("Borders.Particle").orElse("CLOUD").toUpperCase(Locale.ROOT);
+        try {
+            this.particle = Particle.valueOf(particleName);
+        } catch (IllegalArgumentException e) {
+            Terrainer.logger().log("A particle with name '" + particleName + "' was not found. Using CLOUD as particle for borders.");
+            this.particle = Particle.CLOUD;
+        }
+    }
+
+    @Override
+    public void run(@NotNull String label, @NotNull CommandSender sender, @NotNull String[] args) {
+        //TODO: Toggle border showing command.
     }
 
     public void showBorders(@NotNull Player player, @NotNull Collection<Terrain> terrains) {
         UUID playerID = player.getUniqueId();
         stopShowingBorders(playerID);
+
         if (!player.hasPermission("terrainer.borders.show")) return;
         Configuration config = Configurations.CONFIG.getConfiguration();
         if (!config.getBoolean("Borders.Enabled").orElse(false)) return;
@@ -108,18 +120,14 @@ public final class BordersCommand extends Command {
 
             long frequency = config.getNumber("Borders.Frequency").orElse(5).longValue();
             TaskFactory.CancellableTask particleTask = plugin.getTaskFactory().runAtFixedRate(player, frequency, config.getBoolean("Borders.Async").orElse(false), particleRunnable, () -> stopShowingBorders(playerID));
-            if (particleTask == null) return;
-            viewers.put(playerID, particleTask);
+            if (particleTask != null) viewers.put(playerID, particleTask);
         }
     }
 
     public void stopShowingBorders(@NotNull UUID player) {
-        TaskFactory.CancellableTask particleTask = viewers.remove(player);
-        if (particleTask != null) particleTask.cancel();
-    }
-
-    @Override
-    public void run(@NotNull String label, @NotNull CommandSender sender, @NotNull String[] args) {
-        //TODO: Toggle border showing command.
+        synchronized (viewers) {
+            TaskFactory.CancellableTask particleTask = viewers.remove(player);
+            if (particleTask != null) particleTask.cancel();
+        }
     }
 }
