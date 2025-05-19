@@ -16,44 +16,30 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.epicnicity322.terrainer.bukkit.command;
+package com.epicnicity322.terrainer.bukkit.command.impl;
 
-import com.epicnicity322.epicpluginlib.bukkit.command.Command;
 import com.epicnicity322.epicpluginlib.bukkit.command.CommandRunnable;
+import com.epicnicity322.epicpluginlib.bukkit.command.TabCompleteRunnable;
 import com.epicnicity322.epicpluginlib.bukkit.lang.MessageSender;
 import com.epicnicity322.terrainer.bukkit.TerrainerPlugin;
+import com.epicnicity322.terrainer.bukkit.command.TerrainerCommand;
 import com.epicnicity322.terrainer.bukkit.util.CommandUtil;
 import com.epicnicity322.terrainer.core.flag.Flags;
 import com.epicnicity322.terrainer.core.terrain.Terrain;
+import com.epicnicity322.terrainer.core.terrain.TerrainManager;
+import com.epicnicity322.terrainer.core.terrain.WorldTerrain;
 import org.bukkit.Bukkit;
+import org.bukkit.Location;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 import java.util.Objects;
 import java.util.UUID;
 
 import static com.epicnicity322.terrainer.bukkit.util.CommandUtil.*;
 
-interface Permission {
-    boolean isGrant();
-
-    void managePermission(@NotNull CommandSender sender, boolean mod, @NotNull UUID toAdd, @NotNull Terrain terrain, @NotNull String who);
-}
-
-public abstract class PermissionCommand extends Command implements Permission {
-    private @NotNull String @Nullable [] moderatorAliases = new String[]{"mod"};
-    private @NotNull String @Nullable [] memberAliases = null;
-
-    private static boolean contains(@NotNull String @Nullable [] array, @NotNull String value) {
-        if (array == null) return false;
-        for (String s : array) {
-            if (value.equalsIgnoreCase(s)) return true;
-        }
-        return false;
-    }
-
+public abstract class PermissionCommand extends TerrainerCommand {
     private static boolean canManageModerators(@NotNull CommandSender sender, @NotNull Terrain terrain) {
         if (sender.hasPermission(Flags.MANAGE_MODERATORS.bypassPermission()) || !(sender instanceof Player player) || player.getUniqueId().equals(terrain.owner())) {
             return true;
@@ -65,13 +51,9 @@ public abstract class PermissionCommand extends Command implements Permission {
         return canManageOtherMods != null && canManageOtherMods;
     }
 
-    public void setMemberAliases(@NotNull String @Nullable [] memberAliases) {
-        this.memberAliases = memberAliases;
-    }
+    protected abstract boolean isGrant();
 
-    public void setModeratorAliases(@NotNull String @Nullable [] moderatorAliases) {
-        this.moderatorAliases = moderatorAliases;
-    }
+    protected abstract void managePermission(@NotNull CommandSender sender, boolean mod, @NotNull UUID toAdd, @NotNull Terrain terrain, @NotNull String who);
 
     @Override
     protected @NotNull CommandRunnable getNoPermissionRunnable() {
@@ -81,7 +63,7 @@ public abstract class PermissionCommand extends Command implements Permission {
     @Override
     public void run(@NotNull String label, @NotNull CommandSender sender0, @NotNull String[] args0) {
         MessageSender lang = TerrainerPlugin.getLanguage();
-        findTerrain(isGrant() ? "terrainer.grant.others" : "terrainer.revoke.others", isGrant() ? "terrainer.grant.world" : "terrainer.revoke.world", true, label, sender0, args0, lang.getColored("Permission.Select"), commandArguments -> {
+        findTerrain(getPermission() + ".others", getPermission() + ".world", true, label, sender0, args0, lang.getColored("Permission.Select"), commandArguments -> {
             String[] args = commandArguments.preceding();
             Terrain terrain = commandArguments.terrain();
             CommandSender sender = commandArguments.sender();
@@ -113,14 +95,17 @@ public abstract class PermissionCommand extends Command implements Permission {
             boolean mod = false;
 
             if (args.length > 1) {
-                if (args[1].equalsIgnoreCase("moderator") || contains(moderatorAliases, args[1])) {
+                String moderator = lang.get("Commands.Permission.Moderator");
+                String member = lang.get("Commands.Permission.Member");
+
+                if (args[1].equalsIgnoreCase("moderator") || args[1].equalsIgnoreCase(moderator)) {
                     if (!canManageModerators(sender, terrain)) {
                         lang.send(sender, lang.get("Permission.Error.Manage Other Moderators Denied"));
                         return;
                     }
                     mod = true;
-                } else if (!args[1].equalsIgnoreCase("member") && !contains(memberAliases, args[1])) {
-                    lang.send(sender, lang.get("Invalid Arguments.Error").replace("<label>", label).replace("<label2>", args0[0]).replace("<args>", lang.get("Target.Player") + " [moderator|member] [--t " + lang.get("Target.Terrain") + "]"));
+                } else if (!args[1].equalsIgnoreCase("member") && !args[1].equalsIgnoreCase(member)) {
+                    lang.send(sender, lang.get("Invalid Arguments.Error").replace("<label>", label).replace("<label2>", args0[0]).replace("<args>", lang.get("Invalid Arguments.Player") + " [" + moderator + "|" + member + "] " + lang.get("Invalid Arguments.Terrain Optional")));
                     return;
                 }
             }
@@ -129,8 +114,40 @@ public abstract class PermissionCommand extends Command implements Permission {
         });
     }
 
+    @Override
+    protected @NotNull TabCompleteRunnable getTabCompleteRunnable() {
+        return (completions, label, sender, args) -> {
+            if (args.length == 2) {
+                CommandUtil.addTargetTabCompletion(completions, args);
+                completions.remove("*");
+                completions.remove("null");
+                if (sender instanceof Player player) {
+                    Location l = player.getLocation();
+                    UUID playerID = player.getUniqueId();
+
+                    for (var terrain : TerrainManager.terrainsAt(player.getWorld().getUID(), l.getBlockX(), l.getBlockY(), l.getBlockZ())) {
+                        if (Objects.equals(playerID, terrain.owner()) || terrain.moderators().view().contains(playerID) || player.hasPermission(getPermission() + ".others") || (terrain instanceof WorldTerrain && player.hasPermission(getPermission() + ".world"))) {
+                            terrain.members().view().forEach(uuid -> completions.add(TerrainerPlugin.getPlayerUtil().ownerName(uuid)));
+                            terrain.moderators().view().forEach(uuid -> completions.add(TerrainerPlugin.getPlayerUtil().ownerName(uuid)));
+                        }
+                    }
+                    completions.removeIf(completion -> !completion.startsWith(args[1]));
+                }
+                return;
+            } else if (args.length == 3) {
+                String member = TerrainerPlugin.getLanguage().get("Commands.Permission.Member");
+                String moderator = TerrainerPlugin.getLanguage().get("Commands.Permission.Moderator");
+
+                if (member.startsWith(args[2])) completions.add(member);
+                if (moderator.startsWith(args[2])) completions.add(moderator);
+                if (!completions.isEmpty()) return;
+            }
+
+            CommandUtil.addTerrainTabCompletion(completions, getPermission() + ".others", getPermission() + ".world", true, sender, args);
+        };
+    }
+
     public static final class GrantCommand extends PermissionCommand {
-        //TODO: "Add" alias
         @Override
         public @NotNull String getName() {
             return "grant";
@@ -144,6 +161,11 @@ public abstract class PermissionCommand extends Command implements Permission {
         @Override
         public boolean isGrant() {
             return true;
+        }
+
+        @Override
+        public void reloadCommand() {
+            setAliases(TerrainerPlugin.getLanguage().get("Commands.Permission.Command Grant"));
         }
 
         @Override
@@ -182,7 +204,6 @@ public abstract class PermissionCommand extends Command implements Permission {
     }
 
     public static final class RevokeCommand extends PermissionCommand {
-        //TODO: "Remove" alias
         @Override
         public @NotNull String getName() {
             return "revoke";
@@ -196,6 +217,11 @@ public abstract class PermissionCommand extends Command implements Permission {
         @Override
         public boolean isGrant() {
             return false;
+        }
+
+        @Override
+        public void reloadCommand() {
+            setAliases(TerrainerPlugin.getLanguage().get("Commands.Permission.Command Revoke"));
         }
 
         @Override
