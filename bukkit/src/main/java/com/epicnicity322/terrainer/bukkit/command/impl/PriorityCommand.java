@@ -1,6 +1,6 @@
 /*
  * Terrainer - A minecraft terrain claiming protection plugin.
- * Copyright (C) 2024 Christiano Rangel
+ * Copyright (C) 2025 Christiano Rangel
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,12 +16,13 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.epicnicity322.terrainer.bukkit.command;
+package com.epicnicity322.terrainer.bukkit.command.impl;
 
-import com.epicnicity322.epicpluginlib.bukkit.command.Command;
 import com.epicnicity322.epicpluginlib.bukkit.command.CommandRunnable;
+import com.epicnicity322.epicpluginlib.bukkit.command.TabCompleteRunnable;
 import com.epicnicity322.epicpluginlib.bukkit.lang.MessageSender;
 import com.epicnicity322.terrainer.bukkit.TerrainerPlugin;
+import com.epicnicity322.terrainer.bukkit.command.TerrainerCommand;
 import com.epicnicity322.terrainer.bukkit.util.CommandUtil;
 import com.epicnicity322.terrainer.core.terrain.Terrain;
 import com.epicnicity322.terrainer.core.terrain.TerrainManager;
@@ -35,9 +36,9 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
-import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
-public final class PriorityCommand extends Command {
+public final class PriorityCommand extends TerrainerCommand {
     @Override
     public @NotNull String getName() {
         return "priority";
@@ -54,16 +55,22 @@ public final class PriorityCommand extends Command {
     }
 
     @Override
+    public void reloadCommand() {
+        setAliases(TerrainerPlugin.getLanguage().get("Commands.Priority.Command"));
+    }
+
+    @Override
     public void run(@NotNull String label, @NotNull CommandSender sender0, @NotNull String[] args0) {
         MessageSender lang = TerrainerPlugin.getLanguage();
 
-        if (sender0 instanceof Player player && args0.length == 2 && (args0[1].equalsIgnoreCase("-h") || args0[1].equalsIgnoreCase(lang.get("Commands.Priority.Here")))) {
+        // Get priority of all terrains in location.
+        if (sender0 instanceof Player player && args0.length == 2 && (args0[1].equalsIgnoreCase("--here") || args0[1].equalsIgnoreCase(lang.get("Commands.Priority.Here")))) {
             Location loc = player.getLocation();
             UUID world = player.getWorld().getUID();
             Collection<Terrain> terrains = TerrainManager.terrainsAt(world, loc.getBlockX(), loc.getBlockY(), loc.getBlockZ());
             boolean removed = false;
 
-            // World Terrains are not shown with -here.
+            // World Terrains are not shown with --here.
             terrains.removeIf(t -> t.id().equals(world));
 
             if (!player.hasPermission("terrainer.priority.others")) {
@@ -97,13 +104,13 @@ public final class PriorityCommand extends Command {
         }
 
         CommandUtil.findTerrain("terrainer.priority.others", "terrainer.priority.world", false, label, sender0, args0, lang.getColored("Priority.Select"), arguments -> {
-            if (arguments == null) return;
             String[] args = arguments.preceding();
             Terrain terrain = arguments.terrain();
             CommandSender sender = arguments.sender();
             UUID senderID = sender instanceof Player player ? player.getUniqueId() : null;
             List<Terrain> overlappingTerrains = getOverlappingTerrains(terrain);
 
+            // Display priority of current terrain and any overlapping terrains.
             if (args.length == 0) {
                 if (overlappingTerrains.size() <= 1 || !sender.hasPermission("terrainer.priority.overlappinginfo")) {
                     lang.send(sender, lang.get("Priority.Single").replace("<priority>", Integer.toString(terrain.priority())).replace("<terrain>", terrain.name()));
@@ -113,6 +120,7 @@ public final class PriorityCommand extends Command {
                 boolean showOtherPriorities = sender.hasPermission("terrainer.priority.others");
 
                 if (showOtherPriorities && checkIfTerrainsHaveSamePriority(overlappingTerrains)) {
+                    lang.send(sender, lang.get("Priority.Same.Overlapping").replace("<priority>", Integer.toString(terrain.priority())).replace("<terrain>", terrain.name()));
                     return;
                 }
 
@@ -154,7 +162,7 @@ public final class PriorityCommand extends Command {
     }
 
     private List<Terrain> getOverlappingTerrains(Terrain terrain) {
-        return TerrainManager.terrains(terrain.world()).filter(terrain::isOverlapping).collect(Collectors.toList());
+        return TerrainManager.terrains(terrain.world()).filter(terrain::isOverlapping).toList();
     }
 
     private boolean checkIfTerrainsHaveSamePriority(Collection<Terrain> terrains) {
@@ -170,5 +178,19 @@ public final class PriorityCommand extends Command {
         }
 
         return true;
+    }
+
+    @Override
+    protected @NotNull TabCompleteRunnable getTabCompleteRunnable() {
+        return (completions, label, sender, args) -> {
+            if (args.length == 2) {
+                String here = TerrainerPlugin.getLanguage().get("Commands.Priority.Here");
+
+                if (here.startsWith(args[1])) completions.add(here);
+                if (args[1].isEmpty()) IntStream.range(0, 3).forEach(i -> completions.add(Integer.toString(i)));
+                if (!completions.isEmpty()) return;
+            }
+            CommandUtil.addTerrainTabCompletion(completions, "terrainer.priority.others", "terrainer.priority.world", false, sender, args);
+        };
     }
 }
