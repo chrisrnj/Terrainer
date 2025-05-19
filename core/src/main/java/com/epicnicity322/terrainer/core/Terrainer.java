@@ -1,6 +1,6 @@
 /*
  * Terrainer - A minecraft terrain claiming protection plugin.
- * Copyright (C) 2024 Christiano Rangel
+ * Copyright (C) 2025 Christiano Rangel
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -47,8 +47,9 @@ public final class Terrainer {
     private static @NotNull ConsoleLogger<?> logger = ConsoleLogger.simpleLogger("&8[&4Terrainer&8]&7 ");
     private static @NotNull LanguageHolder<?, ?> lang = LanguageHolder.simpleLanguage(() -> "", Configurations.LANG_EN_US.getDefaultConfiguration());
     private static @UnknownNullability PlayerUtil<?, ?> playerUtil = null;
+    private static @UnknownNullability Runnable terrainPruner = null;
     private static volatile @Nullable ScheduledFuture<?> dailyTimer;
-    private static volatile @Nullable LocalDate timeBeforeStartingDailyTimer;
+    private static volatile @Nullable LocalDate timeBeforeDailyTimerStarted;
 
     private Terrainer() {
     }
@@ -75,6 +76,14 @@ public final class Terrainer {
 
     public static void setPlayerUtil(@NotNull PlayerUtil<?, ?> playerUtil) {
         Terrainer.playerUtil = playerUtil;
+    }
+
+    private static @UnknownNullability Runnable terrainPruner() {
+        return terrainPruner;
+    }
+
+    public static void setTerrainPruner(@NotNull Runnable terrainPruner) {
+        Terrainer.terrainPruner = terrainPruner;
     }
 
     public static synchronized void loadDailyTimer() {
@@ -110,8 +119,8 @@ public final class Terrainer {
     private static @NotNull Runnable dailyRunnable() {
         return () -> {
             // Checking if a day has really passed. If not, run the scheduler again.
-            LocalDate timeBeforeStartingDailyTimer1 = timeBeforeStartingDailyTimer;
-            if (timeBeforeStartingDailyTimer1 != null && timeBeforeStartingDailyTimer1.until(LocalDate.now(), ChronoUnit.DAYS) <= 0) {
+            LocalDate timeBeforeDailyTimerStarted1 = timeBeforeDailyTimerStarted;
+            if (timeBeforeDailyTimerStarted1 != null && timeBeforeDailyTimerStarted1.until(LocalDate.now(), ChronoUnit.DAYS) <= 0) {
                 logger.log("Timer ran before a day has really passed. Re-scheduling.", ConsoleLogger.Level.WARN);
                 scheduleDailyRunnable();
                 return;
@@ -119,7 +128,15 @@ public final class Terrainer {
 
             logger.log("A day has passed!");
 
-            // TODO: Daily tasks, such as: Taxing, Old Terrain Pruning, etc
+            // TODO: Daily tasks, such as: collecting taxes
+
+            try {
+                Runnable terrainPruner = terrainPruner();
+                if (terrainPruner != null) terrainPruner.run();
+            } catch (Throwable t) {
+                logger.log("Unknown error when running terrain pruner.", ConsoleLogger.Level.ERROR);
+                t.printStackTrace();
+            }
 
             // Re-scheduling.
             scheduleDailyRunnable();
@@ -130,7 +147,7 @@ public final class Terrainer {
         ScheduledFuture<?> dailyTimer1 = dailyTimer;
         if (dailyTimer1 != null) dailyTimer1.cancel(true);
 
-        timeBeforeStartingDailyTimer = LocalDate.now();
+        timeBeforeDailyTimerStarted = LocalDate.now();
         dailyTimer = dailyTimerExecutor.schedule(dailyRunnable(), minutesUntilNextDay(), TimeUnit.MINUTES);
     }
 

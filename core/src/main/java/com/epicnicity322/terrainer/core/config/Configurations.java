@@ -285,6 +285,14 @@ public final class Configurations {
               # Set to 0 to disable, or grant the permission 'terrainer.teleport.nodelay'
               Movement Check Delay: 3 #seconds
             
+            # Terrains can be purged when the user has not logged in over a certain amount of days.
+            Purge:
+              Enabled: false
+              Days Offline: 90
+              Regen:
+               Enabled: false # Auto-regen the terrain if you have WorldEdit.
+               Log: true
+            
             # Cooldown time in seconds of commands.
             Cooldowns:
               # Bypass permission: 'terrainer.bypass.cooldown.infowand'
