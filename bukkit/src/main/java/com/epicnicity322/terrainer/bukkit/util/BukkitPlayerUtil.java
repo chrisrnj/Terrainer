@@ -18,7 +18,9 @@
 
 package com.epicnicity322.terrainer.bukkit.util;
 
+import com.epicnicity322.epicpluginlib.core.EpicPluginLib;
 import com.epicnicity322.terrainer.bukkit.TerrainerPlugin;
+import com.epicnicity322.terrainer.bukkit.hook.NMSHandler;
 import com.epicnicity322.terrainer.core.Terrainer;
 import com.epicnicity322.terrainer.core.config.Configurations;
 import com.epicnicity322.terrainer.core.location.Coordinate;
@@ -48,11 +50,13 @@ public final class BukkitPlayerUtil extends PlayerUtil<Player, CommandSender> {
     private final @NotNull NamespacedKey blockLimitKey;
     private final @NotNull NamespacedKey claimLimitKey;
     private final @NotNull NamespacedKey resetFlyKey;
+    private final @NotNull NMSHandler nmsHandler;
 
-    public BukkitPlayerUtil(@NotNull TerrainerPlugin plugin, @NotNull TreeSet<Map.Entry<String, Long>> defaultBlockLimits, @NotNull TreeSet<Map.Entry<String, Integer>> defaultClaimLimits, @NotNull AtomicBoolean nestedTerrainsCountTowardsBlockLimit, @NotNull AtomicBoolean perWorldBlockLimit, @NotNull AtomicBoolean perWorldClaimLimit, @NotNull AtomicBoolean sumIfTheresMultipleBlockLimitPermissions, @NotNull AtomicBoolean sumIfTheresMultipleClaimLimitPermissions) {
+    public BukkitPlayerUtil(@NotNull TerrainerPlugin plugin, @NotNull NMSHandler nmsHandler, @NotNull TreeSet<Map.Entry<String, Long>> defaultBlockLimits, @NotNull TreeSet<Map.Entry<String, Integer>> defaultClaimLimits, @NotNull AtomicBoolean nestedTerrainsCountTowardsBlockLimit, @NotNull AtomicBoolean perWorldBlockLimit, @NotNull AtomicBoolean perWorldClaimLimit, @NotNull AtomicBoolean sumIfTheresMultipleBlockLimitPermissions, @NotNull AtomicBoolean sumIfTheresMultipleClaimLimitPermissions) {
         super(defaultBlockLimits, defaultClaimLimits, nestedTerrainsCountTowardsBlockLimit, perWorldBlockLimit, perWorldClaimLimit, sumIfTheresMultipleBlockLimitPermissions, sumIfTheresMultipleClaimLimitPermissions);
 
         this.plugin = plugin;
+        this.nmsHandler = nmsHandler;
         blockLimitKey = new NamespacedKey(plugin, "block-limit");
         claimLimitKey = new NamespacedKey(plugin, "claim-limit");
         resetFlyKey = new NamespacedKey(plugin, "reset-fly-on-leave");
@@ -118,10 +122,12 @@ public final class BukkitPlayerUtil extends PlayerUtil<Player, CommandSender> {
         //noinspection deprecation - backwards compatibility
         PotionEffectType type = PotionEffectType.getByName(effect);
         if (type == null) return;
-        if (plugin.getServer().isPrimaryThread()) {
-            player.addPotionEffect(new PotionEffect(type, Integer.MAX_VALUE, power, false, false));
-        } else {
+
+        // Ensure the potion effect is applied on the right thread.
+        if (EpicPluginLib.Platform.isFolia() || !plugin.getServer().isPrimaryThread()) {
             plugin.getTaskFactory().runDelayed(player, 1, () -> player.addPotionEffect(new PotionEffect(type, Integer.MAX_VALUE, power, false, false)), null);
+        } else {
+            player.addPotionEffect(new PotionEffect(type, Integer.MAX_VALUE, power, false, false));
         }
     }
 
@@ -130,25 +136,29 @@ public final class BukkitPlayerUtil extends PlayerUtil<Player, CommandSender> {
         //noinspection deprecation - backwards compatibility
         PotionEffectType type = PotionEffectType.getByName(effect);
         if (type == null) return;
-        player.removePotionEffect(type);
+
+        // Although for "removePotionEffect" it's not necessary to execute on the right thread, we'll ensure that it's
+        //called delayed by one tick just like #applyEffect, so calls for both methods are in sync, and there's no risk
+        //of the potion effect being removed before it is applied.
+        if (EpicPluginLib.Platform.isFolia() || !plugin.getServer().isPrimaryThread()) {
+            plugin.getTaskFactory().runDelayed(player, 1, () -> player.removePotionEffect(type), null);
+        } else {
+            player.removePotionEffect(type);
+        }
     }
 
     @Override
     public void dispatchCommand(@Nullable Player executor, @NotNull String command) {
         try {
-            if (plugin.getServer().isPrimaryThread()) {
-                plugin.getServer().dispatchCommand(executor == null ? consoleRecipient() : executor, command);
-            } else {
+            // Ensure the command is dispatched on the right thread.
+            if (EpicPluginLib.Platform.isFolia() || !plugin.getServer().isPrimaryThread()) {
                 if (executor == null)
                     plugin.getTaskFactory().runGlobalTask(() -> plugin.getServer().dispatchCommand(consoleRecipient(), command));
                 else
                     plugin.getTaskFactory().runDelayed(executor, 1, () -> plugin.getServer().dispatchCommand(executor, command), null);
+            } else {
+                plugin.getServer().dispatchCommand(executor == null ? consoleRecipient() : executor, command);
             }
-        } catch (IllegalStateException e) { // Async execution exception.
-            if (executor == null)
-                plugin.getTaskFactory().runGlobalTask(() -> plugin.getServer().dispatchCommand(consoleRecipient(), command));
-            else
-                plugin.getTaskFactory().runDelayed(executor, 1, () -> plugin.getServer().dispatchCommand(executor, command), null);
         } catch (Throwable t) {
             Terrainer.logger().log("Unable to execute command '" + command + "' as " + (executor == null ? "console" : executor.getName()) + ":");
             t.printStackTrace();
@@ -247,16 +257,16 @@ public final class BukkitPlayerUtil extends PlayerUtil<Player, CommandSender> {
 
     @Override
     protected void killMarker(@NotNull Player player, @NotNull SpawnedMarker marker) throws Throwable {
-        TerrainerPlugin.getNMSHandler().killEntity(player, marker);
+        nmsHandler.killEntity(player, marker);
     }
 
     @Override
     protected @NotNull SpawnedMarker spawnMarker(@NotNull Player player, double x, double y, double z, boolean edges, boolean selection) throws Throwable {
-        return TerrainerPlugin.getNMSHandler().spawnMarkerEntity(player, (int) x, (int) y, (int) z, edges, selection);
+        return nmsHandler.spawnMarkerEntity(player, (int) x, (int) y, (int) z, edges, selection);
     }
 
     @Override
     protected void updateSelectionMarkerToTerrainMarker(@NotNull SpawnedMarker marker, @NotNull Player player) throws Throwable {
-        TerrainerPlugin.getNMSHandler().updateSelectionMarkerToTerrainMarker(marker, player);
+        nmsHandler.updateSelectionMarkerToTerrainMarker(marker, player);
     }
 }
