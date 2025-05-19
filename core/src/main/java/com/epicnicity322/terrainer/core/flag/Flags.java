@@ -102,6 +102,10 @@ public final class Flags {
      */
     public static final @NotNull PlayerFlag<Boolean> EAT = PlayerFlag.newBooleanFlag("Eat", true);
     /**
+     * Allows moderators to edit terrain flags, except for flags that control moderator permissions.
+     */
+    public static final @NotNull PlayerFlag<Boolean> EDIT_FLAGS = PlayerFlag.newBooleanFlag("Edit Flags", true);
+    /**
      * Prevents players from harming enemy entities.
      */
     public static final @NotNull PlayerFlag<Boolean> ENEMY_HARM = PlayerFlag.newBooleanFlag("Enemy Harm", true);
@@ -211,6 +215,10 @@ public final class Flags {
      */
     public static final @NotNull Flag<Boolean> LIQUID_FLOW = Flag.newBooleanFlag("Liquid Flow", true);
     /**
+     * Whether moderators can grant or revoke the moderation role of other players in a terrain.
+     */
+    public static final @NotNull PlayerFlag<Boolean> MANAGE_MODERATORS = PlayerFlag.newBooleanFlag("Manage Moderators", false);
+    /**
      * Changes the location where enter and leave messages will be shown. By default, terrains send messages in the
      * "title", but the values "actionbar", "bossbar", "chat", and "none" are supported.
      */
@@ -225,14 +233,6 @@ public final class Flags {
      * Allows mobs spawning naturally.
      */
     public static final @NotNull Flag<Boolean> MOB_SPAWN = Flag.newBooleanFlag("Mob Spawn", true);
-    /**
-     * Allows moderators to edit terrain flags, except for flags that control moderator permissions.
-     */
-    public static final @NotNull PlayerFlag<Boolean> EDIT_FLAGS = PlayerFlag.newBooleanFlag("Edit Flags", true);
-    /**
-     * Whether moderators can grant or revoke the moderation role of other players in a terrain.
-     */
-    public static final @NotNull PlayerFlag<Boolean> MANAGE_MODERATORS = PlayerFlag.newBooleanFlag("Manage Moderators", false);
     /**
      * Allows dispensers outside the terrain firing into the inside.
      */
@@ -389,26 +389,28 @@ public final class Flags {
      * @param defaultMaterial    The material type the item of this flag will have in Flag Management GUI.
      * @return The own flag that was added.
      */
-    @Contract("_,_,_,_ -> param1")
-    public static <T> @NotNull Flag<T> registerFlag(@NotNull Flag<T> flag, @NotNull String defaultDisplayName, @NotNull String defaultLore, @NotNull String defaultMaterial) {
+    @Contract("_,_,_,_,_ -> param1")
+    public static synchronized <T> @NotNull Flag<T> registerFlag(@NotNull Flag<T> flag, @NotNull String defaultDisplayName, @NotNull String defaultLore, @NotNull String defaultMaterial, @Nullable T defineValue) {
         values.add(flag);
         if (Configurations.FLAGS.getConfiguration().contains(flag.id())) return flag;
 
         try {
             ConfigurationSection defaultSection = Configurations.FLAGS.getDefaultConfiguration().createSection(flag.id());
+            defaultSection.set("Default", flag.formatter().apply(flag.defaultValue()));
+            if (defineValue != null) defaultSection.set("Define Value", flag.formatter().apply(defineValue));
+            defaultSection.set("Material", defaultMaterial);
             defaultSection.set("Display Name", defaultDisplayName);
             defaultSection.set("Lore", defaultLore);
-            defaultSection.set("Material", defaultMaterial);
-            defaultSection.set("Default", flag.formatter().apply(flag.defaultValue()));
 
             Path flagsPath = Configurations.FLAGS.getPath();
             Configuration flags = new YamlConfigurationLoader('.', 2, DumperOptions.FlowStyle.BLOCK).load(flagsPath);
 
             ConfigurationSection section = flags.createSection(flag.id());
+            section.set("Default", flag.formatter().apply(flag.defaultValue()));
+            if (defineValue != null) section.set("Define Value", flag.formatter().apply(defineValue));
+            section.set("Material", defaultMaterial);
             section.set("Display Name", defaultDisplayName);
             section.set("Lore", defaultLore);
-            section.set("Material", defaultMaterial);
-            section.set("Default", flag.formatter().apply(flag.defaultValue()));
 
             PathUtils.deleteAll(flagsPath);
             flags.save(flagsPath);
@@ -448,13 +450,12 @@ public final class Flags {
     /**
      * Sets all currently registered flags' default value to the one specified in {@link Configurations#FLAGS}.
      */
-    public static void reloadFlagDefaults() {
+    public static void loadFlagDefaults() {
         for (Flag<?> f : values) resetFlagDefault(f);
     }
 
     private static <T> void resetFlagDefault(@NotNull Flag<T> flag) {
-        Optional<String> customDefault = Configurations.FLAGS.getConfiguration().getString(flag.id() + ".Default");
-        customDefault.ifPresent(s -> {
+        Configurations.FLAGS.getConfiguration().getString(flag.id() + ".Default").ifPresent(s -> {
             try {
                 flag.defaultValue = flag.transformer().apply(s);
             } catch (FlagTransformException e) {
