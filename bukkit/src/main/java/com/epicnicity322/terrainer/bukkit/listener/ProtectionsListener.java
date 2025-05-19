@@ -1,6 +1,6 @@
 /*
  * Terrainer - A minecraft terrain claiming protection plugin.
- * Copyright (C) 2024 Christiano Rangel
+ * Copyright (C) 2025 Christiano Rangel
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,7 +22,7 @@ import com.epicnicity322.epicpluginlib.bukkit.lang.MessageSender;
 import com.epicnicity322.epicpluginlib.bukkit.reflection.ReflectionUtil;
 import com.epicnicity322.epicpluginlib.core.logger.ConsoleLogger;
 import com.epicnicity322.terrainer.bukkit.TerrainerPlugin;
-import com.epicnicity322.terrainer.bukkit.command.BordersCommand;
+import com.epicnicity322.terrainer.bukkit.command.impl.BordersCommand;
 import com.epicnicity322.terrainer.bukkit.event.terrain.TerrainCanEnterEvent;
 import com.epicnicity322.terrainer.bukkit.event.terrain.TerrainCanLeaveEvent;
 import com.epicnicity322.terrainer.bukkit.event.terrain.TerrainEnterEvent;
@@ -213,11 +213,12 @@ public final class ProtectionsListener extends Protections<Player, CommandSender
 
     @Override
     protected @NotNull Flag<Boolean> flagEntityPlaced(@NotNull Entity entity) {
-        if (entity instanceof ExplosiveMinecart) return Flags.BUILD;
-        if (entity instanceof Minecart) return Flags.BUILD_MINECARTS;
-        if (entity instanceof Boat) return Flags.BUILD_BOATS;
-        // Probably ARMOR_STAND or END_CRYSTAL
-        return Flags.BUILD;
+        return switch (entity) {
+            case ExplosiveMinecart ignored -> Flags.BUILD;
+            case Minecart ignored -> Flags.BUILD_MINECARTS;
+            case Boat ignored -> Flags.BUILD_BOATS;
+            default -> Flags.BUILD; // Probably ARMOR_STAND or END_CRYSTAL
+        };
     }
 
     @Override
