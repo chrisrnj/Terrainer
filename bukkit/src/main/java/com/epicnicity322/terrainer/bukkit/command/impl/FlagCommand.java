@@ -231,11 +231,11 @@ public final class FlagCommand extends TerrainerCommand {
 
     @Override
     protected @NotNull TabCompleteRunnable getTabCompleteRunnable() {
-        MessageSender lang = TerrainerPlugin.getLanguage();
-        String specificFlag = lang.get("Commands.Flag.Specific");
-        String defaultFlag = lang.get("Commands.Flag.Default");
-
         return (completions, label, sender, args) -> {
+            MessageSender lang = TerrainerPlugin.getLanguage();
+            String specificFlag = lang.get("Commands.Flag.Specific");
+            String defaultFlag = lang.get("Commands.Flag.Default");
+
             switch (args.length) {
                 case 2 -> {
                     if (specificFlag.startsWith(args[1])) completions.add(specificFlag);
@@ -249,8 +249,8 @@ public final class FlagCommand extends TerrainerCommand {
                         completions.remove("null");
                     } else if (args[1].equalsIgnoreCase(defaultFlag)) {
                         addFlagTabCompletion(args[2], sender, completions, false);
-                        if (!completions.isEmpty()) return;
                     }
+                    if (!completions.isEmpty()) return;
                 }
                 case 4 -> {
                     if (args[1].equalsIgnoreCase(specificFlag)) {
