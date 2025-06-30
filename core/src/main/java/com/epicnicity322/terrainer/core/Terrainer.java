@@ -20,6 +20,7 @@ package com.epicnicity322.terrainer.core;
 
 import com.epicnicity322.epicpluginlib.core.lang.LanguageHolder;
 import com.epicnicity322.epicpluginlib.core.logger.ConsoleLogger;
+import com.epicnicity322.epicpluginlib.core.util.PathUtils;
 import com.epicnicity322.terrainer.core.config.Configurations;
 import com.epicnicity322.terrainer.core.util.PlayerUtil;
 import org.jetbrains.annotations.NotNull;
@@ -29,7 +30,6 @@ import org.jetbrains.annotations.UnknownNullability;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.StandardOpenOption;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -160,7 +160,7 @@ public final class Terrainer {
 
         try {
             Files.deleteIfExists(LAST_DISABLE_TIME);
-            Files.writeString(LAST_DISABLE_TIME, ZonedDateTime.now().toString(), StandardOpenOption.CREATE_NEW);
+            PathUtils.write(ZonedDateTime.now().toString(), LAST_DISABLE_TIME);
         } catch (IOException e) {
             logger.log("Failed to save the time the plugin was last disabled.", ConsoleLogger.Level.ERROR);
             e.printStackTrace();

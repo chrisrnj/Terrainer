@@ -30,9 +30,9 @@ import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.yaml.snakeyaml.DumperOptions;
 
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.function.Predicate;
@@ -346,9 +346,9 @@ public final class Flags {
         return map;
     }, Flag.mapFormatter::apply);
 
-    private static final @NotNull HashSet<Flag<?>> values = new HashSet<>(Set.of(ANVILS, ARMOR_STANDS, BLOCK_FORM, BLOCK_SPREAD, BUILD,
-            BUILD_BOATS, BUILD_MINECARTS, BUTTONS, CAULDRONS, CAULDRONS_CHANGE_LEVEL_NATURALLY, COMMAND_BLACKLIST,
-            CONTAINERS, DISPENSERS, DOORS, EAT, EFFECTS, ENEMY_HARM, ENTER, ENTER_CONSOLE_COMMANDS,
+    private static final @NotNull HashSet<Flag<?>> values = new HashSet<>(Set.of(ANVILS, ARMOR_STANDS, BLOCK_FORM,
+            BLOCK_SPREAD, BUILD, BUILD_BOATS, BUILD_MINECARTS, BUTTONS, CAULDRONS, CAULDRONS_CHANGE_LEVEL_NATURALLY,
+            COMMAND_BLACKLIST, CONTAINERS, DISPENSERS, DOORS, EAT, EFFECTS, ENEMY_HARM, ENTER, ENTER_CONSOLE_COMMANDS,
             ENTER_PLAYER_COMMANDS, ENTER_VEHICLES, ENTITY_HARM, ENTITY_INTERACTIONS, EXPLOSION_DAMAGE, FIRE_DAMAGE,
             FIRE_SPREAD, FLY, FROST_WALK, GLIDE, INTERACTIONS, ITEM_DROP, ITEM_FRAMES, ITEM_PICKUP, ITEM_PICKUP_OWN,
             LEAF_DECAY, LEAVE, LEAVE_CONSOLE_COMMANDS, LEAVE_MESSAGE, LEAVE_PLAYER_COMMANDS, LIGHTERS, LIQUID_FLOW,
@@ -374,6 +374,9 @@ public final class Flags {
      * This method will add the flag to the {@link Configurations#FLAGS} configuration with the provided values if it
      * isn't already present.
      * <p>
+     * Ideally, this method should be called before Terrainer is enabled, so that the {@link Configurations#FLAGS} is
+     * loaded with these values without requiring additional reloads.
+     * <p>
      * The values can then be edited in the configuration to the user's liking, the paths the values will be available
      * are:
      * <ul>
@@ -381,12 +384,47 @@ public final class Flags {
      *     <li><code>{@link Flag#id()} + ".Lore"</code></li>
      *     <li><code>{@link Flag#id()} + ".Material"</code></li>
      *     <li><code>{@link Flag#id()} + ".Default"</code></li>
+     *     <li><code>{@link Flag#id()} + ".Define Value"</code></li>
+     * </ul>
+     * <p>
+     * This method is equivalent to calling {@link #registerFlag(Flag, String, String, String, Object)} with the
+     * {@link Flag#id()} for display name, empty lore, WHITE_BANNER as material and no define value.
+     *
+     * @param flag The flag to register.
+     * @param <T>  The type of data the flag holds.
+     * @return The own flag that was added.
+     */
+    @Contract("_ -> param1")
+    public static synchronized <T> @NotNull Flag<T> registerFlag(@NotNull Flag<T> flag) {
+        return registerFlag(flag, flag.id(), "", "WHITE_BANNER", null);
+    }
+
+    /**
+     * Registers a new flag into {@link #values()}. A registered flag can have its value set by the player using the
+     * Flag Management GUI or a command.
+     * <p>
+     * This method will add the flag to the {@link Configurations#FLAGS} configuration with the provided values if it
+     * isn't already present.
+     * <p>
+     * Ideally, this method should be called before Terrainer is enabled, so that the {@link Configurations#FLAGS} is
+     * loaded with these values without requiring additional reloads.
+     * <p>
+     * The values can then be edited in the configuration to the user's liking, the paths the values will be available
+     * are:
+     * <ul>
+     *     <li><code>{@link Flag#id()} + ".Display Name"</code></li>
+     *     <li><code>{@link Flag#id()} + ".Lore"</code></li>
+     *     <li><code>{@link Flag#id()} + ".Material"</code></li>
+     *     <li><code>{@link Flag#id()} + ".Default"</code></li>
+     *     <li><code>{@link Flag#id()} + ".Define Value"</code></li>
      * </ul>
      *
      * @param flag               The flag to register.
      * @param defaultDisplayName The display name this flag will have in messages and the Flag Management GUI.
      * @param defaultLore        The lore the item of flag will have in Flag Management GUI.
      * @param defaultMaterial    The material type the item of this flag will have in Flag Management GUI.
+     * @param defineValue        The value to be set on terrains defined by '/tr define' command.
+     * @param <T>                The type of data the flag holds.
      * @return The own flag that was added.
      */
     @Contract("_,_,_,_,_ -> param1")
@@ -403,17 +441,20 @@ public final class Flags {
             defaultSection.set("Lore", defaultLore);
 
             Path flagsPath = Configurations.FLAGS.getPath();
-            Configuration flags = new YamlConfigurationLoader('.', 2, DumperOptions.FlowStyle.BLOCK).load(flagsPath);
+            if (Files.exists(flagsPath)) {
+                // Load flags file so that any editing the user did is not lost.
+                Configuration flags = new YamlConfigurationLoader().load(flagsPath);
 
-            ConfigurationSection section = flags.createSection(flag.id());
-            section.set("Default", flag.formatter().apply(flag.defaultValue()));
-            if (defineValue != null) section.set("Define Value", flag.formatter().apply(defineValue));
-            section.set("Material", defaultMaterial);
-            section.set("Display Name", defaultDisplayName);
-            section.set("Lore", defaultLore);
+                ConfigurationSection section = flags.createSection(flag.id());
+                section.set("Default", flag.formatter().apply(flag.defaultValue()));
+                if (defineValue != null) section.set("Define Value", flag.formatter().apply(defineValue));
+                section.set("Material", defaultMaterial);
+                section.set("Display Name", defaultDisplayName);
+                section.set("Lore", defaultLore);
 
-            PathUtils.deleteAll(flagsPath);
-            flags.save(flagsPath);
+                PathUtils.deleteAll(flagsPath);
+                flags.save(flagsPath);
+            }
         } catch (IOException | InvalidConfigurationException e) {
             Terrainer.logger().log("Unable to save flag '" + flag.id() + "' to flags.yml configuration:", ConsoleLogger.Level.ERROR);
             e.printStackTrace();
