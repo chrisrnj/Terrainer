@@ -1,6 +1,6 @@
 /*
  * Terrainer - A minecraft terrain claiming protection plugin.
- * Copyright (C) 2025 Christiano Rangel
+ * Copyright (C) 2025-2026 Christiano Rangel
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -80,8 +80,6 @@ public final class ProtectionsListener extends Protections<Player, CommandSender
     private static final boolean getFlyAtPlayerMethod = ReflectionUtil.getMethod(PlayerPickupArrowEvent.class, "getFlyAtPlayer") != null;
     // BlockExplodeEvent#getExplodedBlockState only available on Paper.
     private static final boolean getExplodedBlockStateMethod = ReflectionUtil.getMethod(BlockExplodeEvent.class, "getExplodedBlockState") != null;
-    // Enemy interface was added in 1.19.3.
-    private static final @Nullable Class<?> enemyInterface = ReflectionUtil.getClass("org.bukkit.entity.Enemy");
 
     static {
         if (!getOriginMethod)
@@ -106,26 +104,8 @@ public final class ProtectionsListener extends Protections<Player, CommandSender
         }
     }
 
-    private static boolean isTryingToEnterVehicle(@NotNull ItemStack hand, boolean sneaking) {
-        return !sneaking && hand.getType() == Material.AIR;
-    }
-
-    /**
-     * Entities that fight back the players.
-     */
-    private static boolean isEnemy(@NotNull Entity entity) {
-        if (enemyInterface != null) {
-            return enemyInterface.isAssignableFrom(entity.getClass()) || entity instanceof Wolf wolf && wolf.isAngry();
-        } else {
-            // Fallback for versions without Enemy interface.
-            return switch (entity.getType()) {
-                case BLAZE, CAVE_SPIDER, CREEPER, DROWNED, ELDER_GUARDIAN, ENDER_DRAGON, ENDERMAN, ENDERMITE, EVOKER,
-                     GHAST, GIANT, GUARDIAN, HOGLIN, HUSK, ILLUSIONER, MAGMA_CUBE, PHANTOM, PIGLIN, PIGLIN_BRUTE,
-                     PILLAGER, RAVAGER, SHULKER, SILVERFISH, SKELETON, SLIME, SPIDER, STRAY, VEX, VINDICATOR, WARDEN,
-                     WITCH, WITHER, WITHER_SKELETON, ZOGLIN, ZOMBIE, ZOMBIE_VILLAGER, ZOMBIFIED_PIGLIN -> true;
-                default -> entity instanceof Wolf wolf && wolf.isAngry();
-            };
-        }
+    private static @NotNull Flag<Boolean> flagVehicleInteraction(@NotNull ItemStack hand, boolean sneaking) {
+        return !sneaking && hand.getType().isAir() ? Flags.ENTER_VEHICLES : Flags.ENTITY_INTERACTIONS;
     }
 
     private static boolean isPrepareBlock(@NotNull Material type) {
@@ -270,36 +250,30 @@ public final class ProtectionsListener extends Protections<Player, CommandSender
 
     @Override
     protected @NotNull Flag<Boolean> flagEntityInteraction(@NotNull Entity entity, @NotNull ItemStack playerHand, boolean playerSneaking) {
-        return switch (entity.getType()) {
-            case ARMOR_STAND -> Flags.ARMOR_STANDS;
-            case GLOW_ITEM_FRAME, ITEM_FRAME -> Flags.ITEM_FRAMES;
-            case MINECART_CHEST, MINECART_HOPPER, CHEST_BOAT -> Flags.CONTAINERS;
-            case DONKEY, MULE, LLAMA, TRADER_LLAMA ->
-                    ((ChestedHorse) entity).isCarryingChest() ? Flags.CONTAINERS : (isTryingToEnterVehicle(playerHand, playerSneaking) ? Flags.ENTER_VEHICLES : Flags.ENTITY_INTERACTIONS);
-            case BOAT, MINECART -> Flags.ENTER_VEHICLES;
-            case CAMEL, HORSE, SKELETON_HORSE, ZOMBIE_HORSE ->
-                    isTryingToEnterVehicle(playerHand, playerSneaking) ? Flags.ENTER_VEHICLES : Flags.ENTITY_INTERACTIONS;
-            case PIG, STRIDER ->
-                    (((Steerable) entity).hasSaddle() && playerHand.getType() == Material.AIR) ? Flags.ENTER_VEHICLES : Flags.ENTITY_INTERACTIONS;
+        return switch (entity) {
+            case ArmorStand ignore -> Flags.ARMOR_STANDS;
+            case ItemFrame ignore -> Flags.ITEM_FRAMES;
+            case ChestedHorse chestedHorse ->
+                    chestedHorse.isCarryingChest() ? Flags.CONTAINERS : flagVehicleInteraction(playerHand, playerSneaking);
+            case Steerable steerable ->
+                    steerable.hasSaddle() && playerHand.getType().isAir() ? Flags.ENTER_VEHICLES : Flags.ENTITY_INTERACTIONS;
+            case Vehicle vehicle ->
+                    vehicle instanceof LivingEntity ? flagVehicleInteraction(playerHand, playerSneaking) : Flags.ENTER_VEHICLES;
+            case InventoryHolder inventoryHolder ->
+                    inventoryHolder instanceof LivingEntity ? Flags.ENTITY_INTERACTIONS : Flags.CONTAINERS;
             default -> Flags.ENTITY_INTERACTIONS;
         };
     }
 
     @Override
     protected @NotNull Flag<Boolean> flagEntityHit(@NotNull Entity entity) {
-        return switch (entity.getType()) {
-            case ARMOR_STAND, ITEM_FRAME, GLOW_ITEM_FRAME, PAINTING -> Flags.BUILD;
-            case CHEST_BOAT, MINECART_CHEST, MINECART_HOPPER -> Flags.CONTAINERS;
-            case MINECART -> Flags.BUILD_MINECARTS;
-            default -> {
-                if (isEnemy(entity)) {
-                    yield Flags.ENEMY_HARM;
-                } else if (entity instanceof Mob) {
-                    yield Flags.ENTITY_HARM;
-                } else {
-                    yield Flags.BUILD;
-                }
-            }
+        return switch (entity) {
+            case ArmorStand ignore -> Flags.BUILD;
+            case Minecart ignore -> Flags.BUILD_MINECARTS;
+            case Enemy ignore -> Flags.ENEMY_HARM;
+            case Wolf wolf -> wolf.isAngry() ? Flags.ENEMY_HARM : Flags.ENTITY_HARM;
+            case LivingEntity ignore -> Flags.ENTITY_HARM;
+            default -> entity instanceof InventoryHolder ? Flags.CONTAINERS : Flags.BUILD;
         };
     }
 
