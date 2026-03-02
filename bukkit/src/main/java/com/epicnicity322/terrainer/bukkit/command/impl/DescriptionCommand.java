@@ -1,6 +1,6 @@
 /*
  * Terrainer - A minecraft terrain claiming protection plugin.
- * Copyright (C) 2025 Christiano Rangel
+ * Copyright (C) 2025-2026 Christiano Rangel
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -74,7 +74,7 @@ public final class DescriptionCommand extends TerrainerCommand {
                 lang.send(sender, lang.get("Description.Reset").replace("<terrain>", terrain.name()));
                 return;
             }
-            int maxDescriptionLength = Configurations.CONFIG.getConfiguration().getNumber("Max Description Length").orElse(100).intValue();
+            int maxDescriptionLength = Configurations.CONFIG.config().getNumber("Max Description Length").orElse(100).intValue();
             if (stripped.length() > maxDescriptionLength) {
                 lang.send(sender, lang.get("Description.Error.Length").replace("<max>", Integer.toString(maxDescriptionLength)));
                 return;

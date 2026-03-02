@@ -1,6 +1,6 @@
 /*
  * Terrainer - A minecraft terrain claiming protection plugin.
- * Copyright (C) 2024 Christiano Rangel
+ * Copyright (C) 2024-2026 Christiano Rangel
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -45,7 +45,7 @@ public class ShopGUI {
      */
     public ShopGUI(@NotNull Player player) {
         MessageSender lang = TerrainerPlugin.getLanguage();
-        Configuration config = Configurations.CONFIG.getConfiguration();
+        Configuration config = Configurations.CONFIG.config();
 
         if (TerrainerPlugin.getEconomyHandler() == null) {
             lang.send(player, lang.get("General.No Economy"));
@@ -87,7 +87,7 @@ public class ShopGUI {
 
     private void setItem(@NotNull Inventory inventory, int slot, boolean claims, @NotNull String option, @NotNull HashMap<Integer, Consumer<InventoryClickEvent>> buttons, @NotNull Player player) {
         MessageSender lang = TerrainerPlugin.getLanguage();
-        Configuration config = Configurations.CONFIG.getConfiguration();
+        Configuration config = Configurations.CONFIG.config();
         String section = "Shop." + (claims ? "Claims" : "Blocks") + ".Option " + option;
 
         double price = config.getNumber(section + ".Price").orElse(0).doubleValue();
@@ -119,7 +119,7 @@ public class ShopGUI {
     }
 
     private double inflation(@NotNull Player player, boolean claims, int amount) {
-        Configuration config = Configurations.CONFIG.getConfiguration();
+        Configuration config = Configurations.CONFIG.config();
         String section = "Shop." + (claims ? "Claims" : "Blocks") + ".Inflation.";
 
         if (!config.getBoolean(section + "Enabled").orElse(false)) return 0;

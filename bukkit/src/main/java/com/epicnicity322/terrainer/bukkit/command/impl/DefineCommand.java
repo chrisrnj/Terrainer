@@ -1,6 +1,6 @@
 /*
  * Terrainer - A minecraft terrain claiming protection plugin.
- * Copyright (C) 2025 Christiano Rangel
+ * Copyright (C) 2025-2026 Christiano Rangel
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -76,7 +76,7 @@ public final class DefineCommand extends TerrainerCommand {
         setAliases(TerrainerPlugin.getLanguage().get("Commands.Define.Command"));
 
         defineFlags.clear();
-        Configuration flags = Configurations.FLAGS.getConfiguration();
+        Configuration flags = Configurations.FLAGS.config();
         for (Map.Entry<String, Object> entry : flags.getNodes().entrySet()) {
 
             String flagId = entry.getKey();

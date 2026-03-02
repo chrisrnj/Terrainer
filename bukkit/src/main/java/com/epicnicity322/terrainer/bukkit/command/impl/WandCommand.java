@@ -1,6 +1,6 @@
 /*
  * Terrainer - A minecraft terrain claiming protection plugin.
- * Copyright (C) 2025 Christiano Rangel
+ * Copyright (C) 2025-2026 Christiano Rangel
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -75,7 +75,7 @@ public final class WandCommand extends TerrainerCommand {
             return;
         }
 
-        long cooldown = Configurations.CONFIG.getConfiguration().getNumber(info ? "Cooldowns.Info Wand" : "Cooldowns.Selector Wand").orElse(0).longValue() * 1000;
+        long cooldown = Configurations.CONFIG.config().getNumber(info ? "Cooldowns.Info Wand" : "Cooldowns.Selector Wand").orElse(0).longValue() * 1000;
         if (CommandUtil.testCooldown(sender, (info ? "infowand" : "selectorwand"), cooldown)) return;
 
         Player player = sender instanceof Player p ? p : null;
@@ -95,7 +95,7 @@ public final class WandCommand extends TerrainerCommand {
             return;
         }
 
-        double price = Configurations.CONFIG.getConfiguration().getNumber(info ? "Info Wand.Price" : "Selector Wand.Price").orElse(50).doubleValue();
+        double price = Configurations.CONFIG.config().getNumber(info ? "Info Wand.Price" : "Selector Wand.Price").orElse(50).doubleValue();
 
         if (player != null) {
             if (sender.hasPermission("terrainer.wand." + (info ? "info" : "selector") + ".free")) {

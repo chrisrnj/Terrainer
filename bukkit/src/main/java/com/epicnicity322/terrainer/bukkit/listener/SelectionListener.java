@@ -1,6 +1,6 @@
 /*
  * Terrainer - A minecraft terrain claiming protection plugin.
- * Copyright (C) 2025 Christiano Rangel
+ * Copyright (C) 2025-2026 Christiano Rangel
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -50,8 +50,8 @@ import org.jetbrains.annotations.NotNull;
 import java.util.Locale;
 
 public final class SelectionListener implements Listener {
-    private static @NotNull ItemStack selector = InventoryUtils.getItemStack("Selector Wand", Configurations.CONFIG.getConfiguration(), TerrainerPlugin.getLanguage());
-    private static @NotNull ItemStack info = InventoryUtils.getItemStack("Info Wand", Configurations.CONFIG.getConfiguration(), TerrainerPlugin.getLanguage());
+    private static @NotNull ItemStack selector = InventoryUtils.getItemStack("Selector Wand", Configurations.CONFIG.config(), TerrainerPlugin.getLanguage());
+    private static @NotNull ItemStack info = InventoryUtils.getItemStack("Info Wand", Configurations.CONFIG.config(), TerrainerPlugin.getLanguage());
     private static boolean selectorUnique = true;
     private static boolean infoUnique = false;
     private static boolean leftAndRight = false;
@@ -92,7 +92,7 @@ public final class SelectionListener implements Listener {
      */
     @ApiStatus.Internal
     public void reloadItems() {
-        Configuration config = Configurations.CONFIG.getConfiguration();
+        Configuration config = Configurations.CONFIG.config();
         selector = InventoryUtils.getItemStack("Selector Wand", config, TerrainerPlugin.getLanguage());
         selectorUnique = config.getBoolean("Selector Wand.Unique").orElse(true);
         if (selectorUnique) {

@@ -1,6 +1,6 @@
 /*
  * Terrainer - A minecraft terrain claiming protection plugin.
- * Copyright (C) 2024 Christiano Rangel
+ * Copyright (C) 2024-2026 Christiano Rangel
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -34,7 +34,7 @@ public interface IUsedBlocksPlaceholder<O, P extends O> extends WorldPlaceholder
     @Override
     @Nullable
     default String formatPlaceholder(@Nullable O player, @NotNull String params, @Nullable UUID world) {
-        if (world == null && Configurations.CONFIG.getConfiguration().getBoolean("Limits.Per World Block Limit").orElse(false)) {
+        if (world == null && Configurations.CONFIG.config().getBoolean("Limits.Per World Block Limit").orElse(false)) {
             return null;
         }
 

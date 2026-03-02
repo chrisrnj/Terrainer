@@ -1,6 +1,6 @@
 /*
  * Terrainer - A minecraft terrain claiming protection plugin.
- * Copyright (C) 2024 Christiano Rangel
+ * Copyright (C) 2024-2026 Christiano Rangel
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -41,7 +41,7 @@ public interface IUserNameTerrainEvent<T> extends TerrainEvent, SenderEvent<T> {
     static boolean isBlackListed(@NotNull String nameColorStripped) {
         // Replacing all non word characters, for a better matching.
         String nameToTest = nameColorStripped.replaceAll("[^\\p{L}]", "");
-        return Configurations.CONFIG.getConfiguration().getCollection("Blacklisted Names", Object::toString).stream().filter(name -> !name.isBlank()).anyMatch(nameToTest::contains);
+        return Configurations.CONFIG.config().getCollection("Blacklisted Names", Object::toString).stream().filter(name -> !name.isBlank()).anyMatch(nameToTest::contains);
     }
 
     /**

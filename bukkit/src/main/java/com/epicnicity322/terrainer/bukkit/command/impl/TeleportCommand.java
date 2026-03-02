@@ -1,6 +1,6 @@
 /*
  * Terrainer - A minecraft terrain claiming protection plugin.
- * Copyright (C) 2025 Christiano Rangel
+ * Copyright (C) 2025-2026 Christiano Rangel
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -112,7 +112,7 @@ public final class TeleportCommand extends TerrainerCommand implements Listener 
             Location tpLoc = new Location(world, center.x(), world.getHighestBlockYAt((int) center.x(), (int) center.z()) + 1, center.z());
             boolean isWithinY = terrain.isWithin(center.x(), tpLoc.getBlockY(), center.z());
 
-            int delay = Configurations.CONFIG.getConfiguration().getNumber("Teleport.Movement Check Delay").orElse(3).intValue();
+            int delay = Configurations.CONFIG.config().getNumber("Teleport.Movement Check Delay").orElse(3).intValue();
 
             if (delay > 0 && sender == player && !sender.hasPermission("terrainer.teleport.nodelay")) {
                 UUID pUID = player.getUniqueId();

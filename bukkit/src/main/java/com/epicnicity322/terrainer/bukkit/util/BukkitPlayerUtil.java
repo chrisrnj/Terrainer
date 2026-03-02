@@ -1,6 +1,6 @@
 /*
  * Terrainer - A minecraft terrain claiming protection plugin.
- * Copyright (C) 2025 Christiano Rangel
+ * Copyright (C) 2025-2026 Christiano Rangel
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -77,7 +77,7 @@ public final class BukkitPlayerUtil extends PlayerUtil<Player, CommandSender> {
         PersistentDataContainer container = player.getPersistentDataContainer();
 
         if (value) {
-            Configuration config = Configurations.CONFIG.getConfiguration();
+            Configuration config = Configurations.CONFIG.config();
             int hasFlightPermission = player.hasPermission(config.getString("Fly Permission").orElse("essentials.fly")) ? 1 : 0;
 
             container.set(resetFlyKey, PersistentDataType.INTEGER, hasFlightPermission);
@@ -91,7 +91,7 @@ public final class BukkitPlayerUtil extends PlayerUtil<Player, CommandSender> {
         Integer resetFly = player.getPersistentDataContainer().get(resetFlyKey, PersistentDataType.INTEGER);
         if (resetFly == null) return false;
         boolean hadFlightPermissionBefore = resetFly == 1;
-        Configuration config = Configurations.CONFIG.getConfiguration();
+        Configuration config = Configurations.CONFIG.config();
 
         // If they had the permission, only reset flight if they still have it. Otherwise, always reset flight unless Strict Fly Return is true.
         return hadFlightPermissionBefore ? player.hasPermission(config.getString("Fly Permission").orElse("essentials.fly")) : !config.getBoolean("Strict Fly Return").orElse(false);
@@ -237,7 +237,7 @@ public final class BukkitPlayerUtil extends PlayerUtil<Player, CommandSender> {
     @Override
     public void showMarkers(@NotNull Player player, int y, boolean terrainMarkers, @Nullable Coordinate location) {
         super.showMarkers(player, y, terrainMarkers, location);
-        long showTime = Configurations.CONFIG.getConfiguration().getNumber("Markers.Show Time").orElse(1200).longValue();
+        long showTime = Configurations.CONFIG.config().getNumber("Markers.Show Time").orElse(1200).longValue();
 
         if (showTime != 0) {
             UUID playerID = player.getUniqueId();

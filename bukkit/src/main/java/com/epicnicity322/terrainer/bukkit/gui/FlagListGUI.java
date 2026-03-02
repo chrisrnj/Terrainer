@@ -1,6 +1,6 @@
 /*
  * Terrainer - A minecraft terrain claiming protection plugin.
- * Copyright (C) 2025 Christiano Rangel
+ * Copyright (C) 2025-2026 Christiano Rangel
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -56,12 +56,12 @@ import static org.bukkit.event.inventory.ClickType.SHIFT_RIGHT;
 
 public class FlagListGUI extends ListGUI<FlagListGUI.FlagEntry> {
     @SuppressWarnings("deprecation")
-    private static final @NotNull Comparator<FlagEntry> flagNameComparator = Comparator.comparing(flagEntry -> ChatColor.stripColor(ChatColor.translateAlternateColorCodes('&', Configurations.FLAGS.getConfiguration().getString(flagEntry.flag().id() + ".Display Name").orElse(flagEntry.flag().id()))));
+    private static final @NotNull Comparator<FlagEntry> flagNameComparator = Comparator.comparing(flagEntry -> ChatColor.stripColor(ChatColor.translateAlternateColorCodes('&', Configurations.FLAGS.config().getString(flagEntry.flag().id() + ".Display Name").orElse(flagEntry.flag().id()))));
     private static final @NotNull Pattern loreLineBreaker = Pattern.compile("<line>|\\n");
 
     public FlagListGUI(@NotNull HumanEntity editor, @NotNull Terrain terrain, @Nullable UUID specificPlayer) {
         super(qualifiedFlags(terrain, editor, specificPlayer), TerrainerPlugin.getLanguage().getColored("Flags.Management GUI." + (specificPlayer == null ? "Default.Title" : "Specific.Title")).replace("<terrain>", terrain.name()).replace("<player>", TerrainerPlugin.getPlayerUtil().ownerName(specificPlayer)));
-        inventory.setItem(4, InventoryUtils.getItemStack("Flags.Management GUI." + (specificPlayer == null ? "Default.Info Item" : "Specific.Info Item"), Configurations.CONFIG.getConfiguration(), TerrainerPlugin.getLanguage(), terrain.name(), TerrainerPlugin.getPlayerUtil().ownerName(specificPlayer)));
+        inventory.setItem(4, InventoryUtils.getItemStack("Flags.Management GUI." + (specificPlayer == null ? "Default.Info Item" : "Specific.Info Item"), Configurations.CONFIG.config(), TerrainerPlugin.getLanguage(), terrain.name(), TerrainerPlugin.getPlayerUtil().ownerName(specificPlayer)));
     }
 
     private static @NotNull ArrayList<FlagEntry> qualifiedFlags(@NotNull Terrain terrain, @NotNull HumanEntity editor, @Nullable UUID specificPlayer) {
@@ -141,7 +141,7 @@ public class FlagListGUI extends ListGUI<FlagListGUI.FlagEntry> {
     @Contract("null,_,_ -> null; !null,_,_ -> !null")
     private static @Nullable Number increaseOrDecreaseNumber(@Nullable Number current, @NotNull Flag<?> flag, boolean decrease) {
         if (current == null) return null;
-        Number changeFactor = Configurations.FLAGS.getConfiguration().getNumber(flag.id() + ".Number Increase Factor").orElse(1);
+        Number changeFactor = Configurations.FLAGS.config().getNumber(flag.id() + ".Number Increase Factor").orElse(1);
         int multiplier = decrease ? -1 : 1;
 
         return switch (current) {
@@ -157,7 +157,7 @@ public class FlagListGUI extends ListGUI<FlagListGUI.FlagEntry> {
 
     @SuppressWarnings("deprecation")
     private static @NotNull ItemStack getInputItem(@NotNull String name) {
-        ItemStack inputItem = InventoryUtils.getItemStack("Input.Anvil GUI", Configurations.CONFIG.getConfiguration(), TerrainerPlugin.getLanguage());
+        ItemStack inputItem = InventoryUtils.getItemStack("Input.Anvil GUI", Configurations.CONFIG.config(), TerrainerPlugin.getLanguage());
 
         if (!name.isEmpty() && inputItem.hasItemMeta()) {
             ItemMeta meta = inputItem.getItemMeta();
@@ -188,7 +188,7 @@ public class FlagListGUI extends ListGUI<FlagListGUI.FlagEntry> {
             }
         }
 
-        Configuration flags = Configurations.FLAGS.getConfiguration();
+        Configuration flags = Configurations.FLAGS.config();
 
         Material material = Material.matchMaterial(flags.getString(flag.id() + ".Material").orElse("STONE"));
         if (material == null || !material.isItem()) material = Material.STONE;
@@ -224,7 +224,7 @@ public class FlagListGUI extends ListGUI<FlagListGUI.FlagEntry> {
             int slot = event.getSlot();
             HumanEntity player = event.getWhoClicked();
             ClickType clickType = event.getClick();
-            String flagName = Configurations.FLAGS.getConfiguration().getString(flag.id() + ".Display Name").orElse(flag.id());
+            String flagName = Configurations.FLAGS.config().getString(flag.id() + ".Display Name").orElse(flag.id());
             T currentData = memberId == null ? terrain.flags().getData(flag) : terrain.memberFlags().getData(memberId, flag);
 
             // Remove flag from terrain
@@ -274,7 +274,7 @@ public class FlagListGUI extends ListGUI<FlagListGUI.FlagEntry> {
                 }
             };
 
-            boolean askAnvil = Configurations.CONFIG.getConfiguration().getBoolean("Input.Anvil GUI.Enabled").orElse(false);
+            boolean askAnvil = Configurations.CONFIG.config().getBoolean("Input.Anvil GUI.Enabled").orElse(false);
             String previousInput;
             try {
                 previousInput = currentData == null ? "" : flag.formatter().apply(currentData);
@@ -283,7 +283,7 @@ public class FlagListGUI extends ListGUI<FlagListGUI.FlagEntry> {
             }
 
             if (!askAnvil || !InputGetterUtil.askAnvilInput(player, getInputItem(previousInput), onInput)) { // Ask in chat if anvil is disabled
-                long chatInterval = Configurations.CONFIG.getConfiguration().getNumber("Input.Chat Interval").orElse(200).longValue();
+                long chatInterval = Configurations.CONFIG.config().getNumber("Input.Chat Interval").orElse(200).longValue();
 
                 MessageSender lang = TerrainerPlugin.getLanguage();
                 lang.send(player, lang.get("Input.Ask").replace("<time>", Long.toString(chatInterval / 20)));

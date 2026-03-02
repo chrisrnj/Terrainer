@@ -1,6 +1,6 @@
 /*
  * Terrainer - A minecraft terrain claiming protection plugin.
- * Copyright (C) 2025 Christiano Rangel
+ * Copyright (C) 2025-2026 Christiano Rangel
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -816,7 +816,7 @@ public final class TerrainManager {
             if (!addWithoutAutoSave(savedWorld, false)) return;
         }
 
-        if (Configurations.CONFIG.getConfiguration().getBoolean("Alert Dangerous Flags").orElse(false)) {
+        if (Configurations.CONFIG.config().getBoolean("Alert Dangerous Flags").orElse(false)) {
             alertDangerousFlagAllowed(savedWorld);
         }
     }

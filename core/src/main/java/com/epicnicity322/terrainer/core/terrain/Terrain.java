@@ -1,6 +1,6 @@
 /*
  * Terrainer - A minecraft terrain claiming protection plugin.
- * Copyright (C) 2024 Christiano Rangel
+ * Copyright (C) 2024-2026 Christiano Rangel
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -29,9 +29,6 @@ import com.epicnicity322.terrainer.core.location.Coordinate;
 import com.epicnicity322.terrainer.core.location.WorldCoordinate;
 import com.epicnicity322.terrainer.core.util.PlayerUtil;
 import com.epicnicity322.yamlhandler.Configuration;
-import com.epicnicity322.yamlhandler.ConfigurationSection;
-import com.epicnicity322.yamlhandler.YamlConfigurationLoader;
-import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.Unmodifiable;
@@ -374,7 +371,7 @@ public class Terrain implements Serializable {
      */
     @Unmodifiable
     protected @NotNull Set<Coordinate> findBorders(@NotNull Coordinate minDiagonal, @NotNull Coordinate maxDiagonal) {
-        Configuration config = Configurations.CONFIG.getConfiguration();
+        Configuration config = Configurations.CONFIG.config();
 
         if (!config.getBoolean("Borders.Enabled").orElse(false) || area() > config.getNumber("Borders.Max Area").orElse(2500).doubleValue()) {
             return Collections.emptySet();

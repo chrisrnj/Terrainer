@@ -1,6 +1,6 @@
 /*
  * Terrainer - A minecraft terrain claiming protection plugin.
- * Copyright (C) 2025 Christiano Rangel
+ * Copyright (C) 2025-2026 Christiano Rangel
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -45,7 +45,7 @@ public final class Terrainer {
     private static final @NotNull Path LAST_DISABLE_TIME = Configurations.DATA_FOLDER.resolve(".last");
     private static final @NotNull ScheduledExecutorService dailyTimerExecutor = Executors.newSingleThreadScheduledExecutor();
     private static @NotNull ConsoleLogger<?> logger = ConsoleLogger.simpleLogger("&8[&4Terrainer&8]&7 ");
-    private static @NotNull LanguageHolder<?, ?> lang = LanguageHolder.simpleLanguage(() -> "", Configurations.LANG_EN_US.getDefaultConfiguration());
+    private static @NotNull LanguageHolder<?, ?> lang = LanguageHolder.simpleLanguage(() -> "", Configurations.LANG_EN_US.defaultConfig());
     private static @UnknownNullability PlayerUtil<?, ?> playerUtil = null;
     private static @UnknownNullability Runnable terrainPruner = null;
     private static volatile @Nullable ScheduledFuture<?> dailyTimer;

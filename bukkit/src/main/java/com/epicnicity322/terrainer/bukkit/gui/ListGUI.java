@@ -1,6 +1,6 @@
 /*
  * Terrainer - A minecraft terrain claiming protection plugin.
- * Copyright (C) 2025 Christiano Rangel
+ * Copyright (C) 2025-2026 Christiano Rangel
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -81,14 +81,14 @@ public abstract class ListGUI<T> {
         }
 
         if (page > 1) {
-            inventory.setItem(0, InventoryUtils.getItemStack("List.GUI Items.Previous Page", Configurations.CONFIG.getConfiguration(), TerrainerPlugin.getLanguage(), Integer.toString(page - 1)));
+            inventory.setItem(0, InventoryUtils.getItemStack("List.GUI Items.Previous Page", Configurations.CONFIG.config(), TerrainerPlugin.getLanguage(), Integer.toString(page - 1)));
             int previous = page - 1;
             buttons.put(0, event -> populate(previous));
         } else {
             InventoryUtils.fill(Material.GLASS_PANE, inventory, 0, 0);
         }
         if (page != pages.size()) {
-            inventory.setItem(8, InventoryUtils.getItemStack("List.GUI Items.Next Page", Configurations.CONFIG.getConfiguration(), TerrainerPlugin.getLanguage(), Integer.toString(page + 1)));
+            inventory.setItem(8, InventoryUtils.getItemStack("List.GUI Items.Next Page", Configurations.CONFIG.config(), TerrainerPlugin.getLanguage(), Integer.toString(page + 1)));
             int next = page + 1;
             buttons.put(8, event -> populate(next));
         } else {

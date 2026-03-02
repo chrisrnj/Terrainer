@@ -1,6 +1,6 @@
 /*
  * Terrainer - A minecraft terrain claiming protection plugin.
- * Copyright (C) 2025 Christiano Rangel
+ * Copyright (C) 2025-2026 Christiano Rangel
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -102,7 +102,7 @@ public final class ClaimCommand extends TerrainerCommand {
         if (args.length > 1) {
             name = ChatColor.translateAlternateColorCodes('&', CommandUtil.join(args, 1)).trim();
             String stripped = ChatColor.stripColor(name);
-            int maxNameLength = Configurations.CONFIG.getConfiguration().getNumber("Max Name Length").orElse(26).intValue();
+            int maxNameLength = Configurations.CONFIG.config().getNumber("Max Name Length").orElse(26).intValue();
 
             if (stripped.isBlank() || (stripped.length() > maxNameLength && !sender.hasPermission("terrainer.bypass.name-length"))) {
                 lang.send(sender, lang.get("Rename.Error.Name Length").replace("<max>", Integer.toString(maxNameLength)));

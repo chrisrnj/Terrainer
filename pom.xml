@@ -82,7 +82,7 @@
         <dependency>
             <groupId>com.github.chrisrnj</groupId>
             <artifactId>EpicPluginLib</artifactId>
-            <version>edd66eaf30</version>
+            <version>1d2b3169bd</version>
             <scope>provided</scope>
         </dependency>
         <!-- Source: https://mvnrepository.com/artifact/org.jetbrains/annotations -->

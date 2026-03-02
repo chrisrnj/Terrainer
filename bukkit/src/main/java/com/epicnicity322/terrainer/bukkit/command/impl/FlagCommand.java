@@ -1,6 +1,6 @@
 /*
  * Terrainer - A minecraft terrain claiming protection plugin.
- * Copyright (C) 2025 Christiano Rangel
+ * Copyright (C) 2025-2026 Christiano Rangel
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -138,7 +138,7 @@ public final class FlagCommand extends TerrainerCommand {
 
     private <T> void flagCommand(@NotNull Flag<T> flag, @NotNull Terrain terrain, @NotNull String label, @NotNull String label2, @NotNull CommandSender sender, @NotNull String[] args, @Nullable CommandUtil.TargetResponse specificPlayer, int inputIndex) {
         MessageSender lang = TerrainerPlugin.getLanguage();
-        String localized = Configurations.FLAGS.getConfiguration().getString(flag.id() + ".Display Name").orElse(flag.id());
+        String localized = Configurations.FLAGS.config().getString(flag.id() + ".Display Name").orElse(flag.id());
         String input = CommandUtil.join(args, inputIndex);
         UUID memberId = specificPlayer == null ? null : specificPlayer.id();
 

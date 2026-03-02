@@ -1,6 +1,6 @@
 /*
  * Terrainer - A minecraft terrain claiming protection plugin.
- * Copyright (C) 2024 Christiano Rangel
+ * Copyright (C) 2024-2026 Christiano Rangel
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -35,6 +35,15 @@ import java.util.*;
 import java.util.function.Function;
 import java.util.regex.Pattern;
 
+/**
+ * An abstract class used for checking protections on the server's events.
+ *
+ * @param <P> The player type.
+ * @param <R> The message receiver type.
+ * @param <B> The block type.
+ * @param <I> The item stack type.
+ * @param <E> The entity type.
+ */
 public abstract class Protections<P extends R, R, B, I, E> {
     private final @NotNull PlayerUtil<P, R> playerUtil;
     private final @NotNull LanguageHolder<?, R> lang;
@@ -85,6 +94,12 @@ public abstract class Protections<P extends R, R, B, I, E> {
 
     protected abstract int z(@NotNull B block);
 
+    /**
+     * Determine the flag to be tested when an entity is placed.
+     *
+     * @param entity The entity to test.
+     * @return The flag that depicts the entity being placed.
+     */
     protected abstract @NotNull Flag<Boolean> flagEntityPlaced(@NotNull E entity);
 
     protected abstract @NotNull Flag<Boolean> flagPhysicalInteraction(@NotNull B block);
@@ -674,7 +689,7 @@ public abstract class Protections<P extends R, R, B, I, E> {
     }
 
     public void terrainEnter(@NotNull P player, @NotNull Set<Terrain> enteredTerrains, @NotNull Set<Terrain> toTerrains) {
-        Configuration config = Configurations.CONFIG.getConfiguration();
+        Configuration config = Configurations.CONFIG.config();
         var pUID = playerUtil.playerUUID(player);
 
         // Removing fly ability of player when entering terrains with FLY denied.
@@ -818,7 +833,7 @@ public abstract class Protections<P extends R, R, B, I, E> {
             }
         }
 
-        if (!Configurations.CONFIG.getConfiguration().getBoolean("Protections And Performance.Allow Higher Priority Entrances").orElse(false)) {
+        if (!Configurations.CONFIG.config().getBoolean("Protections And Performance.Allow Higher Priority Entrances").orElse(false)) {
             // Checking enter again, in case player was in a terrain that had flags allowed, left it and is currently in a terrain that has flags disallowed.
             var enteredTerrains = new HashSet<>(toTerrains);
             enteredTerrains.retainAll(fromTerrains);

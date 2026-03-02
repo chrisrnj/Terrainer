@@ -1,6 +1,6 @@
 /*
  * Terrainer - A minecraft terrain claiming protection plugin.
- * Copyright (C) 2025 Christiano Rangel
+ * Copyright (C) 2025-2026 Christiano Rangel
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -24,8 +24,8 @@ import com.epicnicity322.terrainer.core.Terrainer;
 import com.epicnicity322.terrainer.core.config.Configurations;
 import com.epicnicity322.yamlhandler.Configuration;
 import com.epicnicity322.yamlhandler.ConfigurationSection;
-import com.epicnicity322.yamlhandler.YamlConfigurationLoader;
 import com.epicnicity322.yamlhandler.exceptions.InvalidConfigurationException;
+import com.epicnicity322.yamlhandler.loaders.YamlConfigurationLoader;
 import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
@@ -196,7 +196,7 @@ public final class Flags {
      * in language is used.
      */
     public static final @NotNull PlayerFlag<String> LEAVE_MESSAGE = new PlayerFlag<>("Leave Message", "", input -> {
-        int max = Configurations.CONFIG.getConfiguration().getNumber("Max Description Length").orElse(30).intValue();
+        int max = Configurations.CONFIG.config().getNumber("Max Description Length").orElse(30).intValue();
         if (input.length() > max) {
             throw new FlagTransformException(Terrainer.lang().get("Description.Max").replace("<max>", Integer.toString(max)));
         }
@@ -430,17 +430,17 @@ public final class Flags {
     @Contract("_,_,_,_,_ -> param1")
     public static synchronized <T> @NotNull Flag<T> registerFlag(@NotNull Flag<T> flag, @NotNull String defaultDisplayName, @NotNull String defaultLore, @NotNull String defaultMaterial, @Nullable T defineValue) {
         values.add(flag);
-        if (Configurations.FLAGS.getConfiguration().contains(flag.id())) return flag;
+        if (Configurations.FLAGS.config().contains(flag.id())) return flag;
 
         try {
-            ConfigurationSection defaultSection = Configurations.FLAGS.getDefaultConfiguration().createSection(flag.id());
+            ConfigurationSection defaultSection = Configurations.FLAGS.defaultConfig().createSection(flag.id());
             defaultSection.set("Default", flag.formatter().apply(flag.defaultValue()));
             if (defineValue != null) defaultSection.set("Define Value", flag.formatter().apply(defineValue));
             defaultSection.set("Material", defaultMaterial);
             defaultSection.set("Display Name", defaultDisplayName);
             defaultSection.set("Lore", defaultLore);
 
-            Path flagsPath = Configurations.FLAGS.getPath();
+            Path flagsPath = Configurations.FLAGS.path();
             if (Files.exists(flagsPath)) {
                 // Load flags file so that any editing the user did is not lost.
                 Configuration flags = new YamlConfigurationLoader().load(flagsPath);
@@ -496,7 +496,7 @@ public final class Flags {
     }
 
     private static <T> void resetFlagDefault(@NotNull Flag<T> flag) {
-        Configurations.FLAGS.getConfiguration().getString(flag.id() + ".Default").ifPresent(s -> {
+        Configurations.FLAGS.config().getString(flag.id() + ".Default").ifPresent(s -> {
             try {
                 flag.defaultValue = flag.transformer().apply(s);
             } catch (FlagTransformException e) {

@@ -1,6 +1,6 @@
 /*
  * Terrainer - A minecraft terrain claiming protection plugin.
- * Copyright (C) 2024 Christiano Rangel
+ * Copyright (C) 2024-2026 Christiano Rangel
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -228,8 +228,8 @@ public abstract class PlayerUtil<P extends R, R> {
         if (!hasPermission(player, "terrainer.bypass.limit.blocks")) {
             Coordinate max = terrain.maxDiagonal(), min = terrain.minDiagonal();
             double area = terrain.area();
-            double minArea = Configurations.CONFIG.getConfiguration().getNumber("Min Area").orElse(25.0).doubleValue();
-            double minDimensions = Configurations.CONFIG.getConfiguration().getNumber("Min Dimensions").orElse(5.0).doubleValue();
+            double minArea = Configurations.CONFIG.config().getNumber("Min Area").orElse(25.0).doubleValue();
+            double minDimensions = Configurations.CONFIG.config().getNumber("Min Dimensions").orElse(5.0).doubleValue();
 
             if (area < minArea) {
                 return new ClaimResponse<>(ClaimResponseType.AREA_TOO_SMALL, minArea);
@@ -329,7 +329,7 @@ public abstract class PlayerUtil<P extends R, R> {
         events.sort(Comparator.comparingInt(o -> o[0]));
 
         var activeIntervals = new TreeMap<Integer, Integer>();
-        int prevX = events.get(0)[0];
+        int prevX = events.getFirst()[0];
 
         for (int[] event : events) {
             int currX = event[0];

@@ -1,6 +1,6 @@
 /*
  * Terrainer - A minecraft terrain claiming protection plugin.
- * Copyright (C) 2025 Christiano Rangel
+ * Copyright (C) 2025-2026 Christiano Rangel
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,7 +20,7 @@ package com.epicnicity322.terrainer.core.config;
 
 import com.epicnicity322.epicpluginlib.core.EpicPluginLib;
 import com.epicnicity322.epicpluginlib.core.config.ConfigurationHolder;
-import com.epicnicity322.epicpluginlib.core.config.ConfigurationLoader;
+import com.epicnicity322.epicpluginlib.core.config.ConfigurationManager;
 import com.epicnicity322.terrainer.core.TerrainerVersion;
 import org.jetbrains.annotations.NotNull;
 
@@ -41,6 +41,12 @@ public final class Configurations {
               Enabled: true
               # Log to console every update check attempt.
               Log Messages: false
+            
+            # How terrains are saved in disk.
+            # SQL - Saves terrains in a single database file.
+            # FLAT_FILE - Terrain objects are serialized directly to files.
+            # YAML - Terrains are saved as nice and readable YAML files.
+            Storage Type: YAML
             
             # The minimum of area in blocks a terrain must have to be claimed.
             Min Area: 25.0
@@ -1501,18 +1507,18 @@ public final class Configurations {
                       &f<var1>&7 in the terrain &f<var0>
               Select: '&cSelect the terrain to edit flags:'
             """.replace("#VERSION#", TerrainerVersion.VERSION_STRING));
-    private static final @NotNull ConfigurationLoader loader = new ConfigurationLoader();
+    private static final @NotNull ConfigurationManager manager = new ConfigurationManager();
 
     static {
-        loader.registerConfiguration(CONFIG, TerrainerVersion.VERSION, TerrainerVersion.VERSION);
-        loader.registerConfiguration(FLAGS);
-        loader.registerConfiguration(LANG_EN_US, TerrainerVersion.VERSION, TerrainerVersion.VERSION);
+        manager.registerConfiguration(CONFIG, TerrainerVersion.VERSION, TerrainerVersion.VERSION);
+        manager.registerConfiguration(FLAGS);
+        manager.registerConfiguration(LANG_EN_US, TerrainerVersion.VERSION, TerrainerVersion.VERSION);
     }
 
     private Configurations() {
     }
 
-    public static @NotNull ConfigurationLoader loader() {
-        return loader;
+    public static @NotNull ConfigurationManager manager() {
+        return manager;
     }
 }

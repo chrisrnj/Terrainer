@@ -1,6 +1,6 @@
 /*
  * Terrainer - A minecraft terrain claiming protection plugin.
- * Copyright (C) 2025 Christiano Rangel
+ * Copyright (C) 2025-2026 Christiano Rangel
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -50,7 +50,7 @@ public class TerrainListGUI extends ListGUI<WeakReference<Terrain>> {
     protected @NotNull ItemStack item(@NotNull WeakReference<Terrain> obj) {
         Terrain t = obj.get();
         if (t == null) return new ItemStack(Material.AIR);
-        return InventoryUtils.getItemStack("Terrain List.GUI." + (t instanceof WorldTerrain ? "World " : "") + "Terrain Item", Configurations.CONFIG.getConfiguration(), TerrainerPlugin.getLanguage(), t.name(), t.id().toString(), t.description(), Double.toString(t.area()), TerrainerPlugin.getPlayerUtil().ownerName(t.owner()));
+        return InventoryUtils.getItemStack("Terrain List.GUI." + (t instanceof WorldTerrain ? "World " : "") + "Terrain Item", Configurations.CONFIG.config(), TerrainerPlugin.getLanguage(), t.name(), t.id().toString(), t.description(), Double.toString(t.area()), TerrainerPlugin.getPlayerUtil().ownerName(t.owner()));
     }
 
     @Override

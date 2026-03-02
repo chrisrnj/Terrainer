@@ -1,6 +1,6 @@
 /*
  * Terrainer - A minecraft terrain claiming protection plugin.
- * Copyright (C) 2025 Christiano Rangel
+ * Copyright (C) 2025-2026 Christiano Rangel
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -116,7 +116,7 @@ public final class ListCommand extends TerrainerCommand {
 
         // Display list in chat if explicitly asked for, or if sender is not a player.
         if (!(sender instanceof HumanEntity player) || (args.length > 3 && (args[3].equalsIgnoreCase("--chat") || args[3].equalsIgnoreCase(chat)))) {
-            Configuration config = Configurations.CONFIG.getConfiguration();
+            Configuration config = Configurations.CONFIG.config();
             HashMap<Integer, ArrayList<Terrain>> pages = ObjectUtils.splitIntoPages(terrains, config.getNumber("List.Chat.Max Per Page").orElse(20).intValue());
             int total = pages.size();
             if (page > total) page = total;

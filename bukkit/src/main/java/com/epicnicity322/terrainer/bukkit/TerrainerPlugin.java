@@ -1,6 +1,6 @@
 /*
  * Terrainer - A minecraft terrain claiming protection plugin.
- * Copyright (C) 2025 Christiano Rangel
+ * Copyright (C) 2025-2026 Christiano Rangel
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -76,7 +76,7 @@ import java.util.function.ToIntFunction;
 import java.util.function.ToLongFunction;
 
 public final class TerrainerPlugin extends JavaPlugin {
-    private static final @NotNull MessageSender lang = new MessageSender(() -> Configurations.CONFIG.getConfiguration().getString("Language").orElse("EN_US"), Configurations.LANG_EN_US.getDefaultConfiguration());
+    private static final @NotNull MessageSender lang = new MessageSender(() -> Configurations.CONFIG.config().getString("Language").orElse("EN_US"), Configurations.LANG_EN_US.defaultConfig());
     private static final @NotNull Logger logger = new Logger(Terrainer.logger().getPrefix());
     private static final @NotNull TreeSet<Map.Entry<String, Long>> defaultBlockLimits = new TreeSet<>(Comparator.comparingLong((ToLongFunction<Map.Entry<String, Long>>) Map.Entry::getValue).reversed().thenComparing(Map.Entry::getKey));
     private static final @NotNull TreeSet<Map.Entry<String, Integer>> defaultClaimLimits = new TreeSet<>(Comparator.comparingInt((ToIntFunction<Map.Entry<String, Integer>>) Map.Entry::getValue).reversed().thenComparing(Map.Entry::getKey));
@@ -170,15 +170,15 @@ public final class TerrainerPlugin extends JavaPlugin {
      */
     public static boolean reload() {
         ConsoleLogger<?> logger = Terrainer.logger();
-        HashMap<ConfigurationHolder, Exception> exceptions = Configurations.loader().loadConfigurations();
+        Map<ConfigurationHolder, Exception> exceptions = Configurations.manager().loadConfigurations();
 
         exceptions.forEach((config, exception) -> {
-            logger.log("Unable to load " + config.getPath().getFileName() + " configuration:", ConsoleLogger.Level.ERROR);
+            logger.log("Unable to load " + config.path().getFileName() + " configuration:", ConsoleLogger.Level.ERROR);
             exception.printStackTrace();
             logger.log("Default values will be used!", ConsoleLogger.Level.ERROR);
         });
 
-        Configuration config = Configurations.CONFIG.getConfiguration();
+        Configuration config = Configurations.CONFIG.config();
 
         // Entry Cancelled Commands
         EnterLeaveListener.setCommandsOnEntryCancelled(config.getCollection("Commands When TerrainEnterEvent Cancelled on Join or Create", Object::toString));
@@ -362,7 +362,7 @@ public final class TerrainerPlugin extends JavaPlugin {
         Team terrainTeam = mainScoreboard.getTeam("TRterrainTeam");
         if (terrainTeam != null) terrainTeam.unregister();
 
-        boolean kickPlayers = Configurations.CONFIG.getConfiguration().getBoolean("Kick Players On Disable").orElse(false) && (ReflectionUtil.getClass("io.papermc.paper.threadedregions.RegionizedServer") == null);
+        boolean kickPlayers = Configurations.CONFIG.config().getBoolean("Kick Players On Disable").orElse(false) && !EpicPluginLib.Platform.isFolia();
         if (kickPlayers) {
             var players = Bukkit.getOnlinePlayers();
             if (!players.isEmpty()) logger.log("Terrainer will kick all players to prevent damage to terrains.");
@@ -404,7 +404,7 @@ public final class TerrainerPlugin extends JavaPlugin {
     }
 
     private void reloadListeners() {
-        Configuration config = Configurations.CONFIG.getConfiguration();
+        Configuration config = Configurations.CONFIG.config();
         boolean enterLeaveEvents = this.enterLeaveEvents.get();
         boolean entityMoveEvent = !config.getBoolean("Protections And Performance.Disable Entity Move Event").orElse(false);
         boolean pistonEvents = !config.getBoolean("Protections And Performance.Disable Piston Events").orElse(false);
@@ -425,7 +425,7 @@ public final class TerrainerPlugin extends JavaPlugin {
     private void reloadUpdater() {
         if (updateFound.get()) return;
 
-        if (!Configurations.CONFIG.getConfiguration().getBoolean("Update Checker.Enabled").orElse(true)) {
+        if (!Configurations.CONFIG.config().getBoolean("Update Checker.Enabled").orElse(true)) {
             TaskFactory.CancellableTask updaterTask = updateChecker.getAndSet(null);
             if (updaterTask != null) updaterTask.cancel();
             return;
@@ -436,7 +436,7 @@ public final class TerrainerPlugin extends JavaPlugin {
             AtomicBoolean sentFirstMessage = new AtomicBoolean(false);
 
             TaskFactory.CancellableTask updaterTask = taskFactory.runGlobalTaskAtFixedRate(checkerTask -> {
-                boolean log = !sentFirstMessage.getAndSet(true) || Configurations.CONFIG.getConfiguration().getBoolean("Update Checker.Log Messages").orElse(false);
+                boolean log = !sentFirstMessage.getAndSet(true) || Configurations.CONFIG.config().getBoolean("Update Checker.Log Messages").orElse(false);
 
                 if (log) logger.log("&7Checking for updates...");
 

@@ -1,6 +1,6 @@
 /*
  * Terrainer - A minecraft terrain claiming protection plugin.
- * Copyright (C) 2025 Christiano Rangel
+ * Copyright (C) 2025-2026 Christiano Rangel
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -145,7 +145,7 @@ public final class TransferCommand extends TerrainerCommand {
                         lang.send(sender, lang.get("Transfer.Error.World Prohibited").replace("<player>", who).replace("<terrain>", terrain.name()));
                         return;
                     }
-                    if (CommandUtil.testCooldown(sender, "transfer", Configurations.CONFIG.getConfiguration().getNumber("Cooldowns.Transfer").orElse(900).longValue() * 1000)) {
+                    if (CommandUtil.testCooldown(sender, "transfer", Configurations.CONFIG.config().getNumber("Cooldowns.Transfer").orElse(900).longValue() * 1000)) {
                         return;
                     }
 

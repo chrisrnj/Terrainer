@@ -1,6 +1,6 @@
 /*
  * Terrainer - A minecraft terrain claiming protection plugin.
- * Copyright (C) 2025 Christiano Rangel
+ * Copyright (C) 2025-2026 Christiano Rangel
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -65,7 +65,7 @@ public final class BordersCommand extends TerrainerCommand {
     @Override
     public void reloadCommand() {
         // Borders Particle
-        String particleName = Configurations.CONFIG.getConfiguration().getString("Borders.Particle").orElse("CLOUD").toUpperCase(Locale.ROOT);
+        String particleName = Configurations.CONFIG.config().getString("Borders.Particle").orElse("CLOUD").toUpperCase(Locale.ROOT);
         try {
             this.particle = Particle.valueOf(particleName);
         } catch (IllegalArgumentException e) {
@@ -84,7 +84,7 @@ public final class BordersCommand extends TerrainerCommand {
         stopShowingBorders(playerID);
 
         if (!player.hasPermission("terrainer.borders.show")) return;
-        Configuration config = Configurations.CONFIG.getConfiguration();
+        Configuration config = Configurations.CONFIG.config();
         if (!config.getBoolean("Borders.Enabled").orElse(false)) return;
 
         synchronized (viewers) {
@@ -96,7 +96,7 @@ public final class BordersCommand extends TerrainerCommand {
             long startTime = System.currentTimeMillis();
 
             Runnable particleRunnable = () -> {
-                Configuration config1 = Configurations.CONFIG.getConfiguration();
+                Configuration config1 = Configurations.CONFIG.config();
                 long time = config1.getNumber("Borders.Time").orElse(200).longValue() * 50; // A tick has 50ms.
 
                 if (System.currentTimeMillis() - startTime >= time || !player.isOnline() || !world.equals(player.getWorld().getUID())) {
