@@ -18,8 +18,6 @@
 
 package com.epicnicity322.terrainer.core.terrain;
 
-import com.epicnicity322.epicpluginlib.core.logger.ConsoleLogger;
-import com.epicnicity322.epicpluginlib.core.util.PathUtils;
 import com.epicnicity322.terrainer.core.Terrainer;
 import com.epicnicity322.terrainer.core.config.Configurations;
 import com.epicnicity322.terrainer.core.flag.Flag;
@@ -33,8 +31,8 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.Unmodifiable;
 
-import java.io.*;
-import java.nio.file.Path;
+import java.io.Serial;
+import java.io.Serializable;
 import java.time.ZonedDateTime;
 import java.util.*;
 import java.util.function.Predicate;
@@ -50,7 +48,7 @@ public class Terrain implements Serializable {
      */
     public static final int MAX_CHUNK_AMOUNT = 8398404;
     @Serial
-    private static final long serialVersionUID = 1790382179341098027L;
+    private static final long serialVersionUID = -8917037743388031027L;
     final @NotNull UUID world;
     final @NotNull UUID id;
     final @NotNull ZonedDateTime creationDate;
@@ -201,149 +199,6 @@ public class Terrain implements Serializable {
         while (ownerTerrainNames.contains(nameFormat.replace("<number>", Integer.toString(size)))) size++;
 
         return nameFormat.replace("<number>", Integer.toString(size));
-    }
-
-    /**
-     * Saves the terrain data in the specified file as YAML.
-     * <p>
-     * If the file already exists, it will be deleted and replaced. If the file does not exist, it will be created.
-     *
-     * @param path The path to save the terrain object.
-     * @throws IOException If an input/output error happened while saving the terrain.
-     */
-    public static void toFile(@NotNull Path path, @NotNull Terrain terrain) throws IOException {
-        PathUtils.deleteAll(path);
-        Configuration config = new Configuration(new YamlConfigurationLoader());
-        config.set("id", terrain.id.toString());
-        config.set("name", terrain.name);
-        config.set("description", terrain.description);
-        config.set("creation-date", terrain.creationDate.toString());
-        config.set("world", terrain.world.toString());
-        config.set("priority", terrain.priority);
-        config.set("diagonals.max-x", terrain.maxDiagonal.x());
-        config.set("diagonals.max-y", terrain.maxDiagonal.y());
-        config.set("diagonals.max-z", terrain.maxDiagonal.z());
-        config.set("diagonals.min-x", terrain.minDiagonal.x());
-        config.set("diagonals.min-y", terrain.minDiagonal.y());
-        config.set("diagonals.min-z", terrain.minDiagonal.z());
-        config.set("owner", terrain.owner == null ? null : terrain.owner.toString());
-        config.set("moderators", terrain.moderators.view().stream().map(Objects::toString).collect(Collectors.toList()));
-        config.set("members", terrain.members.view().stream().map(Objects::toString).collect(Collectors.toList()));
-        serializeFlags(terrain.flags, config);
-        if (terrain.memberFlags.map != null) {
-            ConfigurationSection memberFlagsSection = config.createSection("member-flags");
-
-            terrain.memberFlags.map.forEach((member, flagMap) -> {
-                ConfigurationSection memberSection = memberFlagsSection.createSection(member.toString());
-                serializeFlags(flagMap, memberSection);
-            });
-        }
-        config.save(path);
-    }
-
-    /**
-     * Attempts to get a terrain object from the YAML file in the path. The file must be a file that was previously saved
-     * with {@link #toFile(Path, Terrain)}, or a YAML that provides every info about the terrain.
-     *
-     * @param path The file to get the terrain object from.
-     * @return The terrain as previously saved in the path.
-     * @throws IllegalArgumentException If the file is not a valid terrain object.
-     */
-    public static @NotNull Terrain fromFile(@NotNull Path path) {
-        try {
-            Configuration terrain = new YamlConfigurationLoader().load(path);
-            UUID terrainId = UUID.fromString(terrain.getString("id").orElseThrow());
-            Coordinate min = new Coordinate(terrain.getNumber("diagonals.min-x").orElseThrow().doubleValue(), terrain.getNumber("diagonals.min-y").orElseThrow().doubleValue(), terrain.getNumber("diagonals.min-z").orElseThrow().doubleValue());
-            Coordinate max = new Coordinate(terrain.getNumber("diagonals.max-x").orElseThrow().doubleValue(), terrain.getNumber("diagonals.max-y").orElseThrow().doubleValue(), terrain.getNumber("diagonals.max-z").orElseThrow().doubleValue());
-            String owner = terrain.getString("owner").orElse(null);
-
-            ArrayList<UUID> moderators = terrain.getCollection("moderators", obj -> {
-                try {
-                    return UUID.fromString(obj.toString());
-                } catch (IllegalArgumentException ignored) {
-                    return null;
-                }
-            });
-            moderators.removeIf(Objects::isNull);
-
-            ArrayList<UUID> members = terrain.getCollection("members", obj -> {
-                try {
-                    return UUID.fromString(obj.toString());
-                } catch (IllegalArgumentException ignored) {
-                    return null;
-                }
-            });
-            members.removeIf(Objects::isNull);
-
-            HashMap<String, Object> flagMap = deserializeFlagSection(terrain.getConfigurationSection("flags"), terrainId);
-
-            ConfigurationSection memberFlagsSection = terrain.getConfigurationSection("member-flags");
-            HashMap<UUID, HashMap<String, Object>> memberFlags = null;
-
-            if (memberFlagsSection != null) {
-                Set<Map.Entry<String, Object>> nodes = memberFlagsSection.getNodes().entrySet();
-                memberFlags = new HashMap<>((int) (nodes.size() / .75f) + 1);
-
-                for (Map.Entry<String, Object> node : nodes) {
-                    UUID memberID;
-                    try {
-                        memberID = UUID.fromString(node.getKey());
-                    } catch (IllegalArgumentException ignored) {
-                        continue;
-                    }
-
-                    if (!(node.getValue() instanceof ConfigurationSection flagsSection)) continue;
-                    memberFlags.put(memberID, deserializeFlagSection(flagsSection, terrainId));
-                }
-            }
-
-            return new Terrain(min, max, UUID.fromString(terrain.getString("world").orElseThrow()), terrainId, terrain.getString("name").orElse(null), terrain.getString("description").orElse(null), terrain.getString("creation-date").map(ZonedDateTime::parse).orElseThrow(), owner == null ? null : UUID.fromString(owner), terrain.getNumber("priority").orElse(0).intValue(), moderators, members, flagMap, memberFlags);
-        } catch (Exception e) {
-            throw new IllegalArgumentException("The provided file is not a valid terrain file:", e);
-        }
-    }
-
-    private static void serializeFlags(@NotNull FlagMap map, @NotNull ConfigurationSection section) {
-        int count = 0;
-        for (Map.Entry<String, Object> entry : map.view().entrySet()) {
-            Object data = entry.getValue();
-            if (data == null) continue;
-
-            try (ByteArrayOutputStream baos = new ByteArrayOutputStream(); ObjectOutputStream out = new ObjectOutputStream(baos)) {
-                out.writeObject(data);
-                section.set("flags." + count + ".id", entry.getKey());
-                section.set("flags." + count + ".data", baos.toByteArray());
-                count++;
-            } catch (Exception e) {
-                Terrainer.logger().log("Unable to serialize flag with id '" + entry.getKey() + "':", ConsoleLogger.Level.ERROR);
-                e.printStackTrace();
-            }
-        }
-    }
-
-    @Contract("null,_ -> null")
-    private static @Nullable HashMap<String, Object> deserializeFlagSection(@Nullable ConfigurationSection flagsSection, @NotNull UUID terrainId) {
-        if (flagsSection == null) return null;
-
-        Set<Map.Entry<String, Object>> nodes = flagsSection.getNodes().entrySet();
-        HashMap<String, Object> flagMap = new HashMap<>((int) (nodes.size() / .75f) + 1);
-
-        for (Map.Entry<String, Object> node : nodes) {
-            if (!(node.getValue() instanceof ConfigurationSection flag)) continue;
-            Optional<String> id = flag.getString("id");
-            if (id.isEmpty()) continue;
-            Optional<Object> data = flag.getObject("data");
-            if (data.isEmpty()) continue;
-            if (!(data.get() instanceof byte[])) continue;
-
-            try (ByteArrayInputStream bais = new ByteArrayInputStream((byte[]) data.get()); ObjectInputStream in = new ObjectInputStream(bais)) {
-                flagMap.put(id.get(), in.readObject());
-            } catch (Exception e) {
-                Terrainer.logger().log("Flag with id '" + id.get() + "' could not be added to terrain '" + terrainId + "' because an issue happened while loading the data. (Maybe because of a removed plugin?)", ConsoleLogger.Level.ERROR);
-            }
-        }
-
-        return flagMap;
     }
 
     /**
@@ -1093,9 +948,9 @@ public class Terrain implements Serializable {
     public final class MemberFlagMap implements Serializable {
         private static final int INITIAL_CAPACITY = 4;
         @Serial
-        private static final long serialVersionUID = -2957723599778602521L;
+        private static final long serialVersionUID = 5314721742657305721L;
 
-        private @Nullable HashMap<UUID, FlagMap> map;
+        @Nullable HashMap<UUID, FlagMap> map;
 
         private MemberFlagMap(@Nullable HashMap<UUID, HashMap<String, Object>> map) {
             if (map != null && !map.isEmpty()) {

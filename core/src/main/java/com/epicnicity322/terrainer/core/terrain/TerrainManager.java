@@ -40,6 +40,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.IOException;
+import java.nio.file.FileVisitOption;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
@@ -847,7 +848,7 @@ public final class TerrainManager {
         if (!Files.isDirectory(TERRAINS_FOLDER)) return;
 
         long amount;
-        try (Stream<Path> terrainFiles = Files.walk(TERRAINS_FOLDER).filter(file -> file.toString().endsWith(".terrain"))) {
+        try (Stream<Path> terrainFiles = Files.walk(TERRAINS_FOLDER, FileVisitOption.FOLLOW_LINKS).filter(TerrainStorageManager::isValidTerrainFile)) {
             amount = terrainFiles.count();
             if (amount == 0) return;
         }
@@ -856,10 +857,10 @@ public final class TerrainManager {
 
         LongTaskFeedback feedback = new LongTaskFeedback(amount, 7, (progress, current) -> Terrainer.logger().log("Loading terrains... &8[" + progress + "&8] (&7" + current + "&8/&7" + amount + "&8)"));
 
-        try (Stream<Path> terrainFiles = Files.walk(TERRAINS_FOLDER).filter(file -> file.toString().endsWith(".terrain")).parallel()) {
+        try (Stream<Path> terrainFiles = Files.walk(TERRAINS_FOLDER, FileVisitOption.FOLLOW_LINKS).filter(TerrainStorageManager::isValidTerrainFile).parallel()) {
             terrainFiles.forEach(terrainFile -> {
                 try {
-                    addWithoutAutoSave(Terrain.fromFile(terrainFile), false);
+                    addWithoutAutoSave(TerrainStorageManager.load(terrainFile), false);
                 } catch (Exception e) {
                     Terrainer.logger().log("Unable to read file '" + terrainFile.getFileName() + "' as a Terrain object:", ConsoleLogger.Level.ERROR);
                     e.printStackTrace();
@@ -915,19 +916,17 @@ public final class TerrainManager {
 
                 terrain.changed = false;
 
-                Path path = TERRAINS_FOLDER.resolve(terrain.id + ".terrain");
-
                 try {
-                    Files.deleteIfExists(path);
+                    TerrainStorageManager.delete(terrain);
                 } catch (Exception e) {
-                    Terrainer.logger().log("Error while deleting old terrain file '" + path.getFileName() + "':", ConsoleLogger.Level.ERROR);
+                    Terrainer.logger().log("Error while deleting old terrain file of '" + terrain.id + "':", ConsoleLogger.Level.ERROR);
                     e.printStackTrace();
                     Terrainer.logger().log("Changes were not saved for terrain '" + terrain.id + "' (" + terrain.name + ") and it will be reset when the server restarts.", ConsoleLogger.Level.ERROR);
                     continue;
                 }
 
                 try {
-                    Terrain.toFile(path, terrain);
+                    TerrainStorageManager.save(terrain);
                 } catch (Exception e) {
                     Terrainer.logger().log("Error while saving terrain '" + terrain.id + "':", ConsoleLogger.Level.ERROR);
                     e.printStackTrace();
