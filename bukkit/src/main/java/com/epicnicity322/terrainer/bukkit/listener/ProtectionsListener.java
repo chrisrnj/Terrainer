@@ -257,10 +257,10 @@ public final class ProtectionsListener extends Protections<Player, CommandSender
                     chestedHorse.isCarryingChest() ? Flags.CONTAINERS : flagVehicleInteraction(playerHand, playerSneaking);
             case Steerable steerable ->
                     steerable.hasSaddle() && playerHand.getType().isAir() ? Flags.ENTER_VEHICLES : Flags.ENTITY_INTERACTIONS;
-            case Vehicle vehicle ->
-                    vehicle instanceof LivingEntity ? flagVehicleInteraction(playerHand, playerSneaking) : Flags.ENTER_VEHICLES;
             case InventoryHolder inventoryHolder ->
                     inventoryHolder instanceof LivingEntity ? Flags.ENTITY_INTERACTIONS : Flags.CONTAINERS;
+            case Vehicle vehicle ->
+                    vehicle instanceof LivingEntity ? flagVehicleInteraction(playerHand, playerSneaking) : Flags.ENTER_VEHICLES;
             default -> Flags.ENTITY_INTERACTIONS;
         };
     }
