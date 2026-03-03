@@ -43,6 +43,7 @@ public class ShopGUI {
      *
      * @param player The player to open the inventory to.
      */
+    @SuppressWarnings("deprecation")
     public ShopGUI(@NotNull Player player) {
         MessageSender lang = TerrainerPlugin.getLanguage();
         Configuration config = Configurations.CONFIG.config();
