@@ -1,6 +1,6 @@
 /*
  * Terrainer - A minecraft terrain claiming protection plugin.
- * Copyright (C) 2024 Christiano Rangel
+ * Copyright (C) 2024-2026 Christiano Rangel
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,7 +25,6 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.Objects;
 import java.util.UUID;
-import java.util.stream.StreamSupport;
 
 public interface IOwningTerrainsAmountPlaceholder<O, P extends O> extends PlaceholderFormatter<O, P> {
     @Override
@@ -38,6 +37,6 @@ public interface IOwningTerrainsAmountPlaceholder<O, P extends O> extends Placeh
     @Nullable
     default String formatPlaceholder(@Nullable O player, @NotNull String params) {
         UUID id = player == null ? null : uuid(player);
-        return Long.toString(StreamSupport.stream(TerrainManager.allTerrains().spliterator(), false).filter(t -> Objects.equals(id, t.owner())).count());
+        return Long.toString(TerrainManager.allTerrains().stream().filter(t -> Objects.equals(id, t.owner())).count());
     }
 }

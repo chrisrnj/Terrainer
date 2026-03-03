@@ -1,6 +1,6 @@
 /*
  * Terrainer - A minecraft terrain claiming protection plugin.
- * Copyright (C) 2024 Christiano Rangel
+ * Copyright (C) 2024-2026 Christiano Rangel
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -27,7 +27,6 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.UUID;
-import java.util.stream.StreamSupport;
 
 public interface IAssociatedTerrainsPlaceholder<O, P extends O> extends PlaceholderFormatter<O, P> {
     static boolean hasAnyRelations(@Nullable UUID player, @NotNull Terrain terrain) {
@@ -44,6 +43,6 @@ public interface IAssociatedTerrainsPlaceholder<O, P extends O> extends Placehol
     @Nullable
     default String formatPlaceholder(@Nullable O player, @NotNull String params) {
         UUID id = player == null ? null : uuid(player);
-        return TerrainerUtil.listToString(StreamSupport.stream(TerrainManager.allTerrains().spliterator(), false).filter(t -> hasAnyRelations(id, t)).toList(), Terrain::name);
+        return TerrainerUtil.listToString(TerrainManager.allTerrains().stream().filter(t -> hasAnyRelations(id, t)).toList(), Terrain::name);
     }
 }

@@ -1,6 +1,6 @@
 /*
  * Terrainer - A minecraft terrain claiming protection plugin.
- * Copyright (C) 2024 Christiano Rangel
+ * Copyright (C) 2024-2026 Christiano Rangel
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -31,11 +31,10 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Function;
-import java.util.stream.StreamSupport;
 
 public interface ITopAssociatedTerrainsPlaceholder<O, P extends O> extends PriorityPlaceholderFormatter<O, P> {
     static @NotNull Optional<UUID> getTop(int topRank, Function<UUID, Long> scoreGetter) {
-        return StreamSupport.stream(TerrainManager.allTerrains().spliterator(), false).map(Terrain::owner).filter(Objects::nonNull).distinct().sorted(Comparator.comparingLong(scoreGetter::apply).reversed()).skip(Math.max(topRank - 1, 0)).findFirst();
+        return TerrainManager.allTerrains().stream().map(Terrain::owner).filter(Objects::nonNull).distinct().sorted(Comparator.comparingLong(scoreGetter::apply).reversed()).skip(Math.max(topRank - 1, 0)).findFirst();
     }
 
     @Override
@@ -58,7 +57,7 @@ public interface ITopAssociatedTerrainsPlaceholder<O, P extends O> extends Prior
     @Nullable
     default String formatPlaceholder(@Nullable O player, @NotNull String params, int priority) {
         PlayerUtil<P, ? super P> playerUtil = playerUtil();
-        return getTop(priority, uuid -> StreamSupport.stream(TerrainManager.allTerrains().spliterator(), false).filter(t -> IAssociatedTerrainsPlaceholder.hasAnyRelations(uuid, t)).count()).map(playerUtil::ownerName).orElseGet(() -> Terrainer.lang().get("Placeholder Values.No One Top"));
+        return getTop(priority, uuid -> TerrainManager.allTerrains().stream().filter(t -> IAssociatedTerrainsPlaceholder.hasAnyRelations(uuid, t)).count()).map(playerUtil::ownerName).orElseGet(() -> Terrainer.lang().get("Placeholder Values.No One Top"));
     }
 
     @Override
