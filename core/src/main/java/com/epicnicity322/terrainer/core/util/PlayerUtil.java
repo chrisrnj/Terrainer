@@ -347,7 +347,7 @@ public abstract class PlayerUtil<P extends R, R> {
     private void addEvents(@NotNull ArrayList<int[]> events, @NotNull Terrain terrain) {
         Coordinate max = terrain.maxDiagonal(), min = terrain.minDiagonal();
 
-        // MaxZ and MaxX offset by 1 to account for minecraft coordinate system.
+        // MaxZ and MaxX offset by 1 to account for Minecraft coordinate system.
         events.add(new int[]{(int) min.x(), (int) min.z(), (int) max.z() + 1, 1});
         events.add(new int[]{(int) max.x() + 1, (int) min.z(), (int) max.z() + 1, -1});
     }
