@@ -77,12 +77,12 @@ public final class DefineCommand extends TerrainerCommand {
 
         defineFlags.clear();
         Configuration flags = Configurations.FLAGS.config();
-        for (Map.Entry<String, Object> entry : flags.getNodes().entrySet()) {
 
+        for (Map.Entry<String, Object> entry : flags.getNodes().entrySet()) {
             String flagId = entry.getKey();
             Flag<?> flag = Flags.matchFlag(flagId);
             if (flag == null || !(entry.getValue() instanceof ConfigurationSection flagSection)) continue;
-            String defineValueSerialized = flagSection.getString("Define Value").orElse(null);
+            String defineValueSerialized = flagSection.getObject("Define Value").map(Object::toString).orElse(null);
             if (defineValueSerialized == null) continue;
             addDefineFlagEntry(flag, defineValueSerialized);
         }
