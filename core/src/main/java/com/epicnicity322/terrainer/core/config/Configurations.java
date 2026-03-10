@@ -1102,10 +1102,10 @@ public final class Configurations {
               Unknown Terrain: 'Unknown'
             
             Confirm:
-              Arguments: '[<id>|list] [page]'
+              Arguments: '[<index>|list] [page]'
               Error:
                 Multiple: '&7You have more than one confirmation pending, use &a&n<command>&7 to see the list.'
-                Not Found: '&4A confirmation with that ID was not found.'
+                Not Found: '&4A confirmation with that index was not found.'
                 Nothing Pending: '&4You have nothing to confirm.'
                 Run: '&4Something went wrong while confirming this request.'
               Header: '&eList of pending confirmations (Page &7<page>&e of &7<total>&e):'
