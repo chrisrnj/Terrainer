@@ -464,7 +464,7 @@ public final class Flags {
     }
 
     /**
-     * Looks for a flag that has a {@link Flag#commandFriendlyId()} matching the provided value.
+     * Looks for a flag that has an {@link Flag#id()} or {@link Flag#commandFriendlyId()} matching the provided value.
      *
      * @param name The name of the flag to find.
      * @return The flag with matching id, if found.
@@ -474,6 +474,7 @@ public final class Flags {
 
         for (Flag<?> f : values) {
             if (name.equalsIgnoreCase(f.commandFriendlyId())) return f;
+            if (name.equalsIgnoreCase(f.id())) return f;
         }
         return null;
     }
