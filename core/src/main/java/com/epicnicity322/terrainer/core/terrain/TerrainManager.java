@@ -80,7 +80,7 @@ public final class TerrainManager {
      * A set with all the terrains to be deleted by the auto-saver.
      * Initial capacity of 4 because there usually isn't a ton of players deleting their terrains at the same time.
      */
-    private static final @NotNull Set<UUID> terrainsToRemove = ConcurrentHashMap.newKeySet(4);
+    private static final @NotNull Set<Terrain> terrainsToRemove = ConcurrentHashMap.newKeySet(4);
 
     // Usually there's only one listener for these events: the one to be used internally by Terrainer.
     private static final @NotNull ArrayList<Predicate<ITerrainAddEvent>> onAddListeners = new ArrayList<>(2);
@@ -214,8 +214,8 @@ public final class TerrainManager {
         }
 
         if (callEvents) {
-            // Adding this terrain's ID to be removed and loading the auto saver.
-            terrainsToRemove.add(terrainID);
+            // Adding this terrain on the list to be removed and loading the auto saver.
+            terrainsToRemove.add(found);
             loadAutoSave();
         }
 
@@ -897,11 +897,11 @@ public final class TerrainManager {
         }
 
         synchronized (terrainsToRemove) {
-            for (UUID uuid : terrainsToRemove) {
+            for (Terrain terrain : terrainsToRemove) {
                 try {
-                    Files.deleteIfExists(TERRAINS_FOLDER.resolve(uuid + ".terrain"));
+                    TerrainStorageManager.delete(terrain);
                 } catch (IOException e) {
-                    Terrainer.logger().log("Unable to remove '" + uuid + "' terrain from " + TERRAINS_FOLDER.getFileName() + " folder:", ConsoleLogger.Level.ERROR);
+                    Terrainer.logger().log("Unable to remove '" + terrain.id + "' terrain from " + TERRAINS_FOLDER.getFileName() + " folder:", ConsoleLogger.Level.ERROR);
                     e.printStackTrace();
                     Terrainer.logger().log("The terrain will still exist when the server restarts!", ConsoleLogger.Level.ERROR);
                 }
