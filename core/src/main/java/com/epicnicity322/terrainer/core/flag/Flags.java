@@ -165,7 +165,7 @@ public final class Flags {
     /**
      * Allows everyone to drop items.
      */
-    public static final @NotNull PlayerFlag<Boolean> ITEM_DROP = PlayerFlag.newBooleanFlag("Item Drop", false);
+    public static final @NotNull PlayerFlag<Boolean> ITEM_DROP = PlayerFlag.newBooleanFlag("Item Drop", true);
     /**
      * Allows everyone to rotate and place items on item frames. Taking items off requires {@link Flags#BUILD}.
      */
@@ -173,12 +173,12 @@ public final class Flags {
     /**
      * Allows everyone to pick up items in a terrain.
      */
-    public static final @NotNull PlayerFlag<Boolean> ITEM_PICKUP = PlayerFlag.newBooleanFlag("Item Pickup", false);
+    public static final @NotNull PlayerFlag<Boolean> ITEM_PICKUP = PlayerFlag.newBooleanFlag("Item Pickup", true);
     /**
      * Allows players to pick up only the items they dropped themselves, such as in death or item drop event.
      */
     // TODO:
-    public static final @NotNull PlayerFlag<Boolean> ITEM_PICKUP_OWN = PlayerFlag.newBooleanFlag("Item Pickup Own", false);
+    public static final @NotNull PlayerFlag<Boolean> ITEM_PICKUP_OWN = PlayerFlag.newBooleanFlag("Item Pickup Own", true);
     /**
      * Allows leaf blocks to decay naturally.
      */

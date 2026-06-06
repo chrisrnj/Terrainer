@@ -209,7 +209,7 @@ public final class Configurations {
               Glowing: false
               # If false, all golden shovels (or the set material) will pass as a selector wand.
               # If true, the item can only be obtained by '/tr wand' command.
-              Unique: true
+              Unique: false
               # Makes so the action of right clicking using this item (golden shovel by default) is cancelled, and the
               #item is not used.
               Cancel Interaction: true
@@ -664,8 +664,8 @@ public final class Configurations {
                 &7waxing blocks, using bells, etc.
             
             Item Drop:
-              Default: false
-              Define Value:
+              Default: true
+              Define Value: false
               Material: DROPPER
               Display Name: '&8&lItem Drop'
               Lore: |-
@@ -684,8 +684,8 @@ public final class Configurations {
                 &7Taking items off is handled by 'Build' flag.
             
             Item Pickup:
-              Default: false
-              Define Value:
+              Default: true
+              Define Value: false
               Material: HOPPER
               Display Name: '&8&lItem Pickup'
               Lore: |-
