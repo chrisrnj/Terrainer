@@ -197,7 +197,13 @@ final class TerrainStorageManager {
                     }
                 }
 
-                return new Terrain(min, max, UUID.fromString(terrain.getString("world").orElseThrow()), terrainId, terrain.getString("name").orElse(null), terrain.getString("description").orElse(null), terrain.getString("creation-date").map(ZonedDateTime::parse).orElseThrow(), owner == null ? null : UUID.fromString(owner), terrain.getNumber("priority").orElse(0).intValue(), moderators, members, flagMap, memberFlags);
+                Terrain instance = new Terrain(min, max, UUID.fromString(terrain.getString("world").orElseThrow()), terrainId, terrain.getString("name").orElse(null), terrain.getString("description").orElse(null), terrain.getString("creation-date").map(ZonedDateTime::parse).orElseThrow(), owner == null ? null : UUID.fromString(owner), terrain.getNumber("priority").orElse(0).intValue(), moderators, members, flagMap, memberFlags);
+
+                if (terrain.getBoolean("world-terrain").orElse(false)) {
+                    return new WorldTerrain(instance, instance.name);
+                } else {
+                    return instance;
+                }
             } catch (Exception e) {
                 throw new IllegalArgumentException("The provided file is not a valid terrain file:", e);
             }
@@ -206,6 +212,7 @@ final class TerrainStorageManager {
                 Path path = findPathForTerrain(terrain, ".yml");
                 PathUtils.deleteAll(path);
                 Configuration config = new Configuration(new YamlConfigurationLoader());
+                if (terrain instanceof WorldTerrain) config.set("world-terrain", true);
                 config.set("id", terrain.id.toString());
                 config.set("name", terrain.name);
                 config.set("description", terrain.description);
