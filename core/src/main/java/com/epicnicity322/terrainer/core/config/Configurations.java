@@ -201,6 +201,9 @@ public final class Configurations {
               Selection Edge Block: GOLD_BLOCK
               Terrain Block: DIAMOND_BLOCK
               Terrain Edge Block: GLASS
+              # Bedrock players will see a Slime entity instead of Block Displays.
+              # Geyser required.
+              Bedrock Players See Slime Entity: true
             
             # The item for selecting positions to claim terrains.
             # Can be obtained/bought with '/tr wand'

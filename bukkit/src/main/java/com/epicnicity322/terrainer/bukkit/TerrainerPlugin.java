@@ -85,6 +85,7 @@ public final class TerrainerPlugin extends JavaPlugin {
     private static final @NotNull AtomicReference<TaskFactory.CancellableTask> updateChecker = new AtomicReference<>();
     private static @Nullable TerrainerPlugin instance;
     private static @Nullable EconomyHandler economyHandler;
+    private static boolean geyserHook = false;
 
     static {
         Terrainer.setLang(lang);
@@ -137,6 +138,10 @@ public final class TerrainerPlugin extends JavaPlugin {
 
     public static @Nullable EconomyHandler getEconomyHandler() {
         return economyHandler;
+    }
+
+    public static boolean getGeyserHook() {
+        return geyserHook;
     }
 
     private static @NotNull NMSHandler getNMSHandler() {
@@ -273,6 +278,10 @@ public final class TerrainerPlugin extends JavaPlugin {
         PluginManager pm = getServer().getPluginManager();
 
         // Hooks
+        if (pm.getPlugin("Geyser-Spigot") != null) {
+            geyserHook = true;
+            logger.log("Geyser was found and hooked!");
+        }
         if (pm.getPlugin("Vault") != null) {
             try {
                 economyHandler = new VaultHook();

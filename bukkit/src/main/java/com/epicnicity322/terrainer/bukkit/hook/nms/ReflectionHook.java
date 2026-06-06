@@ -1,6 +1,6 @@
 /*
  * Terrainer - A minecraft terrain claiming protection plugin.
- * Copyright (C) 2025 Christiano Rangel
+ * Copyright (C) 2025-2026 Christiano Rangel
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,9 +22,12 @@ import com.epicnicity322.epicpluginlib.bukkit.reflection.ReflectionUtil;
 import com.epicnicity322.epicpluginlib.bukkit.reflection.type.PackageType;
 import com.epicnicity322.epicpluginlib.bukkit.reflection.type.SubPackageType;
 import com.epicnicity322.epicpluginlib.core.logger.ConsoleLogger;
+import com.epicnicity322.terrainer.bukkit.TerrainerPlugin;
 import com.epicnicity322.terrainer.bukkit.hook.NMSHandler;
+import com.epicnicity322.terrainer.bukkit.hook.geyser.GeyserHook;
 import com.epicnicity322.terrainer.bukkit.util.BlockDisplayUtil;
 import com.epicnicity322.terrainer.core.Terrainer;
+import com.epicnicity322.terrainer.core.config.Configurations;
 import com.epicnicity322.terrainer.core.util.PlayerUtil;
 import net.minecraft.network.protocol.game.PacketPlayOutEntityDestroy;
 import net.minecraft.network.protocol.game.PacketPlayOutEntityMetadata;
@@ -98,7 +101,7 @@ public final class ReflectionHook implements NMSHandler {
         }
 
         if (!hasBlockDisplays) {
-            Terrainer.logger().log("Block Displays are not available. Using Slime entities as markers.", ConsoleLogger.Level.WARN);
+            Terrainer.logger().log("Block Displays are not available. Using Slime entities as markers for everyone.", ConsoleLogger.Level.WARN);
         }
     }
 
@@ -142,6 +145,10 @@ public final class ReflectionHook implements NMSHandler {
         return type == blockDisplayType ? coordinate - 0.0005 : coordinate + 0.5;
     }
 
+    private static boolean bedrockPlayer(@NotNull Player player) {
+        return TerrainerPlugin.getGeyserHook() && GeyserHook.isBedrock(player.getUniqueId()) && Configurations.CONFIG.config().getBoolean("Bedrock Players See Slime Entity").orElse(true);
+    }
+
     @SuppressWarnings({"unchecked"})
     @Override
     public @NotNull PlayerUtil.SpawnedMarker spawnMarkerEntity(@NotNull Player player, int x, int y, int z, boolean edge, boolean selection) throws Throwable {
@@ -153,7 +160,7 @@ public final class ReflectionHook implements NMSHandler {
         org.bukkit.entity.Entity entity;
         Entity nmsEntity;
 
-        if (hasBlockDisplays && !blockType.getMaterial().isAir()) {
+        if (hasBlockDisplays && blockType.getMaterial().isBlock() && !bedrockPlayer(player)) {
             type = blockDisplayType;
             assert type != null;
             nmsEntity = BlockDisplayUtil.nmsBlockDisplay(type, (World) method_CraftWorld_getHandle.invoke(player.getWorld()));
@@ -165,7 +172,7 @@ public final class ReflectionHook implements NMSHandler {
             Slime bukkitSlime = (Slime) method_Entity_getBukkitEntity.invoke(slime);
             bukkitSlime.setSize(2);
             bukkitSlime.setCollidable(false);
-            bukkitSlime.setInvisible(true);
+            if (!bedrockPlayer(player)) bukkitSlime.setInvisible(true);
             update(slime, selection, false, player);
             entity = bukkitSlime;
             nmsEntity = slime;
