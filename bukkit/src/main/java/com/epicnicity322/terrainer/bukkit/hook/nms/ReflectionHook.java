@@ -25,6 +25,7 @@ import com.epicnicity322.epicpluginlib.core.logger.ConsoleLogger;
 import com.epicnicity322.terrainer.bukkit.TerrainerPlugin;
 import com.epicnicity322.terrainer.bukkit.hook.NMSHandler;
 import com.epicnicity322.terrainer.bukkit.hook.geyser.GeyserHook;
+import com.epicnicity322.terrainer.bukkit.hook.viaversion.ViaVersionHook;
 import com.epicnicity322.terrainer.bukkit.util.BlockDisplayUtil;
 import com.epicnicity322.terrainer.core.Terrainer;
 import com.epicnicity322.terrainer.core.config.Configurations;
@@ -58,6 +59,7 @@ import java.util.Objects;
 import java.util.UUID;
 
 public final class ReflectionHook implements NMSHandler {
+    private static final int blockDisplayProtocolVersion = 762;
     private static final @NotNull Vec3D zero = new Vec3D(0, 0, 0);
     private static final Method method_CraftWorld_getHandle;
     private static final Method method_CraftEntity_getHandle;
@@ -77,6 +79,8 @@ public final class ReflectionHook implements NMSHandler {
     private static @NotNull Color selectionColor = Color.YELLOW;
     private static @NotNull Color terrainColor = Color.WHITE;
     private static @NotNull Color terrainCreatedColor = Color.LIME;
+    private static boolean viaVersionOption = Configurations.CONFIG.config().getBoolean("Markers.Unsupported Version Players See Slime Entity").orElse(true);
+    private static boolean geyserOption = Configurations.CONFIG.config().getBoolean("Markers.Bedrock Players See Slime Entity").orElse(true);
 
     static {
         Class<?> class_CraftWorld = ReflectionUtil.getClass("CraftWorld", PackageType.CRAFTBUKKIT);
@@ -103,6 +107,14 @@ public final class ReflectionHook implements NMSHandler {
         if (!hasBlockDisplays) {
             Terrainer.logger().log("Block Displays are not available. Using Slime entities as markers for everyone.", ConsoleLogger.Level.WARN);
         }
+    }
+
+    public static void setUnsupportedVersionPlayersSeeSlimeEntity(boolean value) {
+        viaVersionOption = value;
+    }
+
+    public static void setBedrockPlayersSeeSlimeEntity(boolean value) {
+        geyserOption = value;
     }
 
     public static void setMarkerBlocks(@Nullable Material selectionBlock, @Nullable Material selectionEdgeBlock, @Nullable Material terrainBlock, @Nullable Material terrainEdgeBlock) {
@@ -146,7 +158,14 @@ public final class ReflectionHook implements NMSHandler {
     }
 
     private static boolean bedrockPlayer(@NotNull Player player) {
-        return TerrainerPlugin.getGeyserHook() && GeyserHook.isBedrock(player.getUniqueId()) && Configurations.CONFIG.config().getBoolean("Bedrock Players See Slime Entity").orElse(true);
+        return TerrainerPlugin.getGeyserHook() && GeyserHook.isBedrock(player.getUniqueId()) && geyserOption;
+    }
+
+    private static boolean versionSupportsDisplays(@NotNull Player player) {
+        if (TerrainerPlugin.getViaVersionHook() && viaVersionOption) {
+            return ViaVersionHook.getVersion(player) >= blockDisplayProtocolVersion;
+        }
+        return true;
     }
 
     @SuppressWarnings({"unchecked"})
@@ -160,7 +179,7 @@ public final class ReflectionHook implements NMSHandler {
         org.bukkit.entity.Entity entity;
         Entity nmsEntity;
 
-        if (hasBlockDisplays && blockType.getMaterial().isBlock() && !bedrockPlayer(player)) {
+        if (hasBlockDisplays && blockType.getMaterial().isBlock() && !bedrockPlayer(player) && versionSupportsDisplays(player)) {
             type = blockDisplayType;
             assert type != null;
             nmsEntity = BlockDisplayUtil.nmsBlockDisplay(type, (World) method_CraftWorld_getHandle.invoke(player.getWorld()));

@@ -86,6 +86,7 @@ public final class TerrainerPlugin extends JavaPlugin {
     private static @Nullable TerrainerPlugin instance;
     private static @Nullable EconomyHandler economyHandler;
     private static boolean geyserHook = false;
+    private static boolean viaVersionHook = false;
 
     static {
         Terrainer.setLang(lang);
@@ -142,6 +143,10 @@ public final class TerrainerPlugin extends JavaPlugin {
 
     public static boolean getGeyserHook() {
         return geyserHook;
+    }
+
+    public static boolean getViaVersionHook() {
+        return viaVersionHook;
     }
 
     private static @NotNull NMSHandler getNMSHandler() {
@@ -228,6 +233,8 @@ public final class TerrainerPlugin extends JavaPlugin {
             logger.log("Marker colors could not be updated because of invalid hex codes. " + e.getMessage(), ConsoleLogger.Level.WARN);
         }
         ReflectionHook.setMarkerBlocks(Material.getMaterial(config.getString("Markers.Selection Block").orElse("GLOWSTONE")), Material.getMaterial(config.getString("Markers.Selection Edge Block").orElse("GOLD_BLOCK")), Material.getMaterial(config.getString("Markers.Terrain Block").orElse("DIAMOND_BLOCK")), Material.getMaterial(config.getString("Markers.Terrain Edge Block").orElse("GLASS")));
+        ReflectionHook.setUnsupportedVersionPlayersSeeSlimeEntity(config.getBoolean("Markers.Unsupported Version Players See Slime Entity").orElse(true));
+        ReflectionHook.setBedrockPlayersSeeSlimeEntity(config.getBoolean("Markers.Bedrock Players See Slime Entity").orElse(true));
 
         // Instance required from now on
         if (instance == null) return false;
@@ -281,6 +288,10 @@ public final class TerrainerPlugin extends JavaPlugin {
         if (pm.getPlugin("Geyser-Spigot") != null) {
             geyserHook = true;
             logger.log("Geyser was found and hooked!");
+        }
+        if (pm.getPlugin("ViaVersion") != null) {
+            viaVersionHook = true;
+            logger.log("ViaVersion was found and hooked!");
         }
         if (pm.getPlugin("Vault") != null) {
             try {

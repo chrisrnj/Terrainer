@@ -204,6 +204,10 @@ public final class Configurations {
               # Bedrock players will see a Slime entity instead of Block Displays.
               # Geyser required.
               Bedrock Players See Slime Entity: true
+              # Players playing on versions older than 1.19.4 will see a Slime entity instead of Block Displays.
+              # If you're running Terrainer on 1.19.3 Slime entities will be used regardless.
+              # ViaVersion required.
+              Unsupported Version Players See Slime Entity: true
             
             # The item for selecting positions to claim terrains.
             # Can be obtained/bought with '/tr wand'
