@@ -1,6 +1,6 @@
 /*
  * Terrainer - A minecraft terrain claiming protection plugin.
- * Copyright (C) 2025 Christiano Rangel
+ * Copyright (C) 2025-2026 Christiano Rangel
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -34,16 +34,13 @@ import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.UUID;
+import java.util.*;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
-import java.util.stream.IntStream;
 
 public final class ConfirmCommand extends TerrainerCommand {
     private static final @NotNull UUID console = UUID.randomUUID();
-    private static final @NotNull HashMap<UUID, ArrayList<PendingConfirmation>> requests = new HashMap<>(4);
+    private static final @NotNull HashMap<UUID, TreeMap<Integer, PendingConfirmation>> requests = new HashMap<>(4);
 
     /**
      * Request the player to confirm something, and run the runnable only after they use the confirm command.
@@ -67,20 +64,19 @@ public final class ConfirmCommand extends TerrainerCommand {
      * @param hash        The hash of the confirmation, to avoid multiple confirmations that do the same thing.
      * @return Whether if there was no other confirmation for this player with this hash.
      */
-    public static boolean requestConfirmation(@Nullable UUID player, @NotNull Consumer<CommandSender> onConfirm, @NotNull Supplier<String> description, int hash) {
+    public static synchronized boolean requestConfirmation(@Nullable UUID player, @NotNull Consumer<CommandSender> onConfirm, @NotNull Supplier<String> description, int hash) {
         if (player == null) player = console;
-        ArrayList<PendingConfirmation> onConfirmList = requests.get(player);
+        PendingConfirmation request = new PendingConfirmation(onConfirm, description, hash);
+        TreeMap<Integer, PendingConfirmation> playerConfirmationRequests = requests.get(player);
 
-        if (onConfirmList == null) {
-            onConfirmList = new ArrayList<>(3);
-            requests.put(player, onConfirmList);
+        if (playerConfirmationRequests == null) {
+            playerConfirmationRequests = new TreeMap<>();
+            requests.put(player, playerConfirmationRequests);
         } else {
-            for (PendingConfirmation confirmation : onConfirmList) {
-                if (confirmation.hash == hash) return false;
-            }
+            if (playerConfirmationRequests.containsValue(request)) return false;
         }
 
-        onConfirmList.add(new PendingConfirmation(onConfirm, description, hash));
+        playerConfirmationRequests.put(playerConfirmationRequests.isEmpty() ? 0 : (playerConfirmationRequests.lastKey() + 1), request);
         return true;
     }
 
@@ -99,12 +95,14 @@ public final class ConfirmCommand extends TerrainerCommand {
      * @param hash        The hash to cancel confirmations.
      * @param foundPlayer A consumer to run for each player found that had the confirmation.
      */
-    public static void cancelConfirmations(int hash, @Nullable Consumer<UUID> foundPlayer) {
+    public static synchronized void cancelConfirmations(int hash, @Nullable Consumer<UUID> foundPlayer) {
         requests.entrySet().removeIf(entry -> {
-            if (entry.getValue().removeIf(confirmation -> confirmation.hash == hash)) {
+            Map<Integer, PendingConfirmation> playerConfirmationRequests = entry.getValue();
+
+            if (playerConfirmationRequests.values().removeIf(confirmationRequest -> confirmationRequest.hash == hash)) {
                 if (foundPlayer != null) foundPlayer.accept(entry.getKey() == console ? null : entry.getKey());
             }
-            return entry.getValue().isEmpty();
+            return playerConfirmationRequests.isEmpty();
         });
     }
 
@@ -115,11 +113,11 @@ public final class ConfirmCommand extends TerrainerCommand {
      * @param hash   The hash of the confirmation.
      * @return Whether any confirmation was cancelled.
      */
-    public static boolean cancelConfirmation(@Nullable UUID player, int hash) {
+    public static synchronized boolean cancelConfirmation(@Nullable UUID player, int hash) {
         if (player == null) player = console;
-        ArrayList<PendingConfirmation> confirmations = requests.get(player);
+        Map<Integer, PendingConfirmation> confirmations = requests.get(player);
         if (confirmations == null) return false;
-        boolean anyRemoved = confirmations.removeIf(confirmation -> confirmation.hash == hash);
+        boolean anyRemoved = confirmations.values().removeIf(confirmation -> confirmation.hash == hash);
         if (confirmations.isEmpty()) requests.remove(player);
         return anyRemoved;
     }
@@ -130,9 +128,22 @@ public final class ConfirmCommand extends TerrainerCommand {
      * @param player The ID of the player to cancel the confirmations. Null for console.
      * @return Whether the player had any confirmations.
      */
-    public static boolean cancelConfirmations(@Nullable UUID player) {
+    public static synchronized boolean cancelConfirmations(@Nullable UUID player) {
         if (player == null) player = console;
         return requests.remove(player) != null;
+    }
+
+    public static synchronized @Nullable TreeMap<Integer, PendingConfirmation> getPendingConfirmations(@Nullable UUID player) {
+        return requests.get(player == null ? console : player);
+    }
+
+    private static synchronized void confirm(@NotNull Map<Integer, PendingConfirmation> confirmations, int id, @NotNull CommandSender sender) {
+        Consumer<CommandSender> consumer = confirmations.get(id).onConfirm;
+        confirmations.remove(id);
+        if (confirmations.isEmpty()) {
+            requests.remove(sender instanceof Player player ? player.getUniqueId() : console);
+        }
+        consumer.accept(sender);
     }
 
     @Override
@@ -154,7 +165,7 @@ public final class ConfirmCommand extends TerrainerCommand {
     @Override
     public void run(@NotNull String label, @NotNull CommandSender sender, @NotNull String[] args) {
         MessageSender lang = TerrainerPlugin.getLanguage();
-        ArrayList<PendingConfirmation> confirmations = requests.get(sender instanceof Player player ? player.getUniqueId() : console);
+        TreeMap<Integer, PendingConfirmation> confirmations = getPendingConfirmations(sender instanceof Player player ? player.getUniqueId() : null);
 
         if (confirmations == null) {
             lang.send(sender, lang.get("Confirm.Error.Nothing Pending"));
@@ -166,7 +177,7 @@ public final class ConfirmCommand extends TerrainerCommand {
         if (args.length > 1) {
             // Displaying list of pending confirmations.
             if (args[1].equalsIgnoreCase("list") || args[1].equalsIgnoreCase(lang.get("Commands.Confirm.List"))) {
-                HashMap<Integer, ArrayList<PendingConfirmation>> pages = ObjectUtils.splitIntoPages(confirmations, 5);
+                HashMap<Integer, ArrayList<Map.Entry<Integer, PendingConfirmation>>> pages = ObjectUtils.splitIntoPages(confirmations.entrySet(), 5);
                 int page = 1;
 
                 if (args.length > 2) {
@@ -182,13 +193,13 @@ public final class ConfirmCommand extends TerrainerCommand {
 
                 lang.send(sender, lang.get("Confirm.Header").replace("<page>", Integer.toString(page)).replace("<total>", Integer.toString(pages.size())));
                 String entryFormat = lang.getColored("Confirm.Entry");
-                int entryId = (page * 5) - 5;
 
-                for (PendingConfirmation confirmation : pages.get(page)) {
+                for (Map.Entry<Integer, PendingConfirmation> confirmation : pages.get(page)) {
+                    int entryId = confirmation.getKey();
                     String description;
 
                     try {
-                        description = confirmation.description.get();
+                        description = confirmation.getValue().description.get();
                         if (description == null) description = "null";
                     } catch (Throwable t) {
                         Terrainer.logger().log("Unable to get description of confirmation " + entryId + " for player " + sender.getName() + ":", ConsoleLogger.Level.WARN);
@@ -199,7 +210,6 @@ public final class ConfirmCommand extends TerrainerCommand {
                     TextComponent text = new TextComponent(entryFormat.replace("<id>", Integer.toString(entryId)).replace("<description>", description));
                     text.setClickEvent(new ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, "/" + label + " " + args[0] + " " + entryId));
                     sender.spigot().sendMessage(text);
-                    entryId++;
                 }
 
                 if (page != pages.size()) {
@@ -218,7 +228,8 @@ public final class ConfirmCommand extends TerrainerCommand {
                             .replace("<label2>", args[0]).replace("<args>", lang.get("Confirm.Arguments")));
                     return;
                 }
-                if (id >= confirmations.size() || id < 0) {
+
+                if (!confirmations.containsKey(id)) {
                     lang.send(sender, lang.get("Confirm.Error.Not Found"));
                     return;
                 }
@@ -229,16 +240,11 @@ public final class ConfirmCommand extends TerrainerCommand {
             if (confirmations.size() > 1) {
                 lang.send(sender, lang.get("Confirm.Error.Multiple").replace("<command>", "/" + label + " " + args[0] + " " + lang.get("Commands.Confirm.List")));
                 return;
-            } else id = 0;
+            } else id = confirmations.firstKey();
         }
 
         try {
-            Consumer<CommandSender> consumer = confirmations.get(id).onConfirm;
-            confirmations.remove(id.intValue());
-            if (confirmations.isEmpty()) {
-                requests.remove(sender instanceof Player player ? player.getUniqueId() : console);
-            }
-            consumer.accept(sender);
+            confirm(confirmations, id, sender);
         } catch (Throwable e) {
             lang.send(sender, lang.get("Confirm.Error.Run"));
             Terrainer.logger().log("Something went wrong while running the confirmation " + id + " for player " + sender.getName() + ":", ConsoleLogger.Level.WARN);
@@ -252,9 +258,9 @@ public final class ConfirmCommand extends TerrainerCommand {
             if (args.length != 2) return;
 
             if (args[1].isEmpty()) {
-                ArrayList<PendingConfirmation> pendingRequests = requests.get(sender instanceof Player player ? player.getUniqueId() : console);
+                Map<Integer, PendingConfirmation> pendingRequests = getPendingConfirmations(sender instanceof Player player ? player.getUniqueId() : null);
                 if (pendingRequests != null && !pendingRequests.isEmpty()) {
-                    IntStream.range(0, pendingRequests.size()).forEach(i -> completions.add(Integer.toString(i)));
+                    pendingRequests.keySet().forEach(i -> completions.add(Integer.toString(i)));
                 }
             }
 
@@ -263,7 +269,19 @@ public final class ConfirmCommand extends TerrainerCommand {
         };
     }
 
-    private record PendingConfirmation(@NotNull Consumer<CommandSender> onConfirm,
-                                       @NotNull Supplier<String> description, int hash) {
+    public record PendingConfirmation(@NotNull Consumer<CommandSender> onConfirm,
+                                      @NotNull Supplier<String> description, int hash) {
+        @Override
+        public boolean equals(Object o) {
+            if (o == null || getClass() != o.getClass()) return false;
+
+            PendingConfirmation that = (PendingConfirmation) o;
+            return hash == that.hash;
+        }
+
+        @Override
+        public int hashCode() {
+            return hash;
+        }
     }
 }
