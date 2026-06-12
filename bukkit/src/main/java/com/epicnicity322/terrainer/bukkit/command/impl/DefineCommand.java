@@ -122,7 +122,7 @@ public final class DefineCommand extends TerrainerCommand {
         String name;
 
         if (args.length > 1) {
-            name = ChatColor.translateAlternateColorCodes('&', args[1]);
+            name = ChatColor.translateAlternateColorCodes('&', CommandUtil.join(args, 1)).trim();
             String stripped = ChatColor.stripColor(name);
             if (stripped.isBlank()) name = null;
         } else name = null;
