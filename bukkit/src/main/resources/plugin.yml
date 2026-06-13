@@ -162,7 +162,7 @@ permissions:
     default: false
 
   terrainer.flag:
-    description: Allows players to toggle flags using the Flag Management GUI, or through the command '/tr flag <flag> [args] [-t <terrain>]'.
+    description: Allows players to toggle flags using the Flag Management GUI, or through the command '/tr flag <default|player> <flag> [args] [-t <terrain>]'.
     default: false
 
   terrainer.bypass.build:
