@@ -143,6 +143,8 @@ public final class TransferCommand extends TerrainerCommand {
 
             if (newOwner == null || newOwner.equals(sender)) {
                 terrain.setOwner(newOwnerID);
+                terrain.members().remove(newOwnerID);
+                terrain.moderators().remove(newOwnerID);
                 lang.send(sender, lang.get("Transfer.Success").replace("<terrain>", name).replace("<who>", who));
             } else {
                 CommandUtil.updateCooldown(sender, "transfer");
@@ -170,6 +172,8 @@ public final class TransferCommand extends TerrainerCommand {
                         return;
 
                     terrain1.setOwner(newOwnerID);
+                    terrain1.members().remove(newOwnerID);
+                    terrain1.moderators().remove(newOwnerID);
                     CommandSender sender1 = senderRef.get();
                     if (sender1 != null)
                         lang.send(sender1, lang.get("Transfer.Success").replace("<terrain>", name1).replace("<who>", who));
