@@ -166,15 +166,19 @@ public final class TransferCommand extends TerrainerCommand {
                         return;
                     }
                     String name1 = terrain1.name();
+                    CommandSender sender1 = senderRef.get();
 
                     // Perform claim checks again.
-                    if (!verifyTransfer(terrain1, newOwner1, newOwner1, newOwnerID, lang.get("Target.You"), false))
+                    if (!verifyTransfer(terrain1, newOwner1, newOwner1, newOwnerID, lang.get("Target.You"), false)) {
+                        if (sender1 != null)
+                            lang.send(sender1, lang.get("Transfer.Error.Default").replace("<terrain>", terrain1.name()).replace("<player>", who));
                         return;
+                    }
 
                     terrain1.setOwner(newOwnerID);
                     terrain1.members().remove(newOwnerID);
                     terrain1.moderators().remove(newOwnerID);
-                    CommandSender sender1 = senderRef.get();
+
                     if (sender1 != null)
                         lang.send(sender1, lang.get("Transfer.Success").replace("<terrain>", name1).replace("<who>", who));
                     lang.send(newOwner1, lang.get("Transfer.Success").replace("<terrain>", name1).replace("<who>", lang.get("Target.You").toLowerCase(Locale.ROOT)));
@@ -225,7 +229,7 @@ public final class TransferCommand extends TerrainerCommand {
             }
             return false;
         } else if (responseType != PlayerUtil.ClaimResponseType.SUCCESS) { // Probably Area or Dimension too small.
-            lang.send(messageReceiver, lang.get("Transfer.Error.Default").replace("<player>", who));
+            lang.send(messageReceiver, lang.get("Transfer.Error.Default").replace("<terrain>", terrain.name()).replace("<player>", who));
             return false;
         }
         return true;
