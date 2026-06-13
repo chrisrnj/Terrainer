@@ -1140,7 +1140,7 @@ public final class Configurations {
             Transfer:
               Confirmation Description: 'Accept ownership of <terrain>'
               Error:
-                Default: '&4The terrain could not be transferred.'
+                Default: '&4The terrain &f<terrain>&4 could not be transferred to &f<player>&4.'
                 Deleted: '&4The terrain was deleted before it could be transferred.'
                 Low Block Limit: '&f<player>&7 does not have enough block limit to accept this terrain.'
                 Low Claim Limit: '&f<player>&7 does not have enough claim limit to accept this terrain.'
