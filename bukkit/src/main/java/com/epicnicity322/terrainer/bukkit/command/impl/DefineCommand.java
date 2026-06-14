@@ -131,7 +131,7 @@ public final class DefineCommand extends TerrainerCommand {
 
         if (name != null) {
             String originalName = terrain.name();
-            var event = new UserNameTerrainEvent(terrain, sender, originalName, name, IUserNameTerrainEvent.NameReason.CREATION);
+            var event = new UserNameTerrainEvent(terrain, sender, originalName, name, IUserNameTerrainEvent.NameReason.DEFINE);
             Bukkit.getPluginManager().callEvent(event);
             if (!event.isCancelled()) terrain.setName(event.newName());
         }

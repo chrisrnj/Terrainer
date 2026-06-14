@@ -86,6 +86,19 @@ public interface IUserNameTerrainEvent<T> extends TerrainEvent, SenderEvent<T> {
     NameReason reason();
 
     enum NameReason {
-        CREATION, RENAME
+        /**
+         * Terrain was created with '/tr claim <literal><name></literal>' command.
+         */
+        CREATION,
+        /**
+         * Terrain was defined with '/tr define <literal><name></literal>' command.
+         * <p>
+         * Terrains defined by this command will have all critical protection flags set after the event.
+         */
+        DEFINE,
+        /**
+         * Terrain was renamed with '/tr rename <literal><new_name></literal>' command.
+         */
+        RENAME
     }
 }
