@@ -36,6 +36,7 @@ import com.epicnicity322.terrainer.bukkit.hook.EconomyHandler;
 import com.epicnicity322.terrainer.bukkit.hook.NMSHandler;
 import com.epicnicity322.terrainer.bukkit.hook.economy.VaultHook;
 import com.epicnicity322.terrainer.bukkit.hook.nms.ReflectionHook;
+import com.epicnicity322.terrainer.bukkit.hook.nms.ReflectionHookOptions;
 import com.epicnicity322.terrainer.bukkit.hook.placeholderapi.TerrainerPlaceholderExpansion;
 import com.epicnicity322.terrainer.bukkit.listener.*;
 import com.epicnicity322.terrainer.bukkit.util.BukkitPlayerUtil;
@@ -228,13 +229,13 @@ public final class TerrainerPlugin extends JavaPlugin {
 
         // Marker options
         try {
-            ReflectionHook.setMarkerColors(Integer.parseInt(config.getString("Markers.Selection Color").orElse("FFFF55"), 16), Integer.parseInt(config.getString("Markers.Terrain Color").orElse("FFFFFF"), 16), Integer.parseInt(config.getString("Markers.Created Color").orElse("55FF55"), 16));
+            ReflectionHookOptions.setMarkerColors(Integer.parseInt(config.getString("Markers.Selection Color").orElse("FFFF55"), 16), Integer.parseInt(config.getString("Markers.Terrain Color").orElse("FFFFFF"), 16), Integer.parseInt(config.getString("Markers.Created Color").orElse("55FF55"), 16));
         } catch (NumberFormatException e) {
             logger.log("Marker colors could not be updated because of invalid hex codes. " + e.getMessage(), ConsoleLogger.Level.WARN);
         }
-        ReflectionHook.setMarkerBlocks(Material.getMaterial(config.getString("Markers.Selection Block").orElse("GLOWSTONE")), Material.getMaterial(config.getString("Markers.Selection Edge Block").orElse("GOLD_BLOCK")), Material.getMaterial(config.getString("Markers.Terrain Block").orElse("DIAMOND_BLOCK")), Material.getMaterial(config.getString("Markers.Terrain Edge Block").orElse("GLASS")));
-        ReflectionHook.setUnsupportedVersionPlayersSeeSlimeEntity(config.getBoolean("Markers.Unsupported Version Players See Slime Entity").orElse(true));
-        ReflectionHook.setBedrockPlayersSeeSlimeEntity(config.getBoolean("Markers.Bedrock Players See Slime Entity").orElse(true));
+        ReflectionHookOptions.setMarkerBlocks(Material.getMaterial(config.getString("Markers.Selection Block").orElse("GLOWSTONE")), Material.getMaterial(config.getString("Markers.Selection Edge Block").orElse("GOLD_BLOCK")), Material.getMaterial(config.getString("Markers.Terrain Block").orElse("DIAMOND_BLOCK")), Material.getMaterial(config.getString("Markers.Terrain Edge Block").orElse("GLASS")));
+        ReflectionHookOptions.setUnsupportedVersionPlayersSeeSlimeEntity(config.getBoolean("Markers.Unsupported Version Players See Slime Entity").orElse(true));
+        ReflectionHookOptions.setBedrockPlayersSeeSlimeEntity(config.getBoolean("Markers.Bedrock Players See Slime Entity").orElse(true));
 
         // Instance required from now on
         if (instance == null) return false;

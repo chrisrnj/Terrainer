@@ -28,7 +28,6 @@ import com.epicnicity322.terrainer.bukkit.hook.geyser.GeyserHook;
 import com.epicnicity322.terrainer.bukkit.hook.viaversion.ViaVersionHook;
 import com.epicnicity322.terrainer.bukkit.util.BlockDisplayUtil;
 import com.epicnicity322.terrainer.core.Terrainer;
-import com.epicnicity322.terrainer.core.config.Configurations;
 import com.epicnicity322.terrainer.core.util.PlayerUtil;
 import net.minecraft.network.protocol.game.PacketPlayOutEntityDestroy;
 import net.minecraft.network.protocol.game.PacketPlayOutEntityMetadata;
@@ -41,15 +40,12 @@ import net.minecraft.world.level.World;
 import net.minecraft.world.phys.Vec3D;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
-import org.bukkit.Color;
-import org.bukkit.Material;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Slime;
 import org.bukkit.scoreboard.Scoreboard;
 import org.bukkit.scoreboard.Team;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
@@ -72,15 +68,6 @@ public final class ReflectionHook implements NMSHandler {
     private static final EntityTypes<?> blockDisplayType = hasBlockDisplays ? BlockDisplayUtil.findBlockDisplayType() : null;
     private static final boolean newPacketMetadataConstructor;
     private static final EntityTypes<?> slimeEntityType = findEntityType(EntityTypes.class.getName() + "<" + EntitySlime.class.getName() + ">");
-    private static @NotNull BlockData selectionBlock = Material.GLOWSTONE.createBlockData();
-    private static @NotNull BlockData selectionEdgeBlock = Material.GOLD_BLOCK.createBlockData();
-    private static @NotNull BlockData terrainBlock = Material.DIAMOND_BLOCK.createBlockData();
-    private static @NotNull BlockData terrainEdgeBlock = Material.GLASS.createBlockData();
-    private static @NotNull Color selectionColor = Color.YELLOW;
-    private static @NotNull Color terrainColor = Color.WHITE;
-    private static @NotNull Color terrainCreatedColor = Color.LIME;
-    private static boolean viaVersionOption = Configurations.CONFIG.config().getBoolean("Markers.Unsupported Version Players See Slime Entity").orElse(true);
-    private static boolean geyserOption = Configurations.CONFIG.config().getBoolean("Markers.Bedrock Players See Slime Entity").orElse(true);
 
     static {
         Class<?> class_CraftWorld = ReflectionUtil.getClass("CraftWorld", PackageType.CRAFTBUKKIT);
@@ -109,36 +96,6 @@ public final class ReflectionHook implements NMSHandler {
         }
     }
 
-    public static void setUnsupportedVersionPlayersSeeSlimeEntity(boolean value) {
-        viaVersionOption = value;
-    }
-
-    public static void setBedrockPlayersSeeSlimeEntity(boolean value) {
-        geyserOption = value;
-    }
-
-    public static void setMarkerBlocks(@Nullable Material selectionBlock, @Nullable Material selectionEdgeBlock, @Nullable Material terrainBlock, @Nullable Material terrainEdgeBlock) {
-        if (selectionBlock == null) selectionBlock = Material.GLOWSTONE;
-        if (selectionEdgeBlock == null) selectionEdgeBlock = Material.GOLD_BLOCK;
-        if (terrainBlock == null) terrainBlock = Material.DIAMOND_BLOCK;
-        if (terrainEdgeBlock == null) terrainEdgeBlock = Material.GLASS;
-
-        ReflectionHook.selectionBlock = selectionBlock.createBlockData();
-        ReflectionHook.selectionEdgeBlock = selectionEdgeBlock.createBlockData();
-        ReflectionHook.terrainBlock = terrainBlock.createBlockData();
-        ReflectionHook.terrainEdgeBlock = terrainEdgeBlock.createBlockData();
-    }
-
-    public static void setMarkerColors(int selection, int terrain, int created) {
-        if (selection >> 24 != 0) selection = 0xFFFFFF;
-        if (terrain >> 24 != 0) terrain = 0xFFFFFF;
-        if (created >> 24 != 0) created = 0xFFFFFF;
-
-        ReflectionHook.selectionColor = Color.fromRGB(selection);
-        ReflectionHook.terrainColor = Color.fromRGB(terrain);
-        ReflectionHook.terrainCreatedColor = Color.fromRGB(created);
-    }
-
     private static EntityTypes<?> findEntityType(@NotNull String type) {
         for (Field f : EntityTypes.class.getFields()) {
             if (f.getGenericType().getTypeName().equals(type)) {
@@ -158,11 +115,11 @@ public final class ReflectionHook implements NMSHandler {
     }
 
     private static boolean bedrockPlayer(@NotNull Player player) {
-        return TerrainerPlugin.getGeyserHook() && GeyserHook.isBedrock(player.getUniqueId()) && geyserOption;
+        return TerrainerPlugin.getGeyserHook() && GeyserHook.isBedrock(player.getUniqueId()) && ReflectionHookOptions.geyserOption;
     }
 
     private static boolean versionSupportsDisplays(@NotNull Player player) {
-        if (TerrainerPlugin.getViaVersionHook() && viaVersionOption) {
+        if (TerrainerPlugin.getViaVersionHook() && ReflectionHookOptions.viaVersionOption) {
             return ViaVersionHook.getVersion(player) >= blockDisplayProtocolVersion;
         }
         return true;
@@ -174,7 +131,7 @@ public final class ReflectionHook implements NMSHandler {
         assert method_CraftWorld_getHandle != null;
         assert method_Entity_getBukkitEntity != null;
         assert method_Entity_getDataWatcher != null;
-        BlockData blockType = selection ? edge ? selectionEdgeBlock : selectionBlock : edge ? terrainEdgeBlock : terrainBlock;
+        BlockData blockType = selection ? edge ? ReflectionHookOptions.selectionEdgeBlock : ReflectionHookOptions.selectionBlock : edge ? ReflectionHookOptions.terrainEdgeBlock : ReflectionHookOptions.terrainBlock;
         EntityTypes<?> type;
         org.bukkit.entity.Entity entity;
         Entity nmsEntity;
@@ -183,7 +140,7 @@ public final class ReflectionHook implements NMSHandler {
             type = blockDisplayType;
             assert type != null;
             nmsEntity = BlockDisplayUtil.nmsBlockDisplay(type, (World) method_CraftWorld_getHandle.invoke(player.getWorld()));
-            entity = BlockDisplayUtil.applyPropertiesToBlockDisplay((org.bukkit.entity.Entity) method_Entity_getBukkitEntity.invoke(nmsEntity), blockType, selection ? selectionColor : terrainColor);
+            entity = BlockDisplayUtil.applyPropertiesToBlockDisplay((org.bukkit.entity.Entity) method_Entity_getBukkitEntity.invoke(nmsEntity), blockType, selection ? ReflectionHookOptions.selectionColor : ReflectionHookOptions.terrainColor);
         } else {
             type = slimeEntityType;
             assert type != null;
@@ -256,16 +213,16 @@ public final class ReflectionHook implements NMSHandler {
             if (team == null)
                 team = board.registerNewTeam(selection ? "TRselectionTeam" : created ? "TRcreatedTeam" : "TRterrainTeam");
 
-            team.setColor(Objects.requireNonNullElse(ChatColor.getByChar(Integer.toHexString((selection ? selectionColor : created ? terrainCreatedColor : terrainColor).asRGB())), selection ? ChatColor.YELLOW : created ? ChatColor.GREEN : ChatColor.WHITE));
+            team.setColor(Objects.requireNonNullElse(ChatColor.getByChar(Integer.toHexString((selection ? ReflectionHookOptions.selectionColor : created ? ReflectionHookOptions.terrainCreatedColor : ReflectionHookOptions.terrainColor).asRGB())), selection ? ChatColor.YELLOW : created ? ChatColor.GREEN : ChatColor.WHITE));
             team.addEntry(slime.getUniqueId().toString());
         } else if (class_BlockDisplay != null && class_BlockDisplay.isAssignableFrom(entity.getClass())) {
             org.bukkit.entity.Entity blockDisplay = (org.bukkit.entity.Entity) entity;
             BlockData block = BlockDisplayUtil.getBlock(blockDisplay);
 
-            if (block.equals(selectionBlock)) {
-                BlockDisplayUtil.applyPropertiesToBlockDisplay(blockDisplay, terrainBlock, terrainCreatedColor);
-            } else if (block.equals(selectionEdgeBlock)) {
-                BlockDisplayUtil.applyPropertiesToBlockDisplay(blockDisplay, terrainEdgeBlock, terrainCreatedColor);
+            if (block.equals(ReflectionHookOptions.selectionBlock)) {
+                BlockDisplayUtil.applyPropertiesToBlockDisplay(blockDisplay, ReflectionHookOptions.terrainBlock, ReflectionHookOptions.terrainCreatedColor);
+            } else if (block.equals(ReflectionHookOptions.selectionEdgeBlock)) {
+                BlockDisplayUtil.applyPropertiesToBlockDisplay(blockDisplay, ReflectionHookOptions.terrainEdgeBlock, ReflectionHookOptions.terrainCreatedColor);
             }
 
             assert method_Entity_getDataWatcher != null;
