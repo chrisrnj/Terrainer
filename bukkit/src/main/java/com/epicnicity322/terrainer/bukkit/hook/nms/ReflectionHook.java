@@ -52,8 +52,6 @@ public final class ReflectionHook implements NMSHandler {
     private static final boolean available;
     private static final boolean hasBlockDisplays;
     private static final int blockDisplayProtocolVersion = 762;
-    private static final Class<?> class_EntityType;
-    private static final Class<?> class_Slime;
     private static final Class<?> class_BukkitBlockDisplay = ReflectionUtil.getClass("org.bukkit.entity.BlockDisplay");
     private static final Class<?> class_BlockDisplay = ReflectionUtil.getClass("net.minecraft.world.entity.Display$BlockDisplay");
     private static final Constructor<?> constructor_Slime;
@@ -71,8 +69,6 @@ public final class ReflectionHook implements NMSHandler {
     static {
         boolean available1 = false;
         boolean hasBlockDisplays1 = class_BukkitBlockDisplay != null && class_BlockDisplay != null;
-        Class<?> class_EntityType1 = null;
-        Class<?> class_Slime1 = null;
         Constructor<?> constructor_Slime1 = null;
         Constructor<?> constructor_BlockDisplay1 = null;
         Method method_CraftWorld_getHandle1 = null;
@@ -116,23 +112,26 @@ public final class ReflectionHook implements NMSHandler {
             if (method_Entity_getEntityData1 == null)
                 method_Entity_getEntityData1 = Objects.requireNonNull(ReflectionUtil.findMethodByType(class_Entity, class_SynchedEntityData, false));
 
-            class_EntityType1 = ReflectionUtil.getClass("net.minecraft.world.entity.EntityType");
-            if (class_EntityType1 == null) class_EntityType1 = Class.forName("net.minecraft.world.entity.EntityTypes");
+            Class<?> class_EntityType = ReflectionUtil.getClass("net.minecraft.world.entity.EntityType");
+            if (class_EntityType == null) class_EntityType = Class.forName("net.minecraft.world.entity.EntityTypes");
 
-            class_Slime1 = ReflectionUtil.getClass("net.minecraft.world.entity.monster.Slime");
-            if (class_Slime1 == null) class_Slime1 = Class.forName("net.minecraft.world.entity.monster.EntitySlime");
-            constructor_Slime1 = class_Slime1.getConstructor(class_EntityType1, class_Level);
+            Class<?> class_Slime = ReflectionUtil.getClass("net.minecraft.world.entity.monster.cubemob.Slime");
+            if (class_Slime == null) {
+                class_Slime = ReflectionUtil.getClass("net.minecraft.world.entity.monster.Slime");
+                if (class_Slime == null) class_Slime = Class.forName("net.minecraft.world.entity.monster.EntitySlime");
+            }
+            constructor_Slime1 = class_Slime.getConstructor(class_EntityType, class_Level);
 
             Class<?> class_ClientboundAddEntityPacket = ReflectionUtil.getClass("net.minecraft.network.protocol.game.ClientboundAddEntityPacket");
             if (class_ClientboundAddEntityPacket == null) {
                 class_ClientboundAddEntityPacket = Class.forName("net.minecraft.network.protocol.game.PacketPlayOutSpawnEntity");
             }
 
-            Constructor<?> constructor_ClientboundAddEntityPacket = ReflectionUtil.getConstructor(class_ClientboundAddEntityPacket, int.class, UUID.class, double.class, double.class, double.class, float.class, float.class, class_EntityType1, int.class, class_Vec3, double.class);
+            Constructor<?> constructor_ClientboundAddEntityPacket = ReflectionUtil.getConstructor(class_ClientboundAddEntityPacket, int.class, UUID.class, double.class, double.class, double.class, float.class, float.class, class_EntityType, int.class, class_Vec3, double.class);
             if (constructor_ClientboundAddEntityPacket != null) {
                 clientboundAddEntityPacketAdapter1 = (entityId, uuid, x, y, z, type) -> constructor_ClientboundAddEntityPacket.newInstance(entityId, uuid, x, y, z, 0f, 0f, type, 0, vec3_zero, 0.0);
             } else {
-                Constructor<?> constructor_ClientboundAddEntityPacket1 = class_ClientboundAddEntityPacket.getConstructor(int.class, UUID.class, double.class, double.class, double.class, float.class, float.class, class_EntityType1, int.class, class_Vec3);
+                Constructor<?> constructor_ClientboundAddEntityPacket1 = class_ClientboundAddEntityPacket.getConstructor(int.class, UUID.class, double.class, double.class, double.class, float.class, float.class, class_EntityType, int.class, class_Vec3);
                 clientboundAddEntityPacketAdapter1 = (entityId, uuid, x, y, z, type) -> constructor_ClientboundAddEntityPacket1.newInstance(entityId, uuid, x, y, z, 0f, 0f, type, 0, vec3_zero);
             }
 
@@ -161,27 +160,26 @@ public final class ReflectionHook implements NMSHandler {
             } else {
                 Constructor<?> constructor_ClientboundRemoveEntitiesPacket1 = class_ClientboundRemoveEntitiesPacket.getConstructor(int.class);
                 clientboundRemoveEntitiesPacketAdapter1 = (player, markers) -> ReflectionUtil.sendPackets(player, markers.stream().map(marker -> {
-                            try {
-                                return constructor_ClientboundRemoveEntitiesPacket1.newInstance(marker.entityID());
-                            } catch (InstantiationException | IllegalAccessException | InvocationTargetException e) {
-                                throw new RuntimeException(e);
-                            }
-                        }
-                ).toArray());
+                    try {
+                        return constructor_ClientboundRemoveEntitiesPacket1.newInstance(marker.entityID());
+                    } catch (InstantiationException | IllegalAccessException | InvocationTargetException e) {
+                        throw new RuntimeException(e);
+                    }
+                }).toArray());
             }
 
             if (hasBlockDisplays1) {
                 try {
-                    constructor_BlockDisplay1 = class_BlockDisplay.getConstructor(class_EntityType1, class_Level);
-                    blockDisplayType1 = Objects.requireNonNull(findEntityType(class_EntityType1.getName() + "<" + class_BlockDisplay.getName() + ">"));
+                    constructor_BlockDisplay1 = class_BlockDisplay.getConstructor(class_EntityType, class_Level);
+                    blockDisplayType1 = Objects.requireNonNull(findEntityType(class_EntityType, class_BlockDisplay));
                 } catch (Exception e) {
-                    Terrainer.logger().log("An unknown error happened while getting the constructor for " + class_BlockDisplay.getSimpleName() + "(" + class_EntityType1.getSimpleName() + ", " + class_Level.getSimpleName() + "):", ConsoleLogger.Level.ERROR);
+                    Terrainer.logger().log("An unknown error happened while getting the constructor for " + class_BlockDisplay.getSimpleName() + "(" + class_EntityType.getSimpleName() + ", " + class_Level.getSimpleName() + "):", ConsoleLogger.Level.ERROR);
                     e.printStackTrace();
                     hasBlockDisplays1 = false;
                 }
             }
 
-            slimeEntityType1 = Objects.requireNonNull(findEntityType(class_EntityType1.getName() + "<" + class_Slime1.getName() + ">"));
+            slimeEntityType1 = Objects.requireNonNull(findEntityType(class_EntityType, class_Slime));
 
             available1 = true;
         } catch (Exception e) {
@@ -191,8 +189,6 @@ public final class ReflectionHook implements NMSHandler {
 
         available = available1;
         hasBlockDisplays = hasBlockDisplays1;
-        class_EntityType = class_EntityType1;
-        class_Slime = class_Slime1;
         constructor_Slime = constructor_Slime1;
         constructor_BlockDisplay = constructor_BlockDisplay1;
         method_CraftWorld_getHandle = method_CraftWorld_getHandle1;
@@ -205,7 +201,7 @@ public final class ReflectionHook implements NMSHandler {
         slimeEntityType = slimeEntityType1;
         blockDisplayType = blockDisplayType1;
 
-        if (!hasBlockDisplays) {
+        if (available && !hasBlockDisplays) {
             Terrainer.logger().log("Block Displays are not available. Using Slime entities as markers for everyone.", ConsoleLogger.Level.WARN);
         }
     }
@@ -217,7 +213,9 @@ public final class ReflectionHook implements NMSHandler {
         return available;
     }
 
-    private static Object findEntityType(@NotNull String type) {
+    private static Object findEntityType(@NotNull Class<?> class_EntityType, @NotNull Class<?> entityClass) {
+        String type = class_EntityType.getName() + "<" + entityClass.getName() + ">";
+
         for (Field f : class_EntityType.getFields()) {
             if (f.getGenericType().getTypeName().equals(type)) {
                 try {
