@@ -49,6 +49,8 @@ import java.util.Objects;
 import java.util.UUID;
 
 public final class ReflectionHook implements NMSHandler {
+    private static final boolean available;
+    private static final boolean hasBlockDisplays;
     private static final int blockDisplayProtocolVersion = 762;
     private static final Class<?> class_EntityType;
     private static final Class<?> class_Slime;
@@ -65,10 +67,10 @@ public final class ReflectionHook implements NMSHandler {
     private static final ClientboundRemoveEntitiesPacketAdapter clientboundRemoveEntitiesPacketAdapter;
     private static final Object blockDisplayType;
     private static final Object slimeEntityType;
-    private static final boolean hasBlockDisplays;
-    private static final boolean available;
 
     static {
+        boolean available1 = false;
+        boolean hasBlockDisplays1 = class_BukkitBlockDisplay != null && class_BlockDisplay != null;
         Class<?> class_EntityType1 = null;
         Class<?> class_Slime1 = null;
         Constructor<?> constructor_Slime1 = null;
@@ -80,8 +82,8 @@ public final class ReflectionHook implements NMSHandler {
         ClientboundAddEntityPacketAdapter clientboundAddEntityPacketAdapter1 = null;
         ClientboundSetEntityDataPacketAdapter clientboundSetEntityDataPacketAdapter1 = null;
         ClientboundRemoveEntitiesPacketAdapter clientboundRemoveEntitiesPacketAdapter1 = null;
-        boolean hasBlockDisplays1 = class_BukkitBlockDisplay != null && class_BlockDisplay != null;
-        boolean available1 = false;
+        Object blockDisplayType1 = null;
+        Object slimeEntityType1 = null;
 
         try {
             Class<?> class_CraftWorld = Objects.requireNonNull(ReflectionUtil.getClass("CraftWorld", PackageType.CRAFTBUKKIT));
@@ -171,6 +173,7 @@ public final class ReflectionHook implements NMSHandler {
             if (hasBlockDisplays1) {
                 try {
                     constructor_BlockDisplay1 = class_BlockDisplay.getConstructor(class_EntityType1, class_Level);
+                    blockDisplayType1 = Objects.requireNonNull(findEntityType(class_EntityType1.getName() + "<" + class_BlockDisplay.getName() + ">"));
                 } catch (Exception e) {
                     Terrainer.logger().log("An unknown error happened while getting the constructor for " + class_BlockDisplay.getSimpleName() + "(" + class_EntityType1.getSimpleName() + ", " + class_Level.getSimpleName() + "):", ConsoleLogger.Level.ERROR);
                     e.printStackTrace();
@@ -178,12 +181,16 @@ public final class ReflectionHook implements NMSHandler {
                 }
             }
 
+            slimeEntityType1 = Objects.requireNonNull(findEntityType(class_EntityType1.getName() + "<" + class_Slime1.getName() + ">"));
+
             available1 = true;
         } catch (Exception e) {
             Terrainer.logger().log("Unable to use reflection to load ReflectionHook.", ConsoleLogger.Level.ERROR);
             e.printStackTrace();
         }
 
+        available = available1;
+        hasBlockDisplays = hasBlockDisplays1;
         class_EntityType = class_EntityType1;
         class_Slime = class_Slime1;
         constructor_Slime = constructor_Slime1;
@@ -195,11 +202,8 @@ public final class ReflectionHook implements NMSHandler {
         clientboundAddEntityPacketAdapter = clientboundAddEntityPacketAdapter1;
         clientboundSetEntityDataPacketAdapter = clientboundSetEntityDataPacketAdapter1;
         clientboundRemoveEntitiesPacketAdapter = clientboundRemoveEntitiesPacketAdapter1;
-        hasBlockDisplays = hasBlockDisplays1;
-        available = available1;
-
-        slimeEntityType = findEntityType(class_EntityType.getName() + "<" + class_Slime.getName() + ">");
-        blockDisplayType = hasBlockDisplays ? findEntityType(class_EntityType.getName() + "<" + class_BlockDisplay.getName() + ">") : null;
+        slimeEntityType = slimeEntityType1;
+        blockDisplayType = blockDisplayType1;
 
         if (!hasBlockDisplays) {
             Terrainer.logger().log("Block Displays are not available. Using Slime entities as markers for everyone.", ConsoleLogger.Level.WARN);
