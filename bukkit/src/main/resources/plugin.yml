@@ -1,4 +1,4 @@
-api-version: '1.17'
+api-version: '1.19'
 author: Epicnicity322
 depend: [ EpicPluginLib ]
 description: A fast and simple terrain claiming plugin.
