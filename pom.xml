@@ -60,6 +60,9 @@
                 <version>3.5.0</version>
                 <configuration>
                     <archive>
+                        <manifestEntries>
+                            <paperweight-mappings-namespace>mojang</paperweight-mappings-namespace>
+                        </manifestEntries>
                         <manifest>
                             <addClasspath>true</addClasspath>
                             <mainClass>com.epicnicity322.terrainer.core.Main</mainClass>
@@ -81,7 +84,7 @@
         <dependency>
             <groupId>com.github.chrisrnj</groupId>
             <artifactId>EpicPluginLib</artifactId>
-            <version>1d2b3169bd</version>
+            <version>d78b4815e3</version>
             <scope>provided</scope>
         </dependency>
         <!-- Source: https://mvnrepository.com/artifact/org.jetbrains/annotations -->

@@ -1,6 +1,6 @@
 /*
  * Terrainer - A minecraft terrain claiming protection plugin.
- * Copyright (C) 2025 Christiano Rangel
+ * Copyright (C) 2025-2026 Christiano Rangel
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,6 +22,8 @@ import com.epicnicity322.terrainer.core.util.PlayerUtil;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.Collection;
+
 public interface NMSHandler {
     /**
      * Spawns a marker entity at the location.
@@ -38,12 +40,12 @@ public interface NMSHandler {
     PlayerUtil.SpawnedMarker spawnMarkerEntity(@NotNull Player player, int x, int y, int z, boolean edge, boolean selection) throws Throwable;
 
     /**
-     * Kills an entity with the ID.
+     * Kills entities with the specified ID.
      *
-     * @param player The player to send the entity remove packet to.
-     * @param marker The marker entity to remove.
+     * @param player  The player to send the entity remove packet to.
+     * @param markers The marker entities to remove.
      */
-    void killEntity(@NotNull Player player, @NotNull PlayerUtil.SpawnedMarker marker) throws Throwable;
+    void killEntities(@NotNull Player player, @NotNull Collection<PlayerUtil.SpawnedMarker> markers) throws Throwable;
 
     /**
      * Changes the color of a marker's glow effect.

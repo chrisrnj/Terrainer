@@ -647,14 +647,12 @@ public abstract class PlayerUtil<P extends R, R> {
     public void removeMarkers(@NotNull P player) {
         HashMap<SpawnedMarker, Boolean> ids = markers.remove(playerUUID(player));
         if (ids == null) return;
-        ids.keySet().forEach(marker -> {
-            try {
-                killMarker(player, marker);
-            } catch (Throwable t) {
-                Terrainer.logger().log("Failed to kill marker entity " + marker + " for player " + ownerName(playerUUID(player)), ConsoleLogger.Level.WARN);
-                t.printStackTrace();
-            }
-        });
+        try {
+            killMarkers(player, ids.keySet());
+        } catch (Throwable t) {
+            Terrainer.logger().log("Failed to kill marker entities for player " + ownerName(playerUUID(player)), ConsoleLogger.Level.WARN);
+            t.printStackTrace();
+        }
     }
 
     public void updateSelectionMarkersToTerrainMarkers(@NotNull P player) {
@@ -675,10 +673,10 @@ public abstract class PlayerUtil<P extends R, R> {
     /**
      * Send a packet to the player to kill the marker entity with provided ID.
      *
-     * @param player The player to kill the marker entity.
-     * @param marker The marker entity.
+     * @param player  The player to kill the marker entity.
+     * @param markers The marker entities.
      */
-    protected abstract void killMarker(@NotNull P player, @NotNull SpawnedMarker marker) throws Throwable;
+    protected abstract void killMarkers(@NotNull P player, @NotNull Collection<SpawnedMarker> markers) throws Throwable;
 
     /**
      * Send a packet to the player to spawn an entity with glow effect in the location.

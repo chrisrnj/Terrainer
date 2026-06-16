@@ -151,11 +151,8 @@ public final class TerrainerPlugin extends JavaPlugin {
     }
 
     private static @NotNull NMSHandler getNMSHandler() {
-        try {
-            return new ReflectionHook();
-        } catch (Throwable t) {
-            logger.log("Unknown issue happened while using reflection. Markers will not work!", ConsoleLogger.Level.WARN);
-            t.printStackTrace();
+        if (!ReflectionHook.isAvailable()) {
+            logger.log("Reflection is not available. Markers will not work!", ConsoleLogger.Level.ERROR);
             // Dummy NMSHandler.
             return new NMSHandler() {
                 @Override
@@ -164,7 +161,7 @@ public final class TerrainerPlugin extends JavaPlugin {
                 }
 
                 @Override
-                public void killEntity(@NotNull Player player, @NotNull PlayerUtil.SpawnedMarker marker) {
+                public void killEntities(@NotNull Player player, @NotNull Collection<PlayerUtil.SpawnedMarker> marker) {
                 }
 
                 @Override
@@ -172,6 +169,7 @@ public final class TerrainerPlugin extends JavaPlugin {
                 }
             };
         }
+        return new ReflectionHook();
     }
 
     /**

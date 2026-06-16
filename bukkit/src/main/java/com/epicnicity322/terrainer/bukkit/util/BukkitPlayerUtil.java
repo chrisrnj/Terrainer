@@ -38,10 +38,7 @@ import org.bukkit.potion.PotionEffectType;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.TreeSet;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public final class BukkitPlayerUtil extends PlayerUtil<Player, CommandSender> {
@@ -256,8 +253,8 @@ public final class BukkitPlayerUtil extends PlayerUtil<Player, CommandSender> {
     }
 
     @Override
-    protected void killMarker(@NotNull Player player, @NotNull SpawnedMarker marker) throws Throwable {
-        nmsHandler.killEntity(player, marker);
+    protected void killMarkers(@NotNull Player player, @NotNull Collection<SpawnedMarker> markers) throws Throwable {
+        nmsHandler.killEntities(player, markers);
     }
 
     @Override

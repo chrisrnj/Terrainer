@@ -29,18 +29,10 @@ import com.epicnicity322.terrainer.bukkit.hook.viaversion.ViaVersionHook;
 import com.epicnicity322.terrainer.bukkit.util.BlockDisplayUtil;
 import com.epicnicity322.terrainer.core.Terrainer;
 import com.epicnicity322.terrainer.core.util.PlayerUtil;
-import net.minecraft.network.protocol.game.PacketPlayOutEntityDestroy;
-import net.minecraft.network.protocol.game.PacketPlayOutEntityMetadata;
-import net.minecraft.network.protocol.game.PacketPlayOutSpawnEntity;
-import net.minecraft.network.syncher.DataWatcher;
-import net.minecraft.world.entity.Entity;
-import net.minecraft.world.entity.EntityTypes;
-import net.minecraft.world.entity.monster.EntitySlime;
-import net.minecraft.world.level.World;
-import net.minecraft.world.phys.Vec3D;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.block.data.BlockData;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Slime;
 import org.bukkit.scoreboard.Scoreboard;
@@ -49,58 +41,183 @@ import org.jetbrains.annotations.NotNull;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 
 public final class ReflectionHook implements NMSHandler {
     private static final int blockDisplayProtocolVersion = 762;
-    private static final @NotNull Vec3D zero = new Vec3D(0, 0, 0);
+    private static final Class<?> class_EntityType;
+    private static final Class<?> class_Slime;
+    private static final Class<?> class_BukkitBlockDisplay = ReflectionUtil.getClass("org.bukkit.entity.BlockDisplay");
+    private static final Class<?> class_BlockDisplay = ReflectionUtil.getClass("net.minecraft.world.entity.Display$BlockDisplay");
+    private static final Constructor<?> constructor_Slime;
+    private static final Constructor<?> constructor_BlockDisplay;
     private static final Method method_CraftWorld_getHandle;
     private static final Method method_CraftEntity_getHandle;
-    private static final Method method_Entity_getBukkitEntity = ReflectionUtil.getMethod(Entity.class, "getBukkitEntity");
-    private static final Method method_Entity_getDataWatcher = ReflectionUtil.findMethodByType(Entity.class, DataWatcher.class, false);
-    private static final Constructor<?> constructor_PacketPlayOutEntityMetadata;
-    private static final Constructor<?> constructor_PacketPlayOutSpawnEntity_Old = ReflectionUtil.getConstructor(PacketPlayOutSpawnEntity.class, int.class, UUID.class, double.class, double.class, double.class, float.class, float.class, EntityTypes.class, int.class, Vec3D.class);
-    private static final Class<?> class_BlockDisplay = ReflectionUtil.getClass("org.bukkit.entity.BlockDisplay");
-    private static final boolean hasBlockDisplays = class_BlockDisplay != null;
-    private static final EntityTypes<?> blockDisplayType = hasBlockDisplays ? BlockDisplayUtil.findBlockDisplayType() : null;
-    private static final boolean newPacketMetadataConstructor;
-    private static final EntityTypes<?> slimeEntityType = findEntityType(EntityTypes.class.getName() + "<" + EntitySlime.class.getName() + ">");
+    private static final Method method_Entity_getBukkitEntity;
+    private static final Method method_Entity_getEntityData;
+    private static final ClientboundAddEntityPacketAdapter clientboundAddEntityPacketAdapter;
+    private static final ClientboundSetEntityDataPacketAdapter clientboundSetEntityDataPacketAdapter;
+    private static final ClientboundRemoveEntitiesPacketAdapter clientboundRemoveEntitiesPacketAdapter;
+    private static final Object blockDisplayType;
+    private static final Object slimeEntityType;
+    private static final boolean hasBlockDisplays;
+    private static final boolean available;
 
     static {
-        Class<?> class_CraftWorld = ReflectionUtil.getClass("CraftWorld", PackageType.CRAFTBUKKIT);
-        if (class_CraftWorld == null) {
-            method_CraftWorld_getHandle = null;
-        } else {
-            method_CraftWorld_getHandle = ReflectionUtil.getMethod(class_CraftWorld, "getHandle");
+        Class<?> class_EntityType1 = null;
+        Class<?> class_Slime1 = null;
+        Constructor<?> constructor_Slime1 = null;
+        Constructor<?> constructor_BlockDisplay1 = null;
+        Method method_CraftWorld_getHandle1 = null;
+        Method method_CraftEntity_getHandle1 = null;
+        Method method_Entity_getBukkitEntity1 = null;
+        Method method_Entity_getEntityData1 = null;
+        ClientboundAddEntityPacketAdapter clientboundAddEntityPacketAdapter1 = null;
+        ClientboundSetEntityDataPacketAdapter clientboundSetEntityDataPacketAdapter1 = null;
+        ClientboundRemoveEntitiesPacketAdapter clientboundRemoveEntitiesPacketAdapter1 = null;
+        boolean hasBlockDisplays1 = class_BukkitBlockDisplay != null && class_BlockDisplay != null;
+        boolean available1 = false;
+
+        try {
+            Class<?> class_CraftWorld = Objects.requireNonNull(ReflectionUtil.getClass("CraftWorld", PackageType.CRAFTBUKKIT));
+            method_CraftWorld_getHandle1 = class_CraftWorld.getMethod("getHandle");
+            Class<?> class_CraftEntity = Objects.requireNonNull(ReflectionUtil.getClass("CraftEntity", SubPackageType.ENTITY));
+            method_CraftEntity_getHandle1 = class_CraftEntity.getMethod("getHandle");
+
+            Class<?> class_Level = ReflectionUtil.getClass("net.minecraft.world.level.Level");
+            if (class_Level == null) class_Level = Class.forName("net.minecraft.world.level.World");
+
+            Class<?> class_Vec3 = ReflectionUtil.getClass("net.minecraft.world.phys.Vec3");
+            if (class_Vec3 == null) class_Vec3 = Class.forName("net.minecraft.world.phys.Vec3D");
+            Object vec3_zero = class_Vec3.getConstructor(double.class, double.class, double.class).newInstance(0d, 0d, 0d);
+
+            Class<?> class_SynchedEntityData = ReflectionUtil.getClass("net.minecraft.network.syncher.SynchedEntityData");
+            if (class_SynchedEntityData == null)
+                class_SynchedEntityData = Class.forName("net.minecraft.network.syncher.DataWatcher");
+
+            Method method_SynchedEntityData_getNonDefaultValues = ReflectionUtil.getMethod(class_SynchedEntityData, "getNonDefaultValues");
+            if (method_SynchedEntityData_getNonDefaultValues == null) {
+                method_SynchedEntityData_getNonDefaultValues = ReflectionUtil.getMethod(class_SynchedEntityData, "c");
+                if (method_SynchedEntityData_getNonDefaultValues == null) {
+                    method_SynchedEntityData_getNonDefaultValues = class_SynchedEntityData.getMethod("getAll");
+                }
+            }
+
+            Class<?> class_Entity = Class.forName("net.minecraft.world.entity.Entity");
+            method_Entity_getBukkitEntity1 = class_Entity.getMethod("getBukkitEntity");
+            method_Entity_getEntityData1 = ReflectionUtil.getMethod(class_Entity, "getEntityData");
+            if (method_Entity_getEntityData1 == null)
+                method_Entity_getEntityData1 = Objects.requireNonNull(ReflectionUtil.findMethodByType(class_Entity, class_SynchedEntityData, false));
+
+            class_EntityType1 = ReflectionUtil.getClass("net.minecraft.world.entity.EntityType");
+            if (class_EntityType1 == null) class_EntityType1 = Class.forName("net.minecraft.world.entity.EntityTypes");
+
+            class_Slime1 = ReflectionUtil.getClass("net.minecraft.world.entity.monster.Slime");
+            if (class_Slime1 == null) class_Slime1 = Class.forName("net.minecraft.world.entity.monster.EntitySlime");
+            constructor_Slime1 = class_Slime1.getConstructor(class_EntityType1, class_Level);
+
+            Class<?> class_ClientboundAddEntityPacket = ReflectionUtil.getClass("net.minecraft.network.protocol.game.ClientboundAddEntityPacket");
+            if (class_ClientboundAddEntityPacket == null) {
+                class_ClientboundAddEntityPacket = Class.forName("net.minecraft.network.protocol.game.PacketPlayOutSpawnEntity");
+            }
+
+            Constructor<?> constructor_ClientboundAddEntityPacket = ReflectionUtil.getConstructor(class_ClientboundAddEntityPacket, int.class, UUID.class, double.class, double.class, double.class, float.class, float.class, class_EntityType1, int.class, class_Vec3, double.class);
+            if (constructor_ClientboundAddEntityPacket != null) {
+                clientboundAddEntityPacketAdapter1 = (entityId, uuid, x, y, z, type) -> constructor_ClientboundAddEntityPacket.newInstance(entityId, uuid, x, y, z, 0f, 0f, type, 0, vec3_zero, 0.0);
+            } else {
+                Constructor<?> constructor_ClientboundAddEntityPacket1 = class_ClientboundAddEntityPacket.getConstructor(int.class, UUID.class, double.class, double.class, double.class, float.class, float.class, class_EntityType1, int.class, class_Vec3);
+                clientboundAddEntityPacketAdapter1 = (entityId, uuid, x, y, z, type) -> constructor_ClientboundAddEntityPacket1.newInstance(entityId, uuid, x, y, z, 0f, 0f, type, 0, vec3_zero);
+            }
+
+            Class<?> class_ClientboundSetEntityDataPacket = ReflectionUtil.getClass("net.minecraft.network.protocol.game.ClientboundSetEntityDataPacket");
+            if (class_ClientboundSetEntityDataPacket == null) {
+                class_ClientboundSetEntityDataPacket = Class.forName("net.minecraft.network.protocol.game.PacketPlayOutEntityMetadata");
+            }
+
+            Constructor<?> constructor_ClientboundSetEntityDataPacket = ReflectionUtil.getConstructor(class_ClientboundSetEntityDataPacket, int.class, List.class);
+            if (constructor_ClientboundSetEntityDataPacket != null) {
+                Method finalMethod_SynchedEntityData_getNonDefaultValues = method_SynchedEntityData_getNonDefaultValues;
+                clientboundSetEntityDataPacketAdapter1 = (entityId, entityData) -> constructor_ClientboundSetEntityDataPacket.newInstance(entityId, finalMethod_SynchedEntityData_getNonDefaultValues.invoke(entityData));
+            } else {
+                Constructor<?> constructor_ClientboundSetEntityDataPacket1 = class_ClientboundSetEntityDataPacket.getConstructor(int.class, class_SynchedEntityData, boolean.class);
+                clientboundSetEntityDataPacketAdapter1 = (entityId, entityData) -> constructor_ClientboundSetEntityDataPacket1.newInstance(entityId, entityData, false);
+            }
+
+            Class<?> class_ClientboundRemoveEntitiesPacket = ReflectionUtil.getClass("net.minecraft.network.protocol.game.ClientboundRemoveEntitiesPacket");
+            if (class_ClientboundRemoveEntitiesPacket == null) {
+                class_ClientboundRemoveEntitiesPacket = Class.forName("net.minecraft.network.protocol.game.PacketPlayOutEntityDestroy");
+            }
+
+            Constructor<?> constructor_ClientboundRemoveEntitiesPacket = ReflectionUtil.getConstructor(class_ClientboundRemoveEntitiesPacket, int[].class);
+            if (constructor_ClientboundRemoveEntitiesPacket != null) {
+                clientboundRemoveEntitiesPacketAdapter1 = (player, markers) -> ReflectionUtil.sendPacket(player, constructor_ClientboundRemoveEntitiesPacket.newInstance((Object) markers.stream().mapToInt(PlayerUtil.SpawnedMarker::entityID).toArray()));
+            } else {
+                Constructor<?> constructor_ClientboundRemoveEntitiesPacket1 = class_ClientboundRemoveEntitiesPacket.getConstructor(int.class);
+                clientboundRemoveEntitiesPacketAdapter1 = (player, markers) -> ReflectionUtil.sendPackets(player, markers.stream().map(marker -> {
+                            try {
+                                return constructor_ClientboundRemoveEntitiesPacket1.newInstance(marker.entityID());
+                            } catch (InstantiationException | IllegalAccessException | InvocationTargetException e) {
+                                throw new RuntimeException(e);
+                            }
+                        }
+                ).toArray());
+            }
+
+            if (hasBlockDisplays1) {
+                try {
+                    constructor_BlockDisplay1 = class_BlockDisplay.getConstructor(class_EntityType1, class_Level);
+                } catch (Exception e) {
+                    Terrainer.logger().log("An unknown error happened while getting the constructor for " + class_BlockDisplay.getSimpleName() + "(" + class_EntityType1.getSimpleName() + ", " + class_Level.getSimpleName() + "):", ConsoleLogger.Level.ERROR);
+                    e.printStackTrace();
+                    hasBlockDisplays1 = false;
+                }
+            }
+
+            available1 = true;
+        } catch (Exception e) {
+            Terrainer.logger().log("Unable to use reflection to load ReflectionHook.", ConsoleLogger.Level.ERROR);
+            e.printStackTrace();
         }
-        Class<?> class_CraftEntity = ReflectionUtil.getClass("CraftEntity", SubPackageType.ENTITY);
-        if (class_CraftEntity == null) {
-            method_CraftEntity_getHandle = null;
-        } else {
-            method_CraftEntity_getHandle = ReflectionUtil.getMethod(class_CraftEntity, "getHandle");
-        }
-        Constructor<?> oldEntityMetadataConstructor = ReflectionUtil.getConstructor(PacketPlayOutEntityMetadata.class, int.class, DataWatcher.class, boolean.class);
-        if (oldEntityMetadataConstructor == null) {
-            constructor_PacketPlayOutEntityMetadata = null;
-            newPacketMetadataConstructor = ReflectionUtil.getConstructor(PacketPlayOutEntityMetadata.class, int.class, List.class) != null;
-        } else {
-            constructor_PacketPlayOutEntityMetadata = oldEntityMetadataConstructor;
-            newPacketMetadataConstructor = false;
-        }
+
+        class_EntityType = class_EntityType1;
+        class_Slime = class_Slime1;
+        constructor_Slime = constructor_Slime1;
+        constructor_BlockDisplay = constructor_BlockDisplay1;
+        method_CraftWorld_getHandle = method_CraftWorld_getHandle1;
+        method_CraftEntity_getHandle = method_CraftEntity_getHandle1;
+        method_Entity_getBukkitEntity = method_Entity_getBukkitEntity1;
+        method_Entity_getEntityData = method_Entity_getEntityData1;
+        clientboundAddEntityPacketAdapter = clientboundAddEntityPacketAdapter1;
+        clientboundSetEntityDataPacketAdapter = clientboundSetEntityDataPacketAdapter1;
+        clientboundRemoveEntitiesPacketAdapter = clientboundRemoveEntitiesPacketAdapter1;
+        hasBlockDisplays = hasBlockDisplays1;
+        available = available1;
+
+        slimeEntityType = findEntityType(class_EntityType.getName() + "<" + class_Slime.getName() + ">");
+        blockDisplayType = hasBlockDisplays ? findEntityType(class_EntityType.getName() + "<" + class_BlockDisplay.getName() + ">") : null;
 
         if (!hasBlockDisplays) {
             Terrainer.logger().log("Block Displays are not available. Using Slime entities as markers for everyone.", ConsoleLogger.Level.WARN);
         }
     }
 
-    private static EntityTypes<?> findEntityType(@NotNull String type) {
-        for (Field f : EntityTypes.class.getFields()) {
+    /**
+     * @return Whether ReflectionHook could find the classes correctly and markers/slime entities should work.
+     */
+    public static boolean isAvailable() {
+        return available;
+    }
+
+    private static Object findEntityType(@NotNull String type) {
+        for (Field f : class_EntityType.getFields()) {
             if (f.getGenericType().getTypeName().equals(type)) {
                 try {
-                    return (EntityTypes<?>) f.get(null);
+                    return f.get(null);
                 } catch (Exception ignored) {
                 }
                 break;
@@ -109,7 +226,7 @@ public final class ReflectionHook implements NMSHandler {
         return null;
     }
 
-    private static double center(double coordinate, @NotNull EntityTypes<?> type) {
+    private static double center(double coordinate, @NotNull Object type) {
         // The specific transformation size of the block entity makes so its texture clips through other blocks.
         return type == blockDisplayType ? coordinate - 0.0005 : coordinate + 0.5;
     }
@@ -125,26 +242,25 @@ public final class ReflectionHook implements NMSHandler {
         return true;
     }
 
-    @SuppressWarnings({"unchecked"})
     @Override
     public @NotNull PlayerUtil.SpawnedMarker spawnMarkerEntity(@NotNull Player player, int x, int y, int z, boolean edge, boolean selection) throws Throwable {
         assert method_CraftWorld_getHandle != null;
         assert method_Entity_getBukkitEntity != null;
-        assert method_Entity_getDataWatcher != null;
+        assert method_Entity_getEntityData != null;
         BlockData blockType = selection ? edge ? ReflectionHookOptions.selectionEdgeBlock : ReflectionHookOptions.selectionBlock : edge ? ReflectionHookOptions.terrainEdgeBlock : ReflectionHookOptions.terrainBlock;
-        EntityTypes<?> type;
+        Object type;
         org.bukkit.entity.Entity entity;
-        Entity nmsEntity;
+        Object nmsEntity;
 
         if (hasBlockDisplays && blockType.getMaterial().isBlock() && !bedrockPlayer(player) && versionSupportsDisplays(player)) {
+            assert blockDisplayType != null;
             type = blockDisplayType;
-            assert type != null;
-            nmsEntity = BlockDisplayUtil.nmsBlockDisplay(type, (World) method_CraftWorld_getHandle.invoke(player.getWorld()));
+            nmsEntity = constructor_BlockDisplay.newInstance(type, method_CraftWorld_getHandle.invoke(player.getWorld()));
             entity = BlockDisplayUtil.applyPropertiesToBlockDisplay((org.bukkit.entity.Entity) method_Entity_getBukkitEntity.invoke(nmsEntity), blockType, selection ? ReflectionHookOptions.selectionColor : ReflectionHookOptions.terrainColor);
         } else {
+            assert slimeEntityType != null;
             type = slimeEntityType;
-            assert type != null;
-            EntitySlime slime = new EntitySlime((EntityTypes<? extends EntitySlime>) type, (World) method_CraftWorld_getHandle.invoke(player.getWorld()));
+            Object slime = constructor_Slime.newInstance(type, method_CraftWorld_getHandle.invoke(player.getWorld()));
             Slime bukkitSlime = (Slime) method_Entity_getBukkitEntity.invoke(slime);
             bukkitSlime.setSize(2);
             bukkitSlime.setCollidable(false);
@@ -157,46 +273,38 @@ public final class ReflectionHook implements NMSHandler {
         int id = entity.getEntityId();
         entity.setGlowing(true);
 
-        if (constructor_PacketPlayOutSpawnEntity_Old != null) {
-            ReflectionUtil.sendPacket(player, constructor_PacketPlayOutSpawnEntity_Old.newInstance(id, entity.getUniqueId(), center(x, type), type == slimeEntityType ? y : center(y, type), center(z, type), 0, 0, type, 0, zero));
-        } else {
-            ReflectionUtil.sendPacket(player, new PacketPlayOutSpawnEntity(id, entity.getUniqueId(), center(x, type), type == slimeEntityType ? y : center(y, type), center(z, type), 0, 0, type, 0, zero, 0));
-        }
-        DataWatcher dataWatcher = (DataWatcher) method_Entity_getDataWatcher.invoke(nmsEntity);
+        Object addEntity = clientboundAddEntityPacketAdapter.instance(id, entity.getUniqueId(), center(x, type), type == slimeEntityType ? y : center(y, type), center(z, type), type);
+        Object setEntityData = clientboundSetEntityDataPacketAdapter.instance(id, method_Entity_getEntityData.invoke(nmsEntity));
 
-        if (newPacketMetadataConstructor) {
-            ReflectionUtil.sendPacket(player, new PacketPlayOutEntityMetadata(id, Objects.requireNonNull(dataWatcher.c())));
-        } else {
-            assert constructor_PacketPlayOutEntityMetadata != null;
-            ReflectionUtil.sendPacket(player, constructor_PacketPlayOutEntityMetadata.newInstance(id, dataWatcher, false));
-        }
+        ReflectionUtil.sendPackets(player, addEntity, setEntityData);
 
         return new PlayerUtil.SpawnedMarker(id, entity.getUniqueId(), entity);
     }
 
     @Override
-    public void killEntity(@NotNull Player player, @NotNull PlayerUtil.SpawnedMarker marker) {
-        PacketPlayOutEntityDestroy packet = new PacketPlayOutEntityDestroy(marker.entityID());
-        ReflectionUtil.sendPacket(player, packet);
+    public void killEntities(@NotNull Player player, @NotNull Collection<PlayerUtil.SpawnedMarker> markers) throws InvocationTargetException, InstantiationException, IllegalAccessException {
+        clientboundRemoveEntitiesPacketAdapter.send(player, markers);
 
         // Removing from team.
         Scoreboard board = Bukkit.getServer().getScoreboardManager().getMainScoreboard();
         Team selectionTeam = board.getTeam("TRselectionTeam");
         Team createdTeam = board.getTeam("TRcreatedTeam");
         Team terrainTeam = board.getTeam("TRterrainTeam");
-        String uuid = marker.entityUUID().toString();
 
-        if (selectionTeam != null) {
-            selectionTeam.removeEntry(uuid);
-            if (selectionTeam.getEntries().isEmpty()) selectionTeam.unregister();
-        }
-        if (createdTeam != null) {
-            createdTeam.removeEntry(uuid);
-            if (createdTeam.getEntries().isEmpty()) createdTeam.unregister();
-        }
-        if (terrainTeam != null) {
-            terrainTeam.removeEntry(uuid);
-            if (terrainTeam.getEntries().isEmpty()) terrainTeam.unregister();
+        for (PlayerUtil.SpawnedMarker marker : markers) {
+            String uuid = marker.entityUUID().toString();
+            if (selectionTeam != null) {
+                selectionTeam.removeEntry(uuid);
+                if (selectionTeam.getEntries().isEmpty()) selectionTeam.unregister();
+            }
+            if (createdTeam != null) {
+                createdTeam.removeEntry(uuid);
+                if (createdTeam.getEntries().isEmpty()) createdTeam.unregister();
+            }
+            if (terrainTeam != null) {
+                terrainTeam.removeEntry(uuid);
+                if (terrainTeam.getEntries().isEmpty()) terrainTeam.unregister();
+            }
         }
     }
 
@@ -215,8 +323,8 @@ public final class ReflectionHook implements NMSHandler {
 
             team.setColor(Objects.requireNonNullElse(ChatColor.getByChar(Integer.toHexString((selection ? ReflectionHookOptions.selectionColor : created ? ReflectionHookOptions.terrainCreatedColor : ReflectionHookOptions.terrainColor).asRGB())), selection ? ChatColor.YELLOW : created ? ChatColor.GREEN : ChatColor.WHITE));
             team.addEntry(slime.getUniqueId().toString());
-        } else if (class_BlockDisplay != null && class_BlockDisplay.isAssignableFrom(entity.getClass())) {
-            org.bukkit.entity.Entity blockDisplay = (org.bukkit.entity.Entity) entity;
+        } else if (class_BukkitBlockDisplay != null && class_BukkitBlockDisplay.isAssignableFrom(entity.getClass())) {
+            Entity blockDisplay = (Entity) entity;
             BlockData block = BlockDisplayUtil.getBlock(blockDisplay);
 
             if (block.equals(ReflectionHookOptions.selectionBlock)) {
@@ -225,17 +333,21 @@ public final class ReflectionHook implements NMSHandler {
                 BlockDisplayUtil.applyPropertiesToBlockDisplay(blockDisplay, ReflectionHookOptions.terrainEdgeBlock, ReflectionHookOptions.terrainCreatedColor);
             }
 
-            assert method_Entity_getDataWatcher != null;
-            assert method_CraftEntity_getHandle != null;
-            DataWatcher dataWatcher = (DataWatcher) method_Entity_getDataWatcher.invoke(method_CraftEntity_getHandle.invoke(entity));
-            int entityId = blockDisplay.getEntityId();
+            Object setEntityData = clientboundSetEntityDataPacketAdapter.instance(blockDisplay.getEntityId(), method_Entity_getEntityData.invoke(method_CraftEntity_getHandle.invoke(entity)));
 
-            if (newPacketMetadataConstructor) {
-                ReflectionUtil.sendPacket(player, new PacketPlayOutEntityMetadata(entityId, Objects.requireNonNull(dataWatcher.c())));
-            } else {
-                assert constructor_PacketPlayOutEntityMetadata != null;
-                ReflectionUtil.sendPacket(player, constructor_PacketPlayOutEntityMetadata.newInstance(entityId, dataWatcher, false));
-            }
+            ReflectionUtil.sendPacket(player, setEntityData);
         }
+    }
+
+    private interface ClientboundAddEntityPacketAdapter {
+        Object instance(int entityId, UUID uuid, double x, double y, double z, Object type) throws InstantiationException, IllegalAccessException, InvocationTargetException;
+    }
+
+    private interface ClientboundSetEntityDataPacketAdapter {
+        Object instance(int entityId, @NotNull Object entityData) throws InstantiationException, IllegalAccessException, InvocationTargetException;
+    }
+
+    private interface ClientboundRemoveEntitiesPacketAdapter {
+        void send(@NotNull Player player, @NotNull Collection<PlayerUtil.SpawnedMarker> entities) throws InstantiationException, IllegalAccessException, InvocationTargetException;
     }
 }
