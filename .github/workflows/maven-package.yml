@@ -1,0 +1,40 @@
+name: Maven Package
+
+on:
+  push:
+  pull_request:
+    branches:
+      - master
+  release:
+    types: [ created ]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up JDK 25
+        uses: actions/setup-java@v4
+        with:
+          java-version: '25'
+          distribution: 'temurin'
+          server-id: github # Value of the distributionManagement/repository/id field of the pom.xml
+          settings-path: ${{ github.workspace }} # location for the settings.xml file
+
+      - name: Build with Maven
+        run: mvn -B package --file pom.xml
+
+      - name: Upload Bukkit jar
+        uses: actions/upload-artifact@v4
+        with:
+          name: terrainer-bukkit
+          path: |
+            bukkit/target/*.jar
+            !bukkit/target/*-sources.jar
+            !bukkit/target/*-javadoc.jar
+            !bukkit/target/original-*.jar
