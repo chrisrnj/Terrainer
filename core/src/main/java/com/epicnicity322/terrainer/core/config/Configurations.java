@@ -27,7 +27,7 @@ import org.jetbrains.annotations.NotNull;
 import java.nio.file.Path;
 
 public final class Configurations {
-    public static final @NotNull Path DATA_FOLDER = Path.of(EpicPluginLib.Platform.getPlatform() == EpicPluginLib.Platform.BUKKIT ? "plugins" : "config", "Terrainer");
+    public static final @NotNull Path DATA_FOLDER = Path.of(EpicPluginLib.Platform.current() == EpicPluginLib.Platform.BUKKIT ? "plugins" : "config", "Terrainer");
 
     public static final ConfigurationHolder CONFIG = new ConfigurationHolder(DATA_FOLDER.resolve("config.yml"), """
             Version: '#VERSION#'
@@ -1514,6 +1514,524 @@ public final class Configurations {
                       &7You are editing flags set specifically for
                       &f<var1>&7 in the terrain &f<var0>
               Select: '&cSelect the terrain to edit flags:'
+            """.replace("#VERSION#", TerrainerVersion.VERSION_STRING));
+    public static final ConfigurationHolder LANG_PT_BR = new ConfigurationHolder(DATA_FOLDER.resolve("Language").resolve("Language PT-BR.yml"), """
+            Version: '#VERSION#'
+            
+            General:
+              Cooldown: '&4Você precisa esperar &f<remaining> segundos&4 antes de usar este comando novamente.'
+              Player Not Found: '&4Um jogador com o nome "&7<value>&4" não foi encontrado.'
+              Prefix: '&8[&cTerrenos&8] '
+              No Economy: '&4Um plugin de economia não foi encontrado.'
+              No Permission: '&4Você não tem permissão para fazer isto.'
+              No Permission Others: '&4Você não pode fazer isto com outros jogadores.'
+              Not A Number: '&4O valor "&7<value>&4" não é um número.'
+              Not Enough Money: '&4Isto custa &6<value>$&4 e você não tem dinheiro suficiente para comprar.'
+              World Not Found: '&cUm mundo com o nome "&7<value>&c" não foi encontrado.'
+            
+            # Translations of command arguments.
+            Commands:
+              Claim:
+                Command: 'reivindicar'
+              Confirm:
+                Command: 'confirmar'
+                List: 'lista'
+              Define:
+                Command: 'definir'
+              Delete:
+                Command: 'deletar'
+              Description:
+                Command: 'descricao'
+              Flag:
+                Command: 'flag'
+                Allow: 'permitir'
+                Deny: 'negar'
+                Default: 'padrao'
+                Specific: 'jogador'
+              Info:
+                Command: 'info'
+              Limit:
+                Command: 'limite'
+                Blocks: 'blocos'
+                Claims: 'terrenos'
+                Give: 'dar'
+                Set: 'definir'
+                Take: 'retirar'
+              List:
+                Command: 'lista'
+                Chat: '--chat'
+              Permission:
+                Command Grant: 'conceder'
+                Command Revoke: 'revogar'
+                Member: 'membro'
+                Moderator: 'moderador'
+              Priority:
+                Command: 'prioridade'
+                Here: '--aqui'
+              Reload:
+                Command: 'recarregar'
+              Rename:
+                Command: 'renomear'
+              Resize:
+                Command: 'redimensionar'
+              Select:
+                Command First: 'p1'
+                Command Second: 'p2'
+                Command 3D First: 'p13d'
+                Command 3D Second: 'p23d'
+              Sell:
+                Command: 'vender'
+              Shop:
+                Command: 'loja'
+              Teleport:
+                Command: 'tp'
+              Transfer:
+                Command: 'transferir'
+                Force: '--forçar'
+              Wand:
+                Command: 'varinha'
+                Info: 'info'
+                Selector: 'seletor'
+            
+            Invalid Arguments:
+              Amount: '<quantidade>'
+              Error: '&4Sintaxe inválida! Use: &7/<label> <label2> <args>&4.'
+              Flag: '<padrao|jogador <player>> <flag> <valores>'
+              Flag Optional: '<padrao|jogador [player]> [flag] [valores]'
+              Player: '<jogador>'
+              Player Optional: '[jogador]'
+              Priority: '[<prioridade>|--aqui]'
+              Terrain: '<terreno>'
+              Terrain Optional: '[-t <terreno>]'
+              World: 'mundo'
+            
+            Target:
+              And: ' e '
+              Console: 'Console'
+              Everyone: 'Todos'
+              List Separator: ', '
+              None: 'Nenhum'
+              You: 'Você'
+            
+            Placeholder Values:
+              Console Owner: 'Console'
+              Flag Undefined: 'Indefinida'
+              Infinite Limit: 'Infinito'
+              No One Top: 'Ninguém'
+              Roles:
+                Member: 'Membro'
+                Moderator: 'Moderador'
+                Owner: 'Dono'
+                Unrelated: 'Nenhum'
+              Terrain Not Found: '&aRegião Selvagem'
+              Unknown Terrain: 'Desconhecido'
+            
+            Confirm:
+              Arguments: '[<index>|lista] [pagina]'
+              Error:
+                Multiple: '&7Você tem mais de uma confirmação pendente, use &a&n<command>&7 para ver a lista.'
+                Not Found: '&4Uma confirmação com esse índice não foi encontrada.'
+                Nothing Pending: '&4Você não tem nada para confirmar.'
+                Run: '&4Algo deu errado ao confirmar este pedido.'
+              Header: '&eLista de confirmações pendentes (Página &7<page>&e de &7<total>&e):'
+              Entry: '&a<id>: &f<description>'
+              Footer: '&ePara ver mais confirmações use &a&n<command>'
+            
+            Create:
+              Error:
+                Different Worlds: '&4O terreno não pôde ser criado porque as seleções estão em mundos diferentes!'
+                Dimensions: '&4Os terrenos devem ter pelo menos &6<min>&4 blocos de &7largura&4 e &7comprimento&4!'
+                Low Block Limit: '&4Esta área usa &6<area>&4 blocos e você tem &6<free>&4 bloco(s) disponível(is)! Aumente seu limite de blocos comprando na &7&n/tr loja&4.'
+                Low Claim Limit: '&4Você já atingiu o seu limite de &6<max>&4 terreno(s)! Aumente seu limite de terrenos comprando na &7&n/tr loja&4.'
+                Not Selected: '&eVocê precisa fazer uma seleção antes de criar um terreno. Você pode selecionar com o comando &f&n/<label> pos1&e e &f&n/<label> pos2&e ou com a varinha de seleção: &f&n/<label> varinha&e.'
+                Overlap: '&4Não foi possível reivindicar esta área porque ela se sobrepõe a &7<overlapping>&4!'
+                Overlap Several: '&4Não foi possível reivindicar esta área porque ela se sobrepõe a outros terrenos!'
+                Too Small: '&4Área muito pequena! Os terrenos devem ter pelo menos &6<min>&4 blocos.'
+                Unknown: '&4Um erro desconhecido ocorreu ao reivindicar esta área.'
+                World No Longer Exists: '&4O mundo onde suas seleções foram feitas não existe mais.'
+              Success: '&2Terreno ''&a<terrain>&2'' reivindicado com sucesso! Limite de blocos usado: &7<used>&f/&7<max>'
+              Define: '&2Terreno ''&a<terrain>&2'' definido com sucesso com todas as flags de proteção!'
+              # <owner> for the terrain owner's name.
+              # <number> for the next available terrain name number.
+              Default Name: '<owner>_<number>'
+            
+            Transfer:
+              Confirmation Description: 'Aceitar a posse do terreno <terrain>'
+              Error:
+                Default: '&4O terreno &f<terrain>&4 não pôde ser transferido para &f<player>&4.'
+                Deleted: '&4O terreno foi removido antes que pudesse ser transferido.'
+                Low Block Limit: '&f<player>&7 não tem limite de blocos suficiente para aceitar este terreno.'
+                Low Claim Limit: '&f<player>&7 não tem limite de terrenos suficiente para aceitar este terreno.'
+                Not Allowed: '&4Você não tem permissão para transferir este terreno.'
+                Not Online: '&4Você não pode transferir o terreno para &f<player>&4 porque ele não está online!'
+                Nothing Changed: '&7Nada mudou. &f<player>&7 já é o dono deste terreno.'
+                Overlap: '&4Você não pode transferir este terreno porque ele se sobrepõe a &f<overlapping>&4!'
+                Overlap Several: '&4Você não pode transferir &f<terrain>&4 porque ele está se sobrepondo a outros terrenos!'
+                World No Longer Exists: '&4O terreno não pôde ser transferido porque está em um mundo que não existe mais.'
+                World Prohibited: '&4Você não pode transferir &f<terrain>&4 porque &f<player>&4 não tem permissão para ter terrenos neste mundo.'
+                World Terrain: '&4Terrenos globais do mundo não podem ter donos!'
+              Request: '&f<player>&7 quer transferir o terreno &f<terrain>&7 para você. Para aceitar, use &f&n/tr confirmar&7.'
+              Requested: '&7Um pedido foi enviado para &f<who>&7 para aceitar o terreno.'
+              Select: '&cTerreno para transferir:'
+              Success: '&aO terreno &7<terrain>&a foi transferido com sucesso para &7<who>&a.'
+            
+            Resize:
+              Cancelled: '&7A operação de redimensionamento de &f<terrain>&7 foi cancelada porque você reivindicou um novo terreno.'
+              Confirmation Description: 'Redimensionar o terreno <terrain>'
+              Error:
+                Low Block Limit: '&4Esta área usa &6<area>&4 blocos e <player> tem apenas &6<free>&4 bloco(s) restante(s)!'
+                Owner Offline: '&4Não é possível redimensionar este terreno porque o jogador &7<player>&4 está offline.'
+                World Terrain: '&4Terrenos globais do mundo não podem ser redimensionados!'
+              Select: '&cTerreno para redimensionar:'
+              Success: '&2Terreno ''&a<terrain>&2'' redimensionado com sucesso! Limite de blocos usado: &7<used>&f/&7<max>'
+              Tutorial: '&ePara redimensionar o terreno, pegue sua varinha de seleção e marque as novas diagonais, depois digite &7&n/<label> confirmar&e para confirmar.'
+            
+            Delete:
+              Confirmation: '&7Tem certeza de que deseja deletar &e<name>&7? Por favor, confirme a exclusão com &f&n/<label> <label2>&7.'
+              World Confirmation: '&7Tem certeza de que deseja resetar todos os dados do terreno global de &e<name>&7? Por favor, confirme a exclusão com &f&n/<label> <label2>&7.'
+              Confirmation Description: 'Deletar <name>'
+              Error: '&cO terreno não pôde ser deletado.'
+              Success: '&e<name>&a foi deletado com sucesso!'
+              Select: '&cTerreno para deletar:'
+              World Success: '&aTodos os dados do terreno global de &e<name>&a foram deletados e o terreno foi restaurado!'
+            
+            Enter Leave Messages Format: '&6<name>: &7<message>'
+            
+            Protections:
+              Anvils: '<cooldown=2000> &4Você não tem permissão para usar bigornas aqui.'
+              Armor Stands: '<cooldown=2000> &4Você não tem permissão para usar suportes de armadura aqui.'
+              Build: '<cooldown=2000> &4Você não tem permissão para construir aqui.'
+              Build Boats: '<cooldown=2000> &4Você não tem permissão para quebrar ou colocar barcos aqui.'
+              Build Minecarts: '<cooldown=2000> &4Você não tem permissão para quebrar ou colocar carrinhos de mina aqui.'
+              Buttons: '<cooldown=2000> &4Você não tem permissão para usar botões e alavancas aqui.'
+              Cauldrons: '<cooldown=2000> &4Você não tem permissão para usar caldeirões aqui.'
+              Command Blacklist: '<cooldown=2000> &4Você não tem permissão para usar este comando aqui.'
+              Containers: '<cooldown=2000> &4Você não tem permissão para abrir recipientes aqui.'
+              Doors: '<cooldown=2000> &4Você não tem permissão para abrir portas ou portões aqui.'
+              Eat: '<cooldown=2000> &4Você não tem permissão para consumir itens aqui.'
+              Enemy Harm: '<cooldown=2000> &4Você não tem permissão para ferir entidades inimigas aqui.'
+              Enter: '<cooldown=2000> &4Você não tem permissão para entrar.'
+              Enter Flying: '<cooldown=2000> &4Você não tem permissão para entrar voando.'
+              Enter Gliding: '<cooldown=2000> &4Você não tem permissão para entrar planando de elytra.'
+              Enter Vehicles: '<cooldown=2000> &4Você não tem permissão para entrar em veículos aqui.'
+              Entity Harm: '<cooldown=2000> &4Você não tem permissão para ferir entidades aqui.'
+              Entity Interactions: '<cooldown=2000> &4Você não tem permissão para interagir com entidades aqui.'
+              Fly: '<cooldown=2000> &4Você não tem permissão para voar aqui.'
+              Glide: '<cooldown=2000> &4Você não tem permissão para planar de elytra aqui.'
+              Interactions: '<cooldown=2000> &4Você não tem permissão para usar isto aqui.'
+              Item Drop: '<cooldown=2000> &4Você não tem permissão para soltar itens aqui.'
+              Item Frames: '<cooldown=2000> &4Você não tem permissão para usar molduras aqui.'
+              Item Pickup: '<cooldown=4000> &4Você não tem permissão para coletar itens aqui.'
+              Join Loading Server Message: |-
+                &cO servidor está iniciando, por favor tente entrar em alguns segundos.
+              Leave: '<cooldown=2000> &4Você não tem permissão para sair.'
+              Lighters: '<cooldown=2000> &4Você não tem permissão para usar isqueiros aqui.'
+              Outside Projectiles: '<cooldown=2000> &4Você não tem permissão para atirar projéteis aqui de fora.'
+              Potions: '<cooldown=2000> &4Você não tem permissão para usar poções aqui.'
+              Prepare: '<cooldown=2000> &4Você não tem permissão para usar bancadas de trabalho aqui.'
+              Pressure Plates: '<cooldown=4000> &4Você não tem permissão para usar placas de pressão aqui.'
+              Projectiles: '<cooldown=2000> &4Você não tem permissão para disparar projéteis aqui.'
+              PvP: '<cooldown=2000> &4Você não tem permissão para entrar em combate aqui.'
+              # Use <default> for the default spigot shutdown message.
+              Shutdown Kick Message: |-
+                &4<default>
+              Sign Click: '<cooldown=2000> &4Você não tem permissão para interagir com placas aqui.'
+              Sign Edit: '<cooldown=2000> &4Você não tem permissão para editar placas aqui.'
+              Trample: '<cooldown=2000> &4Você não tem permissão para pisotear plantações aqui.'
+            
+            Reload:
+              Error: '&cAlgo deu errado ao recarregar o Terrainer, verifique o console para mais informações.'
+              Success: '&aConfigurações e listeners recarregados com sucesso.'
+            
+            Rename:
+              Error:
+                Blacklisted: '&4Você não pode dar esse nome ao terreno.'
+                Name Length: '&4Nomes de terrenos devem ter entre 1 e &7<max>&4 caracteres!'
+                Same: '&7Nada mudou. O terreno já se chama &f<name>&7.'
+                World Terrain: '&4Terrenos globais do mundo não podem ser renomeados!'
+              Reset: '&aO terreno &7<old>&a teve seu nome resetado para o padrão: &7<new>'
+              Renamed: '&aO terreno &7<old>&a foi renomeado com sucesso para &7<new>&a.'
+              Select: '&cTerreno para renomear:'
+            
+            Select:
+              Error:
+                Coordinates: '&4Você não tem permissão para usar coordenadas em comandos.'
+                World: '&4Você não tem permissão para fazer seleções neste mundo.'
+              Success:
+                First: '&6Primeira posição selecionada no mundo &7<world>&6 em &7<coord>&6.'
+                Second: '&6Segunda posição selecionada no mundo &7<world>&6 em &7<coord>&6.'
+                Suggest: '<cooldown=30000> &ePosições selecionadas com sucesso. Agora para criar um terreno, use o comando &7&n/<label> reivindicar [nome]&e.'
+                Suggest Resize: '<cooldown=30000> &ePosições selecionadas com sucesso. Confirme o novo tamanho de &f<terrain>&e com o comando &7&n/<label> confirmar&e.'
+            
+            Selector Wand:
+              Display Name: '&6&l&nVarinha de Seleção de Terreno'
+              Lore: |-
+                &7Clique com a varinha de seleção no chão
+                &7para marcar as duas diagonais do seu terreno.
+                &7Depois de marcado, use &f&n/tr reivindicar&7 para
+                &7reivindicar e proteger seu terreno!
+            
+            Info Wand:
+              Display Name: '&7&l&nVarinha de Informações do Terreno'
+              Lore: |-
+                &7Clique com a varinha de informações no chão
+                &7para checar informações sobre terrenos existentes
+                &7na localização atual.
+            
+            Info:
+              Error:
+                No Terrains: '<cooldown=1000> &7Nenhum terreno pôde ser encontrado.'
+                No Relating Terrains: '<cooldown=1000> &7Nenhum terreno associado a você foi encontrado.'
+              Global Terrain: '&7Nenhum terreno encontrado nesta localização, mostrando as informações do terreno global do mundo.'
+              ID Hover: 'Clique para copiar o ID'
+              Text: |-
+                &8Informações de &f<name>&8:
+                &7ID: &f<id>
+                &7Dono: &f<owner>
+                &7Data de Criação: &f<date>
+                &7Área: &f<area> blocos
+                &7Mundo: &f<world>
+                &7Primeira Diagonal: &fX: <x1>, Z: <z1>
+                &7Segunda Diagonal: &fX: <x2>, Z: <z2>
+                &7Moderadores: &f<mods>
+                &7Membros: &f<members>
+                &7Flags: &f<flags>
+                &7Descrição: &f<desc>
+                &7Prioridade: &f<priority>
+                &8----------------------------------------
+            
+            Input:
+              Anvil GUI:
+                Display Name: 'Entrada'
+                Lore: |-
+                  Por favor, digite o que você deseja inserir.
+              Ask: '&ePor favor, digite a informação no chat, você tem <time> segundos.'
+            
+            Limits:
+              No Others: '&4Você não tem permissão para ver/editar limites de outros jogadores!'
+              Info:
+                No Limits:
+                  You: '&7Você não possui limites!'
+                  Other: '&7<other> não possui limites!'
+                Header:
+                  You: '&8Seus limites:'
+                  Other: '&8Limites de <other>:'
+                Header In This World:
+                  You: '&8Seus limites neste mundo:'
+                  Other: '&8Limites de <other> no mundo <world>:'
+                Blocks: '<noprefix> &7Blocos: &f<used>/<max>'
+                Claims: '<noprefix> &7Terrenos: &f<used>/<max>'
+                Footer: '<noprefix> &7Consiga mais blocos e terrenos usando &n/<label> loja&7!'
+              Edit:
+                Blocks: '&f<player>&7 pode reivindicar &f<value>&7 blocos agora.'
+                Claims: '&f<player>&7 pode reivindicar &f<value>&7 terrenos agora.'
+                Can Not Give: '&cNão é possível dar mais limite porque o limite já está no máximo!'
+                Can Not Take: '&cNão é possível retirar mais limite porque o limite já está em 0!'
+            
+            Description:
+              Default: 'Uma área protegida'
+              World Terrain: 'Terreno global para <world>'
+              Error:
+                Length: '&cA descrição deve ter no máximo <max> caracteres!'
+              Reset: '&aA descrição do terreno &7<terrain>&a foi resetada para o padrão.'
+              Select: '&cTerreno para editar a descrição:'
+              Set: '&aDescrição do terreno &7<terrain>&a definida para: &e<description>&a.'
+            
+            Permission:
+              Error:
+                Console: '&4Você não pode gerenciar permissões do console.'
+                Manage Other Moderators Denied: '&4Você não tem permissão para gerenciar cargos de moderação neste terreno.'
+                Multiple: '&4Você só pode gerenciar a permissão de um jogador por vez.'
+                Owner: '&4Este jogador é o dono do terreno.'
+              Moderator:
+                Error:
+                  Contains: '&4<who> já é um moderador de <terrain>&4!'
+                  Does Not Contain: '&4<who> não é um moderador de <terrain>&4!'
+                Granted: '&aCargo de moderador concedido para &f<who>&a no terreno &f<terrain>&a.'
+                Revoked: '&7Cargo de moderador revogado de &f<who>&7 no terreno &f<terrain>&7.'
+                Notify: '&aVocê recebeu o cargo de moderador no terreno &f<terrain>&a!'
+              Member:
+                Error:
+                  Contains: '&4<who> já é um membro de <terrain>&4!'
+                  Does Not Contain: '&4<who> não é um membro de <terrain>&4!'
+                Granted: '&aCargo de membro concedido para &f<who>&a no terreno &f<terrain>&a.'
+                Revoked: '&7Cargo de membro revogado de &f<who>&7 no terreno &f<terrain>&7.'
+                Notify: '&aVocê recebeu o cargo de membro no terreno &f<terrain>&a!'
+              Select: '&cTerreno para editar os cargos:'
+            
+            Priority:
+              Error:
+                No Terrains: '<cooldown=1000> &7Nenhum terreno pôde ser encontrado.'
+                Overlap: '&4Você não pode definir a prioridade deste terreno porque ele se sobrepõe a terrenos que não são seus!'
+              Here: '&7Prioridade dos terrenos na localização atual:'
+              Overlapping: '&7O terreno &f<terrain>&7 possui prioridade &f<priority>&7 e está se sobrepondo aos seguintes terrenos:'
+              Priority: '&8- &f<terrain>&7 = &f<priority>'
+              Removed: '<noprefix> &7Alguns terrenos não estão na lista porque você não é o dono deles.'
+              Same:
+                Here: '&7Todos os terrenos nesta localização possuem prioridade &f<priority>&7: &f<terrains>'
+                Overlapping: '&7O terreno &f<terrain>&7 e todos os terrenos sobrepostos possuem a mesma prioridade: &f<priority>&7.'
+              Select: '&cTerreno para editar a prioridade:'
+              Set: '&aPrioridade definida para &f<new>&a no terreno: &f<terrain>&a.'
+              Single: '&7O terreno &f<terrain>&7 possui prioridade &f<priority>&7.'
+              Unknown: 'Desconhecida' # Unknown priority
+            
+            Teleport:
+              Above: '<noprefix> &eVocê foi teletransportado ACIMA do terreno porque o local de destino estava obstruído.'
+              Delay: '<noprefix> &7Você será teletransportado em <delay> segundo(s)...'
+              Error:
+                Already Teleporting: '<noprefix> &4Você já está em processo de teletransporte para um terreno.'
+                Default: '<noprefix> &4Não foi possível teletransportar você para &7<terrain>&4.'
+                Moved: '<noprefix> &4O teletransporte foi cancelado porque você se moveu.'
+                Other: '&4<player> não pôde ser teletransportado para &7<terrain>&4.'
+              Select: '&cTerreno para se teletransportar:'
+              Success:
+                Default: '<noprefix> &aVocê foi teletransportado para &7<terrain>&a.'
+                Other: '&a<player> foi teletransportado para &7<terrain>&a.'
+            
+            Wand:
+              Bought: '&aVocê comprou uma &7<type>&a por &6<price>$&a.'
+              Given: '&aDeu a &7<player>&a uma &7<type>&a por &6<price>$&a.'
+              Received: '&aVocê recebeu uma &7<type>&a de &7<player>&a.'
+            
+            Shop:
+              Blocks:
+                Option 1:
+                  Display Name: '&7&l<var0> BLOCOS'
+                  Lore: |-
+                    &8Compre &7<var0>&8 blocos por
+                    &8apenas &6<var1>$
+                Option 2:
+                  Display Name: '&6&l<var0> BLOCOS'
+                  Lore: |-
+                    &8Compre &7<var0>&8 blocos por
+                    &8apenas &6<var1>$
+                    &82% de desconto
+                Option 3:
+                  Display Name: '&b&l<var0> BLOCOS'
+                  Lore: |-
+                    &8Compre &7<var0>&8 blocos por
+                    &8apenas &6<var1>$
+                    &85% de desconto
+              Claims:
+                Option 1:
+                  Display Name: '&4&l<var0> TERRENOS'
+                  Lore: |-
+                    &8Compre &7<var0>&8 terreno por
+                    &8apenas &6<var1>$
+                Option 2:
+                  Display Name: '&4&l<var0> TERRENOS'
+                  Lore: |-
+                    &8Compre &7<var0>&8 terrenos por
+                    &8apenas &6<var1>$
+                    &82% de desconto
+                Option 3:
+                  Display Name: '&4&l<var0> TERRENOS'
+                  Lore: |-
+                    &8Compre &7<var0>&8 terrenos por
+                    &8apenas &6<var1>$
+                    &85% de desconto
+              Error:
+                Disabled: '&4A loja está desativada.'
+              Success:
+                Blocks: '&aVocê comprou com sucesso um limite adicional de &7<amount>&a blocos por &6<price>$!'
+                Claims: '&aVocê comprou com sucesso um limite adicional de &7<amount>&a terrenos por &6<price>$!'
+              Title: '&6&nLoja de Limites'
+            
+            List:
+              GUI Items:
+                Next Page:
+                  Display Name: '&6Próxima Página'
+                  Lore: '&7Clique para ir para a página <var0>.'
+                Previous Page:
+                  Display Name: '&6Página Anterior'
+                  Lore: '&7Clique para ir para a página <var0>.'
+            
+            Terrain List:
+              No Terrains:
+                Default: '&4Você não possui terrenos!'
+                Everyone: '&4Ninguém reivindicou um terreno ainda.'
+                Other: '&4<other> ainda não reivindicou terrenos.'
+              Chat:
+                Header:
+                  Default: '&8Seus terrenos (Página &7<page>&8/&7<total>&8):'
+                  Other: '&8Terrenos de <other> (Página &7<page>&8/&7<total>&8):'
+                Entry: '&f<name>'
+                Alternate Entry: '&9<name>'
+                Separator: '&7, '
+                Entry Hover: |-
+                  &7ID: &f<id>
+                  &7Descrição: &f<desc>
+                  &7Área: &f<area> blocos
+                  &7Dono: &f<owner>
+                  &7Clique para ver mais informações.
+                Footer: '&8Use &7&n/<label> lista <arg> <next> --chat&8 para ver mais terrenos.'
+              GUI:
+                Title:
+                  Default: '&2Seus terrenos:'
+                  Other: '&2Terrenos de <other>:'
+                Terrain Item:
+                  Display Name: '&2<var0>'
+                  Lore: |-
+                    &8ID: &7<var1>
+                    &8Descrição: &7<var2>
+                    &8Área: &7<var3> blocos
+                    &8Dono: &7<var4>
+                World Terrain Item:
+                  Display Name: '&6<var0>'
+                  Lore: |-
+                    &8ID do Mundo: &7<var1>
+                    &8Descrição: &7<var2>
+            
+                    &e&lUm terreno global de um mundo
+            
+            Matcher:
+              Changed: '&4O terreno que você selecionou não pôde ser encontrado porque foi alterado enquanto você o selecionava.'
+              Location:
+                Multiple: '&4Mais de um terreno foi encontrado neste local, por favor especifique o nome ou ID do terreno. Ex: &7&n/<label> <args>'
+                Not Found: '&4Nenhum terreno foi encontrado neste local, por favor especifique o nome ou ID do terreno. Ex: &7&n/<label> <args>'
+              Name:
+                Multiple: '&4Mais de um terreno foi encontrado com esse nome. Por favor, especifique o ID do terreno em vez do nome.'
+                Not Found: '&7Nenhum terreno correspondente ao nome ou ID especificado foi encontrado.'
+              No Permission: '&4Você não tem permissão para fazer isso neste terreno.'
+              Only World Terrain: '&4Nengenhum terreno foi encontrado neste local. &eSe você deseja referenciar o terreno global do mundo, use &7&n/<label> <args> -t <world>'
+            
+            Update Available: "&aUma atualização para o &c&lTerrainer&a está disponível!\\n&aBaixe a versão &2<version>&a no GitHub: &2https://github.com/chrisrnj/Terrainer/releases/latest"
+            
+            Flags:
+              Allow: '&a&lPERMITIR'
+              Deny: '&c&lNEGAR'
+              Undefined: '&7&lIndefinida'
+              Default:
+                Set: '&7Flag &f<flag>&7 definida para o terreno &f<name>&7 com o valor: &f<state>&7.'
+                Unset: '&7Flag &f<flag>&7 removida do terreno &f<name>&7.'
+                Unset Alert: '&7O terreno &f<name>&7 agora usará o valor padrão de <flag>&7: &f<state>&7.'
+              Specific:
+                Set: '&7Flag &f<flag>&7 foi definida para &f<who>&7 no terreno &f<name>&7 com o valor: &f<state>&7.'
+                Unset: '&7Flag &f<flag>&7 removida para &f<who>&7 no terreno &f<name>&7.'
+              Error:
+                Default: '&4Não foi possível definir a flag &f<flag>&4 - &f<message>'
+                Boolean: '&4O valor precisa ser &aPERMITIR&4 ou &cNEGAR&4!'
+                Message Location: '&4Os únicos valores aceitos para o local da mensagem são: &7ActionBar&4, &7BossBar&4, &7Chat&4, &7Title&4 ou &7NONE&4.'
+                Not Owner: '&4Apenas o dono tem permissão para editar esta flag.'
+                Not Player Specific: '&4A flag ''&f<flag>&4'' não pode ser aplicada a um jogador específico.'
+                Unknown: '&4Algo deu errado ao definir esta flag. Por favor, contate um administrador.'
+                Unknown Effect: '&4Efeito de poção inválido: &f<value>'
+              Management GUI:
+                Default:
+                  Title: '&2Flags de &a&n<terrain>&2:'
+                  Info Item:
+                    Display Name: '&2&lMenu de Gerenciamento de Flags'
+                    Lore: |-
+                      &7Você está editando as flags de
+                      &f<var0>
+                Specific:
+                  Title: '&2Flags de &a<player>&2:'
+                  Info Item:
+                    Display Name: '&2&lMenu de Gerenciamento de Flags'
+                    Lore: |-
+                      &7Você está editando as flags definidas especificamente para
+                      &f<var1>&7 no terreno &f<var0>
+              Select: '&cTerreno para editar as flags:'
             """.replace("#VERSION#", TerrainerVersion.VERSION_STRING));
     private static final @NotNull ConfigurationManager manager = new ConfigurationManager();
 

@@ -94,9 +94,9 @@ public final class TerrainerPlugin extends JavaPlugin {
         Terrainer.setLogger(logger);
         //noinspection deprecation - backwards compatibility
         Flags.setEffectChecker(value -> PotionEffectType.getByName(value) != null);
-        //TODO: Translate to languages.
         lang.addLanguage("EN_US", Configurations.LANG_EN_US);
-        lang.addLanguage("PT_BR", Configurations.LANG_EN_US);
+        lang.addLanguage("PT_BR", Configurations.LANG_PT_BR);
+        //TODO: Translate to spanish.
         lang.addLanguage("ES_LA", Configurations.LANG_EN_US);
     }
 
