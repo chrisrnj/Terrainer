@@ -1,6 +1,6 @@
 /*
  * Terrainer - A minecraft terrain claiming protection plugin.
- * Copyright (C) 2025 Christiano Rangel
+ * Copyright (C) 2025-2026 Christiano Rangel
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,9 +19,11 @@
 package com.epicnicity322.terrainer.bukkit.command.impl;
 
 import com.epicnicity322.epicpluginlib.bukkit.command.CommandRunnable;
+import com.epicnicity322.epicpluginlib.core.logger.ConsoleLogger;
 import com.epicnicity322.terrainer.bukkit.TerrainerPlugin;
 import com.epicnicity322.terrainer.bukkit.command.TerrainerCommand;
 import com.epicnicity322.terrainer.bukkit.util.CommandUtil;
+import com.epicnicity322.terrainer.core.Terrainer;
 import org.bukkit.command.CommandSender;
 import org.jetbrains.annotations.NotNull;
 
@@ -50,10 +52,16 @@ public final class ReloadCommand extends TerrainerCommand {
     public void run(@NotNull String label, @NotNull CommandSender sender, @NotNull String[] args) {
         var lang = TerrainerPlugin.getLanguage();
 
-        if (TerrainerPlugin.reload()) {
-            lang.send(sender, lang.get("Reload.Success"));
-        } else {
+        try {
+            if (TerrainerPlugin.reload()) {
+                lang.send(sender, lang.get("Reload.Success"));
+            } else {
+                lang.send(sender, lang.get("Reload.Error"));
+            }
+        } catch (Throwable t) {
             lang.send(sender, lang.get("Reload.Error"));
+            Terrainer.logger().log("An error occurred while reloading Terrainer:", ConsoleLogger.Level.ERROR);
+            t.printStackTrace();
         }
     }
 }
