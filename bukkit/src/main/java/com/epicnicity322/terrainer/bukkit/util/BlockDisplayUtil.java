@@ -24,6 +24,7 @@ import org.bukkit.entity.BlockDisplay;
 import org.bukkit.entity.Entity;
 import org.bukkit.util.Transformation;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.joml.AxisAngle4f;
 import org.joml.Vector3f;
 
@@ -31,11 +32,11 @@ public final class BlockDisplayUtil {
     private static final @NotNull Transformation transformation = new Transformation(new Vector3f(0, 0, 0), new AxisAngle4f(0, 0, 0, 0), new Vector3f(1.001f, 1.001f, 1.001f), new AxisAngle4f(0, 0, 0, 0));
     private static final @NotNull org.bukkit.entity.Display.Brightness brightness = new org.bukkit.entity.Display.Brightness(14, 14);
 
-    public static @NotNull Entity applyPropertiesToBlockDisplay(@NotNull Entity blockDisplay, @NotNull BlockData blockType, @NotNull Color color) {
+    public static @NotNull Entity applyPropertiesToBlockDisplay(@NotNull Entity blockDisplay, @Nullable BlockData blockType, @NotNull Color color) {
         BlockDisplay bukkitDisplay = (BlockDisplay) blockDisplay;
         bukkitDisplay.setTransformation(transformation);
         bukkitDisplay.setBrightness(brightness);
-        bukkitDisplay.setBlock(blockType);
+        if (blockType != null) bukkitDisplay.setBlock(blockType);
         bukkitDisplay.setGlowColorOverride(color);
         return bukkitDisplay;
     }

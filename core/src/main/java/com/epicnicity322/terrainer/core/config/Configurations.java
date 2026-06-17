@@ -196,7 +196,7 @@ public final class Configurations {
               Created Color: 55FF55 # Hex
               Selection Color: FFFF55
               Terrain Color: FFFFFF
-              # Air blocks can only be colored by regular color codes
+              # Use a non-block (ex: FEATHER) to switch to Slimes. Slimes can only be colored by old color codes.
               Selection Block: GLOWSTONE
               Selection Edge Block: GOLD_BLOCK
               Terrain Block: DIAMOND_BLOCK

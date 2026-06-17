@@ -27,10 +27,10 @@ import org.jetbrains.annotations.Nullable;
 
 public final class ReflectionHookOptions {
     static boolean geyserOption = Configurations.CONFIG.config().getBoolean("Markers.Bedrock Players See Slime Entity").orElse(true);
-    static @NotNull BlockData selectionBlock = Material.GLOWSTONE.createBlockData();
-    static @NotNull BlockData selectionEdgeBlock = Material.GOLD_BLOCK.createBlockData();
-    static @NotNull BlockData terrainBlock = Material.DIAMOND_BLOCK.createBlockData();
-    static @NotNull BlockData terrainEdgeBlock = Material.GLASS.createBlockData();
+    static @Nullable BlockData selectionBlock = Material.GLOWSTONE.createBlockData();
+    static @Nullable BlockData selectionEdgeBlock = Material.GOLD_BLOCK.createBlockData();
+    static @Nullable BlockData terrainBlock = Material.DIAMOND_BLOCK.createBlockData();
+    static @Nullable BlockData terrainEdgeBlock = Material.GLASS.createBlockData();
     static @NotNull Color selectionColor = Color.YELLOW;
     static @NotNull Color terrainColor = Color.WHITE;
     static @NotNull Color terrainCreatedColor = Color.LIME;
@@ -50,10 +50,10 @@ public final class ReflectionHookOptions {
         if (terrainBlock == null) terrainBlock = Material.DIAMOND_BLOCK;
         if (terrainEdgeBlock == null) terrainEdgeBlock = Material.GLASS;
 
-        ReflectionHookOptions.selectionBlock = selectionBlock.createBlockData();
-        ReflectionHookOptions.selectionEdgeBlock = selectionEdgeBlock.createBlockData();
-        ReflectionHookOptions.terrainBlock = terrainBlock.createBlockData();
-        ReflectionHookOptions.terrainEdgeBlock = terrainEdgeBlock.createBlockData();
+        ReflectionHookOptions.selectionBlock = selectionBlock.isBlock() ? selectionBlock.createBlockData() : null;
+        ReflectionHookOptions.selectionEdgeBlock = selectionEdgeBlock.isBlock() ? selectionEdgeBlock.createBlockData() : null;
+        ReflectionHookOptions.terrainBlock = terrainBlock.isBlock() ? terrainBlock.createBlockData() : null;
+        ReflectionHookOptions.terrainEdgeBlock = terrainEdgeBlock.isBlock() ? terrainEdgeBlock.createBlockData() : null;
     }
 
     public static void setMarkerColors(int selection, int terrain, int created) {

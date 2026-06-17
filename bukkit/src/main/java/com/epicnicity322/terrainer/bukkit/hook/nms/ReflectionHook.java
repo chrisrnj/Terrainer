@@ -112,8 +112,10 @@ public final class ReflectionHook implements NMSHandler {
             if (method_Entity_getEntityData1 == null)
                 method_Entity_getEntityData1 = Objects.requireNonNull(ReflectionUtil.findMethodByType(class_Entity, class_SynchedEntityData, false));
 
+            Class<?> class_EntityTypes = ReflectionUtil.getClass("net.minecraft.world.entity.EntityTypes");
             Class<?> class_EntityType = ReflectionUtil.getClass("net.minecraft.world.entity.EntityType");
-            if (class_EntityType == null) class_EntityType = Class.forName("net.minecraft.world.entity.EntityTypes");
+            if (class_EntityType == null) class_EntityType = Objects.requireNonNull(class_EntityTypes);
+            if (class_EntityTypes == null) class_EntityTypes = Objects.requireNonNull(class_EntityType);
 
             Class<?> class_Slime = ReflectionUtil.getClass("net.minecraft.world.entity.monster.cubemob.Slime");
             if (class_Slime == null) {
@@ -171,7 +173,7 @@ public final class ReflectionHook implements NMSHandler {
             if (hasBlockDisplays1) {
                 try {
                     constructor_BlockDisplay1 = class_BlockDisplay.getConstructor(class_EntityType, class_Level);
-                    blockDisplayType1 = Objects.requireNonNull(findEntityType(class_EntityType, class_BlockDisplay));
+                    blockDisplayType1 = Objects.requireNonNull(findEntityType(class_EntityTypes, class_EntityType, class_BlockDisplay));
                 } catch (Exception e) {
                     Terrainer.logger().log("An unknown error happened while getting the constructor for " + class_BlockDisplay.getSimpleName() + "(" + class_EntityType.getSimpleName() + ", " + class_Level.getSimpleName() + "):", ConsoleLogger.Level.ERROR);
                     e.printStackTrace();
@@ -179,7 +181,7 @@ public final class ReflectionHook implements NMSHandler {
                 }
             }
 
-            slimeEntityType1 = Objects.requireNonNull(findEntityType(class_EntityType, class_Slime));
+            slimeEntityType1 = Objects.requireNonNull(findEntityType(class_EntityTypes, class_EntityType, class_Slime));
 
             available1 = true;
         } catch (Exception e) {
@@ -213,10 +215,10 @@ public final class ReflectionHook implements NMSHandler {
         return available;
     }
 
-    private static Object findEntityType(@NotNull Class<?> class_EntityType, @NotNull Class<?> entityClass) {
+    private static Object findEntityType(@NotNull Class<?> class_EntityTypes, @NotNull Class<?> class_EntityType, @NotNull Class<?> entityClass) {
         String type = class_EntityType.getName() + "<" + entityClass.getName() + ">";
 
-        for (Field f : class_EntityType.getFields()) {
+        for (Field f : class_EntityTypes.getFields()) {
             if (f.getGenericType().getTypeName().equals(type)) {
                 try {
                     return f.get(null);
@@ -254,7 +256,7 @@ public final class ReflectionHook implements NMSHandler {
         org.bukkit.entity.Entity entity;
         Object nmsEntity;
 
-        if (hasBlockDisplays && blockType.getMaterial().isBlock() && !bedrockPlayer(player) && versionSupportsDisplays(player)) {
+        if (hasBlockDisplays && blockType != null && !bedrockPlayer(player) && versionSupportsDisplays(player)) {
             assert blockDisplayType != null;
             type = blockDisplayType;
             nmsEntity = constructor_BlockDisplay.newInstance(type, method_CraftWorld_getHandle.invoke(player.getWorld()));
