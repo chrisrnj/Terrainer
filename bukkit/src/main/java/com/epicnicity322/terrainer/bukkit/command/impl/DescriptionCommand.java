@@ -32,7 +32,7 @@ import org.jetbrains.annotations.NotNull;
 
 public final class DescriptionCommand extends TerrainerCommand {
     @Override
-    public @NotNull String getName() {
+    public @NotNull String name() {
         return "description";
     }
 

@@ -163,7 +163,7 @@ public abstract class PosCommand extends TerrainerCommand {
         }
 
         @Override
-        public @NotNull String getName() {
+        public @NotNull String name() {
             return "pos1";
         }
 
@@ -180,7 +180,7 @@ public abstract class PosCommand extends TerrainerCommand {
         }
 
         @Override
-        public @NotNull String getName() {
+        public @NotNull String name() {
             return "pos2";
         }
 

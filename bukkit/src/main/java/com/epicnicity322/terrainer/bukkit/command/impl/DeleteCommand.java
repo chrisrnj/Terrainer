@@ -37,7 +37,7 @@ import java.util.Objects;
 
 public final class DeleteCommand extends TerrainerCommand {
     @Override
-    public @NotNull String getName() {
+    public @NotNull String name() {
         return "delete";
     }
 

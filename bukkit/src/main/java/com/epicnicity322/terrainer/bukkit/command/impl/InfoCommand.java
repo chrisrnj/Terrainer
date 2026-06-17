@@ -54,7 +54,7 @@ public final class InfoCommand extends TerrainerCommand {
     }
 
     @Override
-    public @NotNull String getName() {
+    public @NotNull String name() {
         return "info";
     }
 

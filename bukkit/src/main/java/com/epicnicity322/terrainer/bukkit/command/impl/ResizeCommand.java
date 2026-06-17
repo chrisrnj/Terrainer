@@ -42,7 +42,7 @@ import java.util.UUID;
 
 public final class ResizeCommand extends TerrainerCommand {
     @Override
-    public @NotNull String getName() {
+    public @NotNull String name() {
         return "resize";
     }
 

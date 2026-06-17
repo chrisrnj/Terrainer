@@ -29,7 +29,7 @@ import org.jetbrains.annotations.NotNull;
 
 public final class ReloadCommand extends TerrainerCommand {
     @Override
-    public @NotNull String getName() {
+    public @NotNull String name() {
         return "reload";
     }
 

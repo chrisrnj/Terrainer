@@ -34,7 +34,7 @@ import org.jetbrains.annotations.NotNull;
 
 public final class WandCommand extends TerrainerCommand {
     @Override
-    public @NotNull String getName() {
+    public @NotNull String name() {
         return "wand";
     }
 

@@ -31,10 +31,29 @@ import java.util.stream.Stream;
 
 public abstract class TerrainerCommand extends Command {
     private static final @NotNull Pattern accents = Pattern.compile("\\p{M}");
+    private static boolean useLocalizations = false;
+
+    public static void setUseLocalizations(boolean value) {
+        useLocalizations = value;
+    }
 
     private static String removeDiacritics(@NotNull String text) {
         text = Normalizer.normalize(text, Normalizer.Form.NFD);
         return accents.matcher(text).replaceAll("");
+    }
+
+    @NotNull
+    public abstract String name();
+
+    @Override
+    public @NotNull String getName() {
+        if (useLocalizations) {
+            String[] aliases = getAliases();
+            if (aliases != null && aliases.length > 0) {
+                return aliases[0] != null ? aliases[0] : name();
+            }
+        }
+        return name();
     }
 
     @Override
@@ -55,6 +74,8 @@ public abstract class TerrainerCommand extends Command {
             String withoutDiacritics = removeDiacritics(alias);
             if (!withoutDiacritics.equals(alias)) aliasesList.add(withoutDiacritics);
         }
+
+        if (useLocalizations) aliasesList.add(name());
 
         super.setAliases(aliasesList.toArray(new String[0]));
     }

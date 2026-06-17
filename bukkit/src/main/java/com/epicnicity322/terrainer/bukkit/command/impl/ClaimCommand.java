@@ -48,7 +48,7 @@ import java.util.UUID;
 
 public final class ClaimCommand extends TerrainerCommand {
     @Override
-    public @NotNull String getName() {
+    public @NotNull String name() {
         return "claim";
     }
 

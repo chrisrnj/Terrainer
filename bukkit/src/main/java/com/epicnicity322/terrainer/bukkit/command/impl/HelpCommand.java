@@ -28,7 +28,7 @@ import org.jetbrains.annotations.NotNull;
 //TODO:
 public final class HelpCommand extends TerrainerCommand {
     @Override
-    public @NotNull String getName() {
+    public @NotNull String name() {
         return "help";
     }
 

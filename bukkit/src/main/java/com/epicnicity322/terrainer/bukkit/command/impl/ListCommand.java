@@ -51,7 +51,7 @@ public final class ListCommand extends TerrainerCommand {
     }
 
     @Override
-    public @NotNull String getName() {
+    public @NotNull String name() {
         return "list";
     }
 

@@ -55,7 +55,7 @@ public final class TeleportCommand extends TerrainerCommand implements Listener 
     }
 
     @Override
-    public @NotNull String getName() {
+    public @NotNull String name() {
         return "teleport";
     }
 

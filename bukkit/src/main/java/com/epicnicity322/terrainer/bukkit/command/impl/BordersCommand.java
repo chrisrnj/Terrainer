@@ -48,7 +48,7 @@ public final class BordersCommand extends TerrainerCommand {
     }
 
     @Override
-    public @NotNull String getName() {
+    public @NotNull String name() {
         return "borders";
     }
 

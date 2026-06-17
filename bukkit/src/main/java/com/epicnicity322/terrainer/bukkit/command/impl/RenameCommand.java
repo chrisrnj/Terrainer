@@ -36,7 +36,7 @@ import org.jetbrains.annotations.NotNull;
 
 public final class RenameCommand extends TerrainerCommand {
     @Override
-    public @NotNull String getName() {
+    public @NotNull String name() {
         return "rename";
     }
 

@@ -246,6 +246,7 @@ public final class TerrainerPlugin extends JavaPlugin {
         instance.selectionListener.reloadItems();
 
         // Command aliases and settings
+        TerrainerCommand.setUseLocalizations(!config.getString("Language").orElse("EN_US").equals("EN_US"));
         instance.commands.forEach(TerrainerCommand::reloadCommand);
 
         // Update checker

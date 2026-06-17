@@ -40,7 +40,7 @@ import java.util.stream.IntStream;
 
 public final class PriorityCommand extends TerrainerCommand {
     @Override
-    public @NotNull String getName() {
+    public @NotNull String name() {
         return "priority";
     }
 

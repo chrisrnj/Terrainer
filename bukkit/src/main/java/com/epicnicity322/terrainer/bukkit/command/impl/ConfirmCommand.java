@@ -147,7 +147,7 @@ public final class ConfirmCommand extends TerrainerCommand {
     }
 
     @Override
-    public @NotNull String getName() {
+    public @NotNull String name() {
         return "confirm";
     }
 

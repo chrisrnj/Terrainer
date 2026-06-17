@@ -45,7 +45,7 @@ import java.util.*;
 
 public final class FlagCommand extends TerrainerCommand {
     @Override
-    public @NotNull String getName() {
+    public @NotNull String name() {
         return "flag";
     }
 

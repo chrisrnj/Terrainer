@@ -57,7 +57,7 @@ public final class DefineCommand extends TerrainerCommand {
     private static final @NotNull HashSet<FlagEntry<?>> defineFlags = new HashSet<>();
 
     @Override
-    public @NotNull String getName() {
+    public @NotNull String name() {
         return "define";
     }
 

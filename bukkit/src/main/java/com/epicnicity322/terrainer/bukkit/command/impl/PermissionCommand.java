@@ -149,7 +149,7 @@ public abstract class PermissionCommand extends TerrainerCommand {
 
     public static final class GrantCommand extends PermissionCommand {
         @Override
-        public @NotNull String getName() {
+        public @NotNull String name() {
             return "grant";
         }
 
@@ -205,7 +205,7 @@ public abstract class PermissionCommand extends TerrainerCommand {
 
     public static final class RevokeCommand extends PermissionCommand {
         @Override
-        public @NotNull String getName() {
+        public @NotNull String name() {
             return "revoke";
         }
 
