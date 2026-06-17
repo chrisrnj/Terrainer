@@ -2039,6 +2039,7 @@ public final class Configurations {
         manager.registerConfiguration(CONFIG, TerrainerVersion.VERSION, TerrainerVersion.VERSION);
         manager.registerConfiguration(FLAGS);
         manager.registerConfiguration(LANG_EN_US, TerrainerVersion.VERSION, TerrainerVersion.VERSION);
+        manager.registerConfiguration(LANG_PT_BR, TerrainerVersion.VERSION, TerrainerVersion.VERSION);
     }
 
     private Configurations() {
