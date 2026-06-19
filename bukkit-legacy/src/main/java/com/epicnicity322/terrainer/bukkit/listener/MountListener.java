@@ -1,6 +1,6 @@
 /*
  * Terrainer - A minecraft terrain claiming protection plugin.
- * Copyright (C) 2024 Christiano Rangel
+ * Copyright (C) 2024-2026 Christiano Rangel
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -36,11 +36,11 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * A class for handling mount events before they were ported from spigot to bukkit.
  */
 @SuppressWarnings({"UnstableApiUsage", "deprecation"})
-public final class LegacyMountListener implements Listener {
+public final class MountListener implements Listener {
     private final @NotNull ProtectionsListener protectionsListener;
     private final @NotNull AtomicBoolean enterLeaveEvents;
 
-    public LegacyMountListener(@NotNull ProtectionsListener protectionsListener, @NotNull AtomicBoolean enterLeaveEvents) {
+    public MountListener(@NotNull ProtectionsListener protectionsListener, @NotNull AtomicBoolean enterLeaveEvents) {
         this.protectionsListener = protectionsListener;
         this.enterLeaveEvents = enterLeaveEvents;
     }

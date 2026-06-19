@@ -68,17 +68,18 @@
             <artifactId>terrainer-core</artifactId>
             <version>${project.version}</version>
             <scope>compile</scope>
+            <optional>false</optional>
         </dependency>
         <dependency>
-            <groupId>io.papermc.paper</groupId>
-            <artifactId>paper-api</artifactId>
-            <version>1.21.11-R0.1-SNAPSHOT</version>
+            <groupId>com.github.chrisrnj.EpicPluginLib</groupId>
+            <artifactId>epicpluginlib-bukkit</artifactId>
+            <version>${epicpluginlib.version}</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>io.papermc.paper</groupId>
             <artifactId>paper-api</artifactId>
-            <version>1.20.4-R0.1-SNAPSHOT</version>
+            <version>[26.1.2.build,)</version>
             <scope>provided</scope>
         </dependency>
         <dependency>

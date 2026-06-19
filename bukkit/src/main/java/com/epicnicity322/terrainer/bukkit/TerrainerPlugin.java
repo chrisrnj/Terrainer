@@ -311,13 +311,7 @@ public final class TerrainerPlugin extends JavaPlugin {
         }
 
         // Listeners
-        if (ReflectionUtil.getClass("org.bukkit.event.entity.EntityMountEvent") != null) {
-            pm.registerEvents(new MountListener(protectionsListener, enterLeaveEvents), this);
-        } else if (ReflectionUtil.getClass("org.spigotmc.event.entity.EntityMountEvent") != null) {
-            pm.registerEvents(new LegacyMountListener(protectionsListener, enterLeaveEvents), this);
-        } else {
-            logger.log("Could not find entity mount/dismount events, protections related to those events will not be enforced.", ConsoleLogger.Level.ERROR);
-        }
+        pm.registerEvents(new MountListener(protectionsListener, enterLeaveEvents), this);
         pm.registerEvents(protectionsListener, this);
         pm.registerEvents(new FlagListener(), this);
         pm.registerEvents(selectionListener, this);

@@ -29,11 +29,14 @@
     <modules>
         <module>core</module>
         <module>bukkit</module>
+        <module>bukkit-legacy</module>
     </modules>
 
     <properties>
         <maven.compiler.release>21</maven.compiler.release>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <epicpluginlib.version>4c300309b0</epicpluginlib.version>
+        <jetbrains-annotations.version>26.1.0</jetbrains-annotations.version>
     </properties>
 
     <build>
@@ -81,17 +84,18 @@
     </repositories>
 
     <dependencies>
-        <dependency>
-            <groupId>com.github.chrisrnj</groupId>
-            <artifactId>EpicPluginLib</artifactId>
-            <version>d78b4815e3</version>
-            <scope>provided</scope>
-        </dependency>
         <!-- Source: https://mvnrepository.com/artifact/org.jetbrains/annotations -->
         <dependency>
             <groupId>org.jetbrains</groupId>
             <artifactId>annotations</artifactId>
-            <version>26.1.0</version>
+            <version>${jetbrains-annotations.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <!-- Source: https://mvnrepository.com/artifact/org.apache.maven/maven-artifact -->
+        <dependency>
+            <groupId>org.apache.maven</groupId>
+            <artifactId>maven-artifact</artifactId>
+            <version>3.9.16</version>
             <scope>provided</scope>
         </dependency>
     </dependencies>
