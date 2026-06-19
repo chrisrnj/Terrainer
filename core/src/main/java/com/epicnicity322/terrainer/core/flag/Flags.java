@@ -19,6 +19,7 @@
 package com.epicnicity322.terrainer.core.flag;
 
 import com.epicnicity322.epicpluginlib.core.logger.ConsoleLogger;
+import com.epicnicity322.epicpluginlib.core.util.PathLocker;
 import com.epicnicity322.epicpluginlib.core.util.PathUtils;
 import com.epicnicity322.terrainer.core.Terrainer;
 import com.epicnicity322.terrainer.core.config.Configurations;
@@ -442,18 +443,20 @@ public final class Flags {
 
             Path flagsPath = Configurations.FLAGS.path();
             if (Files.exists(flagsPath)) {
-                // Load flags file so that any editing the user did is not lost.
-                Configuration flags = new YamlConfigurationLoader().load(flagsPath);
+                try (PathLocker.LockToken ignored = PathLocker.lock(flagsPath)) {
+                    // Load flags file so that any editing the user did is not lost.
+                    Configuration flags = new YamlConfigurationLoader().load(flagsPath);
+                    ConfigurationSection section = flags.createSection(flag.id());
 
-                ConfigurationSection section = flags.createSection(flag.id());
-                section.set("Default", flag.formatter().apply(flag.defaultValue()));
-                if (defineValue != null) section.set("Define Value", flag.formatter().apply(defineValue));
-                section.set("Material", defaultMaterial);
-                section.set("Display Name", defaultDisplayName);
-                section.set("Lore", defaultLore);
+                    section.set("Default", flag.formatter().apply(flag.defaultValue()));
+                    if (defineValue != null) section.set("Define Value", flag.formatter().apply(defineValue));
+                    section.set("Material", defaultMaterial);
+                    section.set("Display Name", defaultDisplayName);
+                    section.set("Lore", defaultLore);
 
-                PathUtils.deleteAll(flagsPath);
-                flags.save(flagsPath);
+                    PathUtils.deleteAll(flagsPath);
+                    flags.save(flagsPath);
+                }
             }
         } catch (IOException | InvalidConfigurationException e) {
             Terrainer.logger().log("Unable to save flag '" + flag.id() + "' to flags.yml configuration:", ConsoleLogger.Level.ERROR);
@@ -491,6 +494,8 @@ public final class Flags {
 
     /**
      * Sets all currently registered flags' default value to the one specified in {@link Configurations#FLAGS}.
+     * <p>
+     * This should only be executed once there are no players online on the server, otherwise bad things could happen.
      */
     public static void loadFlagDefaults() {
         for (Flag<?> f : values) resetFlagDefault(f);
