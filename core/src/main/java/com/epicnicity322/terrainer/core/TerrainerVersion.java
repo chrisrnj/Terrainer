@@ -1,6 +1,6 @@
 /*
  * Terrainer - A minecraft terrain claiming protection plugin.
- * Copyright (C) 2024 Christiano Rangel
+ * Copyright (C) 2024-2026 Christiano Rangel
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,12 +18,12 @@
 
 package com.epicnicity322.terrainer.core;
 
-import com.epicnicity322.epicpluginlib.core.tools.Version;
+import org.apache.maven.artifact.versioning.ComparableVersion;
 import org.jetbrains.annotations.NotNull;
 
 public final class TerrainerVersion {
     public static final @NotNull String VERSION_STRING = "1.0";
-    public static final @NotNull Version VERSION = new Version(VERSION_STRING);
+    public static final @NotNull ComparableVersion VERSION = new ComparableVersion(VERSION_STRING);
 
     private TerrainerVersion() {
     }
