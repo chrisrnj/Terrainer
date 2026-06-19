@@ -21,11 +21,12 @@ package com.epicnicity322.terrainer.bukkit.command.impl;
 import com.epicnicity322.epicpluginlib.bukkit.command.CommandRunnable;
 import com.epicnicity322.epicpluginlib.bukkit.command.TabCompleteRunnable;
 import com.epicnicity322.epicpluginlib.bukkit.lang.MessageSender;
+import com.epicnicity322.epicpluginlib.core.scheduler.Scheduled;
 import com.epicnicity322.terrainer.bukkit.TerrainerPlugin;
 import com.epicnicity322.terrainer.bukkit.command.TerrainerCommand;
 import com.epicnicity322.terrainer.bukkit.listener.EnterLeaveListener;
 import com.epicnicity322.terrainer.bukkit.util.CommandUtil;
-import com.epicnicity322.terrainer.bukkit.util.TaskFactory;
+import com.epicnicity322.terrainer.core.Terrainer;
 import com.epicnicity322.terrainer.core.config.Configurations;
 import com.epicnicity322.terrainer.core.location.Coordinate;
 import com.epicnicity322.terrainer.core.terrain.Terrain;
@@ -47,7 +48,7 @@ import java.util.List;
 import java.util.UUID;
 
 public final class TeleportCommand extends TerrainerCommand implements Listener {
-    private static final @NotNull HashMap<UUID, List<TaskFactory.CancellableTask>> teleportingPlayers = new HashMap<>();
+    private static final @NotNull HashMap<UUID, List<Scheduled>> teleportingPlayers = new HashMap<>();
     private final @NotNull TerrainerPlugin plugin;
 
     public TeleportCommand(@NotNull TerrainerPlugin plugin) {
@@ -123,18 +124,18 @@ public final class TeleportCommand extends TerrainerCommand implements Listener 
                         return;
                     }
 
-                    var tasks = new ArrayList<TaskFactory.CancellableTask>(delay);
+                    var tasks = new ArrayList<Scheduled>(delay);
                     int countdown = delay;
 
                     lang.send(sender, lang.get("Teleport.Delay").replace("<delay>", Integer.toString(countdown--)));
 
                     for (int i = 1; i < delay; i++) {
                         int j = countdown--;
-                        tasks.add(plugin.getTaskFactory().runDelayed(player, i * 20L, () -> lang.send(sender, lang.get("Teleport.Delay").replace("<delay>", Integer.toString(j))), null));
+                        tasks.add(Terrainer.taskFactory().entity().delayed(player, i * 20L, t -> lang.send(sender, lang.get("Teleport.Delay").replace("<delay>", Integer.toString(j))), null));
                     }
 
                     String tName = terrain.name();
-                    tasks.add(plugin.getTaskFactory().runDelayed(player, delay * 20L, () -> {
+                    tasks.add(Terrainer.taskFactory().entity().delayed(player, delay * 20L, t -> {
                         synchronized (teleportingPlayers) {
                             teleportingPlayers.remove(pUID);
                             // Unregistering movement listener.
@@ -187,10 +188,10 @@ public final class TeleportCommand extends TerrainerCommand implements Listener 
 
         Player player = event.getPlayer();
         synchronized (teleportingPlayers) {
-            List<TaskFactory.CancellableTask> tasks = teleportingPlayers.remove(player.getUniqueId());
+            List<Scheduled> tasks = teleportingPlayers.remove(player.getUniqueId());
 
             if (tasks != null) {
-                tasks.forEach(TaskFactory.CancellableTask::cancel);
+                tasks.forEach(Scheduled::cancel);
                 TerrainerPlugin.getLanguage().send(player, TerrainerPlugin.getLanguage().get("Teleport.Error.Moved"));
 
                 // Unregistering movement listener.

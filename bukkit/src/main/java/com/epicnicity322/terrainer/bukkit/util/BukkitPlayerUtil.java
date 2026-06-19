@@ -19,6 +19,7 @@
 package com.epicnicity322.terrainer.bukkit.util;
 
 import com.epicnicity322.epicpluginlib.core.EpicPluginLib;
+import com.epicnicity322.epicpluginlib.core.scheduler.Scheduled;
 import com.epicnicity322.terrainer.bukkit.TerrainerPlugin;
 import com.epicnicity322.terrainer.bukkit.hook.NMSHandler;
 import com.epicnicity322.terrainer.core.Terrainer;
@@ -42,7 +43,7 @@ import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public final class BukkitPlayerUtil extends PlayerUtil<Player, CommandSender> {
-    private static final @NotNull HashMap<UUID, TaskFactory.CancellableTask> markerKillTasks = new HashMap<>();
+    private static final @NotNull HashMap<UUID, Scheduled> markerKillTasks = new HashMap<>();
     private final @NotNull TerrainerPlugin plugin;
     private final @NotNull NamespacedKey blockLimitKey;
     private final @NotNull NamespacedKey claimLimitKey;
@@ -122,7 +123,7 @@ public final class BukkitPlayerUtil extends PlayerUtil<Player, CommandSender> {
 
         // Ensure the potion effect is applied on the right thread.
         if (EpicPluginLib.Platform.isFolia() || !plugin.getServer().isPrimaryThread()) {
-            plugin.getTaskFactory().runDelayed(player, 1, () -> player.addPotionEffect(new PotionEffect(type, Integer.MAX_VALUE, power, false, false)), null);
+            Terrainer.taskFactory().entity().delayed(player, 1, task -> player.addPotionEffect(new PotionEffect(type, Integer.MAX_VALUE, power, false, false)), null);
         } else {
             player.addPotionEffect(new PotionEffect(type, Integer.MAX_VALUE, power, false, false));
         }
@@ -138,7 +139,7 @@ public final class BukkitPlayerUtil extends PlayerUtil<Player, CommandSender> {
         //called delayed by one tick just like #applyEffect, so calls for both methods are in sync, and there's no risk
         //of the potion effect being removed before it is applied.
         if (EpicPluginLib.Platform.isFolia() || !plugin.getServer().isPrimaryThread()) {
-            plugin.getTaskFactory().runDelayed(player, 1, () -> player.removePotionEffect(type), null);
+            Terrainer.taskFactory().entity().delayed(player, 1, task -> player.removePotionEffect(type), null);
         } else {
             player.removePotionEffect(type);
         }
@@ -150,9 +151,9 @@ public final class BukkitPlayerUtil extends PlayerUtil<Player, CommandSender> {
             // Ensure the command is dispatched on the right thread.
             if (EpicPluginLib.Platform.isFolia() || !plugin.getServer().isPrimaryThread()) {
                 if (executor == null)
-                    plugin.getTaskFactory().runGlobalTask(() -> plugin.getServer().dispatchCommand(consoleRecipient(), command));
+                    Terrainer.taskFactory().global().delayed(0, task -> plugin.getServer().dispatchCommand(consoleRecipient(), command));
                 else
-                    plugin.getTaskFactory().runDelayed(executor, 1, () -> plugin.getServer().dispatchCommand(executor, command), null);
+                    Terrainer.taskFactory().entity().delayed(executor, 1, task -> plugin.getServer().dispatchCommand(executor, command), null);
             } else {
                 plugin.getServer().dispatchCommand(executor == null ? consoleRecipient() : executor, command);
             }
@@ -238,9 +239,8 @@ public final class BukkitPlayerUtil extends PlayerUtil<Player, CommandSender> {
 
         if (showTime != 0) {
             UUID playerID = player.getUniqueId();
-            TaskFactory.CancellableTask killMarkersTask = plugin.getTaskFactory().runDelayed(player, showTime, () -> removeMarkers(player), () -> markerKillTasks.remove(playerID));
-            if (killMarkersTask == null) return;
-            TaskFactory.CancellableTask previous = markerKillTasks.put(playerID, killMarkersTask);
+            Scheduled killMarkersTask = Terrainer.taskFactory().entity().delayed(player, showTime, task -> removeMarkers(player), () -> markerKillTasks.remove(playerID));
+            Scheduled previous = markerKillTasks.put(playerID, killMarkersTask);
             if (previous != null) previous.cancel();
         }
     }
@@ -248,7 +248,7 @@ public final class BukkitPlayerUtil extends PlayerUtil<Player, CommandSender> {
     @Override
     public void removeMarkers(@NotNull Player player) {
         super.removeMarkers(player);
-        TaskFactory.CancellableTask task = markerKillTasks.remove(player.getUniqueId());
+        Scheduled task = markerKillTasks.remove(player.getUniqueId());
         if (task != null) task.cancel();
     }
 

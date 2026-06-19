@@ -22,10 +22,13 @@ import com.epicnicity322.epicpluginlib.bukkit.command.CommandManager;
 import com.epicnicity322.epicpluginlib.bukkit.lang.MessageSender;
 import com.epicnicity322.epicpluginlib.bukkit.logger.Logger;
 import com.epicnicity322.epicpluginlib.bukkit.reflection.ReflectionUtil;
+import com.epicnicity322.epicpluginlib.bukkit.scheduler.BukkitTaskFactory;
+import com.epicnicity322.epicpluginlib.bukkit.scheduler.FoliaTaskFactory;
 import com.epicnicity322.epicpluginlib.core.EpicPluginLib;
 import com.epicnicity322.epicpluginlib.core.config.ConfigurationHolder;
 import com.epicnicity322.epicpluginlib.core.logger.ConsoleLogger;
-import com.epicnicity322.epicpluginlib.core.tools.GitHubUpdateChecker;
+import com.epicnicity322.epicpluginlib.core.scheduler.Scheduled;
+import com.epicnicity322.epicpluginlib.core.updater.GitHubUpdateChecker;
 import com.epicnicity322.terrainer.bukkit.command.TerrainerCommand;
 import com.epicnicity322.terrainer.bukkit.command.impl.*;
 import com.epicnicity322.terrainer.bukkit.event.flag.FlagSetEvent;
@@ -40,7 +43,6 @@ import com.epicnicity322.terrainer.bukkit.hook.nms.ReflectionHookOptions;
 import com.epicnicity322.terrainer.bukkit.hook.placeholderapi.TerrainerPlaceholderExpansion;
 import com.epicnicity322.terrainer.bukkit.listener.*;
 import com.epicnicity322.terrainer.bukkit.util.BukkitPlayerUtil;
-import com.epicnicity322.terrainer.bukkit.util.TaskFactory;
 import com.epicnicity322.terrainer.bukkit.util.ToggleableListener;
 import com.epicnicity322.terrainer.core.Terrainer;
 import com.epicnicity322.terrainer.core.TerrainerVersion;
@@ -48,6 +50,7 @@ import com.epicnicity322.terrainer.core.config.Configurations;
 import com.epicnicity322.terrainer.core.flag.Flags;
 import com.epicnicity322.terrainer.core.terrain.TerrainManager;
 import com.epicnicity322.terrainer.core.util.PlayerUtil;
+import com.epicnicity322.terrainer.core.util.TerrainerDailyTimer;
 import com.epicnicity322.yamlhandler.Configuration;
 import com.epicnicity322.yamlhandler.ConfigurationSection;
 import org.bukkit.Bukkit;
@@ -83,7 +86,7 @@ public final class TerrainerPlugin extends JavaPlugin {
     private static final @NotNull TreeSet<Map.Entry<String, Integer>> defaultClaimLimits = new TreeSet<>(Comparator.comparingInt((ToIntFunction<Map.Entry<String, Integer>>) Map.Entry::getValue).reversed().thenComparing(Map.Entry::getKey));
     private static final @NotNull AtomicBoolean nestedTerrainsCountTowardsBlockLimit = new AtomicBoolean(false), perWorldBlockLimit = new AtomicBoolean(false), perWorldClaimLimit = new AtomicBoolean(false), sumIfTheresMultipleBlockLimitPermissions = new AtomicBoolean(true), sumIfTheresMultipleClaimLimitPermissions = new AtomicBoolean(true);
     private static final @NotNull AtomicBoolean updateFound = new AtomicBoolean(false);
-    private static final @NotNull AtomicReference<TaskFactory.CancellableTask> updateChecker = new AtomicReference<>();
+    private static final @NotNull AtomicReference<Scheduled> updateChecker = new AtomicReference<>();
     private static @Nullable TerrainerPlugin instance;
     private static @Nullable EconomyHandler economyHandler;
     private static boolean geyserHook = false;
@@ -101,8 +104,7 @@ public final class TerrainerPlugin extends JavaPlugin {
     }
 
     private final @NotNull BukkitPlayerUtil playerUtil = new BukkitPlayerUtil(this, getNMSHandler(), defaultBlockLimits, defaultClaimLimits, nestedTerrainsCountTowardsBlockLimit, perWorldBlockLimit, perWorldClaimLimit, sumIfTheresMultipleBlockLimitPermissions, sumIfTheresMultipleClaimLimitPermissions);
-    private final @NotNull TaskFactory taskFactory = new TaskFactory(this);
-    private final @NotNull BordersCommand bordersCommand = new BordersCommand(this);
+    private final @NotNull BordersCommand bordersCommand = new BordersCommand();
     private final @NotNull InfoCommand infoCommand = new InfoCommand(bordersCommand);
     private final @NotNull SelectionListener selectionListener = new SelectionListener(new NamespacedKey(this, "selector-wand"), new NamespacedKey(this, "info-wand"), infoCommand);
     private final @NotNull Set<TerrainerCommand> commands = Set.of(bordersCommand, new ClaimCommand(), new ConfirmCommand(), new DefineCommand(), new DeleteCommand(), new DescriptionCommand(), new FlagCommand(), new PermissionCommand.GrantCommand(), new PermissionCommand.RevokeCommand(), infoCommand, new LimitCommand(), new ListCommand(infoCommand), new PosCommand.Pos1Command(), new PosCommand.Pos2Command(), new Pos3DCommand.Pos13DCommand(), new Pos3DCommand.Pos23DCommand(), new PriorityCommand(), new ReloadCommand(), new RenameCommand(), new ResizeCommand(), new ShopCommand(), new TeleportCommand(this), new TransferCommand(), new WandCommand());
@@ -120,8 +122,9 @@ public final class TerrainerPlugin extends JavaPlugin {
         instance = this;
         reloadDetected = !getServer().getWorlds().isEmpty() || !getServer().getOnlinePlayers().isEmpty();
         Terrainer.setPlayerUtil(playerUtil);
+        Terrainer.setTaskFactory(EpicPluginLib.Platform.hasThreadedRegions() ? new FoliaTaskFactory(this) : new BukkitTaskFactory(this));
         logger.setLogger(getLogger());
-        protectionsListener = new ProtectionsListener(this, bordersCommand);
+        protectionsListener = new ProtectionsListener(bordersCommand);
         pistonListener = new PistonListener(protectionsListener);
         blockFromToListener = new BlockFromToListener(protectionsListener);
         creatureSpawnListener = new CreatureSpawnListener(protectionsListener);
@@ -354,9 +357,9 @@ public final class TerrainerPlugin extends JavaPlugin {
             e.printStackTrace();
         }
 
-        taskFactory.runGlobalAsyncTask(() -> {
+        Terrainer.taskFactory().global().delayed(1, task -> {
             // Daily tasks once all worlds are loaded. (Terrain pruner, taxes, etc...)
-            Terrainer.loadDailyTimer();
+            TerrainerDailyTimer.loadDailyTimer();
             HandlerList.unregisterAll(preLoginListener);
             if (reloadDetected) {
                 logger.log("You should never reload Terrainer, otherwise bad things could happen, such as: Protections failing, players keeping infinite potion effects, or some terrains ceasing to exist!", ConsoleLogger.Level.ERROR);
@@ -385,12 +388,8 @@ public final class TerrainerPlugin extends JavaPlugin {
             }
         }
 
-        Terrainer.stopDailyTimer();
+        TerrainerDailyTimer.stopDailyTimer();
         TerrainManager.save();
-    }
-
-    public @NotNull TaskFactory getTaskFactory() {
-        return taskFactory;
     }
 
     private void loadCommands() {
@@ -440,16 +439,16 @@ public final class TerrainerPlugin extends JavaPlugin {
         if (updateFound.get()) return;
 
         if (!Configurations.CONFIG.config().getBoolean("Update Checker.Enabled").orElse(true)) {
-            TaskFactory.CancellableTask updaterTask = updateChecker.getAndSet(null);
+            Scheduled updaterTask = updateChecker.getAndSet(null);
             if (updaterTask != null) updaterTask.cancel();
             return;
         }
 
         if (updateChecker.get() == null) {
-            GitHubUpdateChecker updater = new GitHubUpdateChecker("chrisrnj/Terrainer", TerrainerVersion.VERSION);
+            GitHubUpdateChecker updater = new GitHubUpdateChecker("chrisrnj/Terrainer", TerrainerVersion.VERSION, Terrainer.taskFactory().async());
             AtomicBoolean sentFirstMessage = new AtomicBoolean(false);
 
-            TaskFactory.CancellableTask updaterTask = taskFactory.runGlobalTaskAtFixedRate(checkerTask -> {
+            Scheduled updaterTask = Terrainer.taskFactory().global().repeating(0, 72000, checkerTask -> {
                 boolean log = !sentFirstMessage.getAndSet(true) || Configurations.CONFIG.config().getBoolean("Update Checker.Log Messages").orElse(false);
 
                 if (log) logger.log("&7Checking for updates...");
@@ -463,23 +462,23 @@ public final class TerrainerPlugin extends JavaPlugin {
 
                         if (!updateFound.getAndSet(true)) {
                             // Alert task.
-                            taskFactory.runGlobalTaskAtFixedRate(task -> logger.log("Update v" + version + " available! Download at https://github.com/chrisrnj/Terrainer/releases/latest"), 72000);
+                            Terrainer.taskFactory().global().repeating(0, 72000, task -> logger.log("Update v" + version + " available! Download at https://github.com/chrisrnj/Terrainer/releases/latest"));
                             // Alert message.
                             getServer().getPluginManager().registerEvents(new Listener() {
                                 @EventHandler
                                 public void onJoin(PlayerJoinEvent event) {
                                     Player player = event.getPlayer();
                                     if (player.hasPermission("terrainer.updateavailablealert")) {
-                                        lang.send(player, false, lang.get("Update Available").replace("<version>", version.getVersion()));
+                                        lang.send(player, false, lang.get("Update Available").replace("<version>", version.getCanonical()));
                                     }
                                 }
                             }, this);
                         }
                     }
-                }, (result, exception) -> {
+                }, result -> {
                     if (log) logger.log("&cCould not check for updates.");
                 });
-            }, 72000);
+            });
 
             updateChecker.set(updaterTask);
         }

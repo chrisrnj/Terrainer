@@ -20,36 +20,17 @@ package com.epicnicity322.terrainer.core;
 
 import com.epicnicity322.epicpluginlib.core.lang.LanguageHolder;
 import com.epicnicity322.epicpluginlib.core.logger.ConsoleLogger;
-import com.epicnicity322.epicpluginlib.core.util.PathUtils;
+import com.epicnicity322.epicpluginlib.core.scheduler.TaskFactoryProvider;
 import com.epicnicity322.terrainer.core.config.Configurations;
 import com.epicnicity322.terrainer.core.util.PlayerUtil;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.UnknownNullability;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.LocalTime;
-import java.time.ZonedDateTime;
-import java.time.format.DateTimeParseException;
-import java.time.temporal.ChronoUnit;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.TimeUnit;
-
 public final class Terrainer {
-    private static final @NotNull Path LAST_DISABLE_TIME = Configurations.DATA_FOLDER.resolve(".last");
-    private static final @NotNull ScheduledExecutorService dailyTimerExecutor = Executors.newSingleThreadScheduledExecutor();
     private static @NotNull ConsoleLogger<?> logger = ConsoleLogger.simpleLogger("&8[&4Terrainer&8]&7 ");
     private static @NotNull LanguageHolder<?, ?> lang = LanguageHolder.simpleLanguage(() -> "", Configurations.LANG_EN_US.defaultConfig());
     private static @UnknownNullability PlayerUtil<?, ?> playerUtil = null;
-    private static @UnknownNullability Runnable terrainPruner = null;
-    private static volatile @Nullable ScheduledFuture<?> dailyTimer;
-    private static volatile @Nullable LocalDate timeBeforeDailyTimerStarted;
+    private static @UnknownNullability TaskFactoryProvider<?, ?> taskFactoryProvider = null;
 
     private Terrainer() {
     }
@@ -74,96 +55,19 @@ public final class Terrainer {
         return playerUtil;
     }
 
-    public static void setPlayerUtil(@NotNull PlayerUtil<?, ?> playerUtil) {
+    public static synchronized void setPlayerUtil(@NotNull PlayerUtil<?, ?> playerUtil) {
+        if (Terrainer.playerUtil != null) throw new IllegalStateException("PlayerUtil was already initialized.");
         Terrainer.playerUtil = playerUtil;
     }
 
-    private static @UnknownNullability Runnable terrainPruner() {
-        return terrainPruner;
+    @SuppressWarnings("unchecked")
+    public static <W, E> @UnknownNullability TaskFactoryProvider<W, E> taskFactory() {
+        return (TaskFactoryProvider<W, E>) taskFactoryProvider;
     }
 
-    public static void setTerrainPruner(@NotNull Runnable terrainPruner) {
-        Terrainer.terrainPruner = terrainPruner;
-    }
-
-    public static synchronized void loadDailyTimer() {
-        if (dailyTimer != null) return;
-
-        boolean dayChangeSinceLastTime = false;
-
-        if (Files.exists(LAST_DISABLE_TIME)) {
-            try {
-                ZonedDateTime lastDisableTime = ZonedDateTime.parse(Files.readString(LAST_DISABLE_TIME));
-                dayChangeSinceLastTime = lastDisableTime.until(ZonedDateTime.now(), ChronoUnit.DAYS) >= 1;
-            } catch (IOException | DateTimeParseException e) {
-                logger.log("Failed to read the time when the plugin was last disabled.", ConsoleLogger.Level.ERROR);
-                e.printStackTrace();
-            }
-        }
-
-        Runnable dailyRunnable = dailyRunnable();
-
-        if (dayChangeSinceLastTime) {
-            logger.log("A day change has been detected since the plugin was last disabled. Performing Terrainer's daily tasks now.");
-            dailyRunnable.run();
-            return;
-        }
-
-        scheduleDailyRunnable();
-    }
-
-    private static long minutesUntilNextDay() {
-        return LocalDateTime.now().until(LocalDateTime.of(LocalDate.now().plusDays(1), LocalTime.MIDNIGHT).plusMinutes(1), ChronoUnit.MINUTES);
-    }
-
-    private static @NotNull Runnable dailyRunnable() {
-        return () -> {
-            // Checking if a day has really passed. If not, run the scheduler again.
-            LocalDate timeBeforeDailyTimerStarted1 = timeBeforeDailyTimerStarted;
-            if (timeBeforeDailyTimerStarted1 != null && timeBeforeDailyTimerStarted1.until(LocalDate.now(), ChronoUnit.DAYS) <= 0) {
-                logger.log("Timer ran before a day has really passed. Re-scheduling.", ConsoleLogger.Level.WARN);
-                scheduleDailyRunnable();
-                return;
-            }
-
-            logger.log("A day has passed!");
-
-            // TODO: Daily tasks, such as: collecting taxes
-
-            try {
-                Runnable terrainPruner = terrainPruner();
-                if (terrainPruner != null) terrainPruner.run();
-            } catch (Throwable t) {
-                logger.log("Unknown error when running terrain pruner.", ConsoleLogger.Level.ERROR);
-                t.printStackTrace();
-            }
-
-            // Re-scheduling.
-            scheduleDailyRunnable();
-        };
-    }
-
-    private static synchronized void scheduleDailyRunnable() {
-        ScheduledFuture<?> dailyTimer1 = dailyTimer;
-        if (dailyTimer1 != null) dailyTimer1.cancel(true);
-
-        timeBeforeDailyTimerStarted = LocalDate.now();
-        dailyTimer = dailyTimerExecutor.schedule(dailyRunnable(), minutesUntilNextDay(), TimeUnit.MINUTES);
-    }
-
-    public static synchronized void stopDailyTimer() {
-        ScheduledFuture<?> dailyTimer1 = dailyTimer;
-        if (dailyTimer1 != null) {
-            dailyTimer1.cancel(true);
-            dailyTimer = null;
-        }
-
-        try {
-            Files.deleteIfExists(LAST_DISABLE_TIME);
-            PathUtils.write(ZonedDateTime.now().toString(), LAST_DISABLE_TIME);
-        } catch (IOException e) {
-            logger.log("Failed to save the time the plugin was last disabled.", ConsoleLogger.Level.ERROR);
-            e.printStackTrace();
-        }
+    public static synchronized void setTaskFactory(@NotNull TaskFactoryProvider<?, ?> taskFactoryProvider) {
+        if (Terrainer.taskFactoryProvider != null)
+            throw new IllegalStateException("TaskFactoryProvider was already initialized.");
+        Terrainer.taskFactoryProvider = taskFactoryProvider;
     }
 }

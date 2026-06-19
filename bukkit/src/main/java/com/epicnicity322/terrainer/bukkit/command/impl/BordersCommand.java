@@ -19,10 +19,10 @@
 package com.epicnicity322.terrainer.bukkit.command.impl;
 
 import com.epicnicity322.epicpluginlib.bukkit.command.CommandRunnable;
-import com.epicnicity322.terrainer.bukkit.TerrainerPlugin;
+import com.epicnicity322.epicpluginlib.core.EpicPluginLib;
+import com.epicnicity322.epicpluginlib.core.scheduler.Scheduled;
 import com.epicnicity322.terrainer.bukkit.command.TerrainerCommand;
 import com.epicnicity322.terrainer.bukkit.util.CommandUtil;
-import com.epicnicity322.terrainer.bukkit.util.TaskFactory;
 import com.epicnicity322.terrainer.core.Terrainer;
 import com.epicnicity322.terrainer.core.config.Configurations;
 import com.epicnicity322.terrainer.core.location.Coordinate;
@@ -39,13 +39,8 @@ import java.util.*;
  * A command that toggles the showing of border particles to the player.
  */
 public final class BordersCommand extends TerrainerCommand {
-    private static final @NotNull HashMap<UUID, TaskFactory.CancellableTask> viewers = new HashMap<>();
-    private final @NotNull TerrainerPlugin plugin;
+    private static final @NotNull HashMap<UUID, Scheduled> viewers = new HashMap<>();
     private @NotNull Particle particle = Particle.CLOUD;
-
-    public BordersCommand(@NotNull TerrainerPlugin plugin) {
-        this.plugin = plugin;
-    }
 
     @Override
     public @NotNull String name() {
@@ -119,14 +114,20 @@ public final class BordersCommand extends TerrainerCommand {
             };
 
             long frequency = config.getNumber("Borders.Frequency").orElse(5).longValue();
-            TaskFactory.CancellableTask particleTask = plugin.getTaskFactory().runAtFixedRate(player, frequency, config.getBoolean("Borders.Async").orElse(false), particleRunnable, () -> stopShowingBorders(playerID));
-            if (particleTask != null) viewers.put(playerID, particleTask);
+            Scheduled particleTask;
+
+            if (!EpicPluginLib.Platform.isFolia() && config.getBoolean("Borders.Async").orElse(false)) {
+                particleTask = Terrainer.taskFactory().async().repeating(0, frequency, t -> particleRunnable.run());
+            } else {
+                particleTask = Terrainer.taskFactory().entity().repeating(player, 0, frequency, t -> particleRunnable.run(), () -> stopShowingBorders(playerID));
+            }
+            viewers.put(playerID, particleTask);
         }
     }
 
     public void stopShowingBorders(@NotNull UUID player) {
         synchronized (viewers) {
-            TaskFactory.CancellableTask particleTask = viewers.remove(player);
+            Scheduled particleTask = viewers.remove(player);
             if (particleTask != null) particleTask.cancel();
         }
     }

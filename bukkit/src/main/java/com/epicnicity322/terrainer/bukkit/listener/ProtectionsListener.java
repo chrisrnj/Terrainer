@@ -21,6 +21,7 @@ package com.epicnicity322.terrainer.bukkit.listener;
 import com.epicnicity322.epicpluginlib.bukkit.lang.MessageSender;
 import com.epicnicity322.epicpluginlib.bukkit.reflection.ReflectionUtil;
 import com.epicnicity322.epicpluginlib.core.logger.ConsoleLogger;
+import com.epicnicity322.epicpluginlib.core.scheduler.Scheduled;
 import com.epicnicity322.terrainer.bukkit.TerrainerPlugin;
 import com.epicnicity322.terrainer.bukkit.command.impl.BordersCommand;
 import com.epicnicity322.terrainer.bukkit.event.terrain.TerrainCanEnterEvent;
@@ -28,7 +29,6 @@ import com.epicnicity322.terrainer.bukkit.event.terrain.TerrainCanLeaveEvent;
 import com.epicnicity322.terrainer.bukkit.event.terrain.TerrainEnterEvent;
 import com.epicnicity322.terrainer.bukkit.event.terrain.TerrainLeaveEvent;
 import com.epicnicity322.terrainer.bukkit.util.BlockStateToBlockMapping;
-import com.epicnicity322.terrainer.bukkit.util.TaskFactory;
 import com.epicnicity322.terrainer.core.Terrainer;
 import com.epicnicity322.terrainer.core.flag.Flag;
 import com.epicnicity322.terrainer.core.flag.Flags;
@@ -87,12 +87,10 @@ public final class ProtectionsListener extends Protections<Player, CommandSender
     }
 
     private final @NotNull MessageSender lang = TerrainerPlugin.getLanguage();
-    private final @NotNull TerrainerPlugin plugin;
     private final @NotNull BordersCommand bordersCommand;
 
-    public ProtectionsListener(@NotNull TerrainerPlugin plugin, @NotNull BordersCommand bordersCommand) {
+    public ProtectionsListener(@NotNull BordersCommand bordersCommand) {
         super(TerrainerPlugin.getPlayerUtil(), TerrainerPlugin.getLanguage());
-        this.plugin = plugin;
         this.bordersCommand = bordersCommand;
     }
 
@@ -835,13 +833,13 @@ public final class ProtectionsListener extends Protections<Player, CommandSender
                 bossBarTasks.remove(playerID);
                 bar.removePlayer(player);
             };
-            TaskFactory.CancellableTask task = plugin.getTaskFactory().runDelayed(player, 100, barRemoverRunnable, barRemoverRunnable);
+            Scheduled task = Terrainer.taskFactory().entity().delayed(player, 100, t -> barRemoverRunnable.run(), barRemoverRunnable);
 
             // Adding bar to current alive boss bars.
-            if (task != null) bossBarTasks.put(playerID, new BossBarTask(bar, new AtomicReference<>(task)));
+            bossBarTasks.put(playerID, new BossBarTask(bar, new AtomicReference<>(task)));
         } else {
             BossBar bar = previous.bar;
-            AtomicReference<TaskFactory.CancellableTask> barRemoverTask = previous.task;
+            AtomicReference<Scheduled> barRemoverTask = previous.task;
             bar.setTitle(message);
 
             // Cancelling previous bar remover task and starting it again.
@@ -850,13 +848,12 @@ public final class ProtectionsListener extends Protections<Player, CommandSender
                 bossBarTasks.remove(playerID);
                 bar.removePlayer(player);
             };
-            TaskFactory.CancellableTask task = plugin.getTaskFactory().runDelayed(player, 100, barRemoverRunnable, barRemoverRunnable);
+            Scheduled task = Terrainer.taskFactory().entity().delayed(player, 100, t -> barRemoverRunnable.run(), barRemoverRunnable);
 
-            if (task != null) barRemoverTask.set(task);
+            barRemoverTask.set(task);
         }
     }
 
-    private record BossBarTask(@NotNull BossBar bar,
-                               @NotNull AtomicReference<TaskFactory.@NotNull CancellableTask> task) {
+    private record BossBarTask(@NotNull BossBar bar, @NotNull AtomicReference<Scheduled> task) {
     }
 }
