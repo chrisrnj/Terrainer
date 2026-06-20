@@ -34,6 +34,7 @@ import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.UnknownNullability;
 
 import java.lang.ref.WeakReference;
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -128,6 +129,14 @@ public abstract class PlayerUtil<P extends R, R> {
             resizingTerrains.put(player == null ? consoleUUID : player, new WeakReference<>(terrain));
         }
     }
+
+    /**
+     * Gets the last date time the player owning the UUID has joined the server.
+     *
+     * @param player The player's unique ID.
+     * @return The last time the player joined the server.
+     */
+    public abstract @Nullable LocalDateTime lastSeen(@NotNull UUID player);
 
     public abstract boolean canFly(@NotNull P player);
 

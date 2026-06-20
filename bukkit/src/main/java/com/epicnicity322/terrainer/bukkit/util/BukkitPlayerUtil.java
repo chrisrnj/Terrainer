@@ -28,6 +28,7 @@ import com.epicnicity322.terrainer.core.location.Coordinate;
 import com.epicnicity322.terrainer.core.location.WorldCoordinate;
 import com.epicnicity322.terrainer.core.util.PlayerUtil;
 import com.epicnicity322.yamlhandler.Configuration;
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.NamespacedKey;
 import org.bukkit.command.CommandSender;
@@ -39,6 +40,9 @@ import org.bukkit.potion.PotionEffectType;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -58,6 +62,13 @@ public final class BukkitPlayerUtil extends PlayerUtil<Player, CommandSender> {
         blockLimitKey = new NamespacedKey(plugin, "block-limit");
         claimLimitKey = new NamespacedKey(plugin, "claim-limit");
         resetFlyKey = new NamespacedKey(plugin, "reset-fly-on-leave");
+    }
+
+    @Override
+    public @Nullable LocalDateTime lastSeen(@NotNull UUID player) {
+        long lastSeen = Bukkit.getOfflinePlayer(player).getLastSeen();
+        if (lastSeen == 0) return null;
+        return LocalDateTime.ofInstant(Instant.ofEpochMilli(lastSeen), ZoneId.systemDefault());
     }
 
     @Override
