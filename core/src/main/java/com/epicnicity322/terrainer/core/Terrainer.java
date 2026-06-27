@@ -20,17 +20,22 @@ package com.epicnicity322.terrainer.core;
 
 import com.epicnicity322.epicpluginlib.core.lang.LanguageHolder;
 import com.epicnicity322.epicpluginlib.core.logger.ConsoleLogger;
+import com.epicnicity322.epicpluginlib.core.scheduler.ExecutorTaskFactory;
 import com.epicnicity322.epicpluginlib.core.scheduler.TaskFactoryProvider;
 import com.epicnicity322.terrainer.core.config.Configurations;
 import com.epicnicity322.terrainer.core.util.PlayerUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.UnknownNullability;
 
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+
 public final class Terrainer {
+    private static final @NotNull ScheduledExecutorService taskFactoryExecutor = Executors.newSingleThreadScheduledExecutor();
     private static @NotNull ConsoleLogger<?> logger = ConsoleLogger.simpleLogger("&8[&4Terrainer&8]&7 ");
     private static @NotNull LanguageHolder<?, ?> lang = LanguageHolder.simpleLanguage(() -> "", Configurations.LANG_EN_US.defaultConfig());
     private static @UnknownNullability PlayerUtil<?, ?> playerUtil = null;
-    private static @UnknownNullability TaskFactoryProvider<?, ?> taskFactoryProvider = null;
+    private static @NotNull TaskFactoryProvider<?, ?> taskFactoryProvider = new ExecutorTaskFactory(taskFactoryExecutor);
 
     private Terrainer() {
     }
@@ -61,13 +66,14 @@ public final class Terrainer {
     }
 
     @SuppressWarnings("unchecked")
-    public static <W, E> @UnknownNullability TaskFactoryProvider<W, E> taskFactory() {
+    public static <W, E> @NotNull TaskFactoryProvider<W, E> taskFactory() {
         return (TaskFactoryProvider<W, E>) taskFactoryProvider;
     }
 
     public static synchronized void setTaskFactory(@NotNull TaskFactoryProvider<?, ?> taskFactoryProvider) {
-        if (Terrainer.taskFactoryProvider != null)
+        if (taskFactoryExecutor.isShutdown())
             throw new IllegalStateException("TaskFactoryProvider was already initialized.");
+        taskFactoryExecutor.shutdown();
         Terrainer.taskFactoryProvider = taskFactoryProvider;
     }
 }

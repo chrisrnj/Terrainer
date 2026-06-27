@@ -45,7 +45,6 @@ public final class TerrainerDailyTimer {
     private static volatile @Nullable LocalDate timeBeforeDailyTimerStarted;
 
     public static void loadDailyTimer() {
-        if (Terrainer.taskFactory() == null) throw new IllegalStateException("Terrainer#taskFactory is not available.");
         if (Terrainer.playerUtil() == null) throw new IllegalStateException("Terrainer#playerUtil is not available.");
 
         synchronized (Terrainer.class) {
