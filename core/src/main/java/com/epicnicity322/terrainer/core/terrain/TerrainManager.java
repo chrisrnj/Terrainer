@@ -19,6 +19,7 @@
 package com.epicnicity322.terrainer.core.terrain;
 
 import com.epicnicity322.epicpluginlib.core.logger.ConsoleLogger;
+import com.epicnicity322.epicpluginlib.core.scheduler.Scheduled;
 import com.epicnicity322.epicpluginlib.core.util.PathUtils;
 import com.epicnicity322.terrainer.core.Terrainer;
 import com.epicnicity322.terrainer.core.config.Configurations;
@@ -44,7 +45,7 @@ import java.nio.file.FileVisitOption;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
-import java.util.concurrent.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
 
@@ -80,7 +81,7 @@ public final class TerrainManager {
      * A set with all the terrains to be deleted by the auto-saver.
      * Initial capacity of 4 because there usually isn't a ton of players deleting their terrains at the same time.
      */
-    private static final @NotNull Set<Terrain> terrainsToRemove = ConcurrentHashMap.newKeySet(4);
+    private static final @NotNull Set<UUID> terrainsToRemove = ConcurrentHashMap.newKeySet(4);
 
     // Usually there's only one listener for these events: the one to be used internally by Terrainer.
     private static final @NotNull ArrayList<Predicate<ITerrainAddEvent>> onAddListeners = new ArrayList<>(2);
@@ -88,8 +89,7 @@ public final class TerrainManager {
     private static final @NotNull ArrayList<Predicate<IFlagSetEvent<?>>> onFlagSetListeners = new ArrayList<>(2);
     private static final @NotNull ArrayList<Predicate<IFlagUnsetEvent<?>>> onFlagUnsetListeners = new ArrayList<>(2);
 
-    private static final @NotNull ScheduledExecutorService autoSaveExecutor = Executors.newSingleThreadScheduledExecutor();
-    private static volatile @Nullable ScheduledFuture<?> autoSave = null;
+    private static @Nullable Scheduled autoSave = null;
 
     private TerrainManager() {
     }
@@ -215,7 +215,7 @@ public final class TerrainManager {
 
         if (callEvents) {
             // Adding this terrain on the list to be removed and loading the auto saver.
-            terrainsToRemove.add(found);
+            terrainsToRemove.add(found.id);
             loadAutoSave();
         }
 
@@ -834,13 +834,13 @@ public final class TerrainManager {
     }
 
     /**
-     * Reads all terrains from disk and registers them into the terrains list. No existing terrains are actually updated,
-     * this only deserializes {@link Terrain} objects in {@link #TERRAINS_FOLDER} and adds them to the terrains list using
-     * {@link TerrainManager#addWithoutAutoSave(Terrain, boolean)}.
+     * Deserializes saved terrains from disk and loads them into registered terrains using {@link #addWithoutAutoSave(Terrain, boolean)}.
+     * <p>
+     * Existing terrains are not updated unless a terrain with same ID is found.
      *
      * @see #save()
      */
-    public static void load() throws IOException {
+    public static synchronized void load() throws IOException {
         if (Files.notExists(TERRAINS_FOLDER)) {
             Files.createDirectories(TERRAINS_FOLDER);
             return;
@@ -880,58 +880,36 @@ public final class TerrainManager {
     }
 
     /**
-     * Saves any terrains that had changes into disk.
-     * <p>
-     * Terrains are serialized into .terrain files in {@link #TERRAINS_FOLDER}.
+     * Saves any terrains that are marked {@link Terrain#changed} into disk, and deletes any terrains that were
+     * scheduled for removal in {@link #terrainsToRemove}.
      */
-    public static void save() {
+    public static synchronized void save() {
         Terrainer.logger().log("Saving terrain changes.");
 
         // Make sure autoSave is shutdown, so when this method is called on disable, the autoSave stops running.
-        synchronized (TerrainManager.class) {
-            ScheduledFuture<?> autoSave1 = autoSave;
-            if (autoSave1 != null) {
-                autoSave1.cancel(true);
-                autoSave = null;
-            }
+        if (autoSave != null) {
+            autoSave.cancel();
+            autoSave = null;
         }
 
-        synchronized (terrainsToRemove) {
-            for (Terrain terrain : terrainsToRemove) {
-                try {
-                    TerrainStorageManager.delete(terrain);
-                } catch (IOException e) {
-                    Terrainer.logger().log("Unable to remove '" + terrain.id + "' terrain from " + TERRAINS_FOLDER.getFileName() + " folder:", ConsoleLogger.Level.ERROR);
-                    e.printStackTrace();
-                    Terrainer.logger().log("The terrain will still exist when the server restarts!", ConsoleLogger.Level.ERROR);
-                }
+        for (UUID terrainId : terrainsToRemove) {
+            try {
+                TerrainStorageManager.delete(terrainId);
+            } catch (IOException e) {
+                Terrainer.logger().log("Unable to remove the terrain " + terrainId + " from " + TERRAINS_FOLDER.getFileName() + " folder:", ConsoleLogger.Level.ERROR);
+                e.printStackTrace();
+                Terrainer.logger().log("The terrain will still exist when the server restarts!", ConsoleLogger.Level.ERROR);
             }
-            terrainsToRemove.clear();
         }
+        terrainsToRemove.clear();
 
-        synchronized (registeredTerrains) {
-            // Saving changed terrains.
-            for (Terrain terrain : allTerrains()) {
-                if (!terrain.changed) continue;
+        // Saving changed terrains.
+        for (Terrain terrain : allTerrains()) {
+            if (!terrain.changed) continue;
 
-                terrain.changed = false;
-
-                try {
-                    TerrainStorageManager.delete(terrain);
-                } catch (Exception e) {
-                    Terrainer.logger().log("Error while deleting old terrain file of '" + terrain.id + "':", ConsoleLogger.Level.ERROR);
-                    e.printStackTrace();
-                    Terrainer.logger().log("Changes were not saved for terrain '" + terrain.id + "' (" + terrain.name + ") and it will be reset when the server restarts.", ConsoleLogger.Level.ERROR);
-                    continue;
-                }
-
-                try {
-                    TerrainStorageManager.save(terrain);
-                } catch (Exception e) {
-                    Terrainer.logger().log("Error while saving terrain '" + terrain.id + "':", ConsoleLogger.Level.ERROR);
-                    e.printStackTrace();
-                    Terrainer.logger().log("The terrain '" + terrain.id + "' (" + terrain.name + ") was deleted, but could not be saved again. The terrain will not exist when the server restarts.", ConsoleLogger.Level.ERROR);
-                }
+            try {
+                TerrainStorageManager.save(terrain);
+            } catch (Exception ignored) {
             }
         }
     }
@@ -942,7 +920,7 @@ public final class TerrainManager {
      */
     static synchronized void loadAutoSave() {
         if (autoSave != null) return;
-        autoSave = autoSaveExecutor.schedule(TerrainManager::save, 10, TimeUnit.MINUTES);
+        autoSave = Terrainer.taskFactory().async().delayed(12000, task -> TerrainManager.save());
     }
 
     /**

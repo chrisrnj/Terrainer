@@ -44,7 +44,7 @@ public final class Configurations {
             
             # How terrains are saved in disk.
             # SQL - Saves terrains in a single database file.
-            # FLAT_FILE - Terrain objects are serialized directly to files.
+            # SERIALIZED - Terrain objects are serialized directly to files.
             # YAML - Terrains are saved as nice and readable YAML files.
             Storage Type: YAML
             
@@ -298,6 +298,7 @@ public final class Configurations {
               # Set to 0 to disable, or grant the permission 'terrainer.teleport.nodelay'
               Movement Check Delay: 3 #seconds
             
+            # The amount of time potion effects from 'EFFECTS' flag last.
             Potion Effect Permanence: 10000000
             
             # Terrains can be purged when the user has not logged in over a certain amount of days.
@@ -316,6 +317,13 @@ public final class Configurations {
               Selector Wand: 7200
               # Bypass permission: 'terrainer.bypass.cooldown.transfer'
               Transfer: 900 # Same as sell command's cooldown.
+            
+            # Auto deletes terrains from players that haven't joined the server in a while.
+            Auto Purge:
+              Enabled: true
+              # Players who don't log in after this number of days will have their terrains deleted, unless they have
+              # the permission 'terrainer.bypass.purge'.
+              Max Days: 90
             
             List:
               Chat:
