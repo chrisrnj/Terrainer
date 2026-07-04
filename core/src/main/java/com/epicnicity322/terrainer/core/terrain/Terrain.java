@@ -19,14 +19,12 @@
 package com.epicnicity322.terrainer.core.terrain;
 
 import com.epicnicity322.terrainer.core.Terrainer;
-import com.epicnicity322.terrainer.core.config.Configurations;
 import com.epicnicity322.terrainer.core.flag.Flag;
 import com.epicnicity322.terrainer.core.flag.Flags;
 import com.epicnicity322.terrainer.core.location.Chunk;
 import com.epicnicity322.terrainer.core.location.Coordinate;
 import com.epicnicity322.terrainer.core.location.WorldCoordinate;
 import com.epicnicity322.terrainer.core.util.PlayerUtil;
-import com.epicnicity322.yamlhandler.Configuration;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.Unmodifiable;
@@ -48,7 +46,7 @@ public class Terrain implements Serializable {
      */
     public static final int MAX_CHUNK_AMOUNT = 8398404;
     @Serial
-    private static final long serialVersionUID = -8917037743388031027L;
+    private static final long serialVersionUID = -2829336053031190304L;
     final @NotNull UUID world;
     final @NotNull UUID id;
     final @NotNull ZonedDateTime creationDate;
@@ -59,7 +57,7 @@ public class Terrain implements Serializable {
     @Nullable UUID owner;
     @NotNull Coordinate minDiagonal;
     @NotNull Coordinate maxDiagonal;
-    @NotNull Set<Coordinate> borders;
+    transient @Nullable Set<Coordinate> borders;
     volatile @NotNull Set<Chunk> chunks;
     @NotNull String name;
     @Nullable String description;
@@ -99,8 +97,7 @@ public class Terrain implements Serializable {
     public Terrain(@NotNull Coordinate first, @NotNull Coordinate second, @NotNull UUID world, @NotNull UUID id, @Nullable String name, @Nullable String description, @NotNull ZonedDateTime creationDate, @Nullable UUID owner, int priority, @Nullable Collection<UUID> moderators, @Nullable Collection<UUID> members, @Nullable HashMap<String, Object> flags, @Nullable HashMap<UUID, HashMap<String, Object>> memberFlags) {
         this.minDiagonal = findMinMax(first, second, true);
         this.maxDiagonal = findMinMax(first, second, false);
-        this.borders = findBorders(minDiagonal, maxDiagonal);
-        this.chunks = findChunks(minDiagonal, maxDiagonal);
+        this.chunks = findChunks();
         this.name = name == null ? defaultName(id, owner) : name;
         this.id = id;
         this.world = world;
@@ -140,8 +137,7 @@ public class Terrain implements Serializable {
     public Terrain(@NotNull Coordinate first, @NotNull Coordinate second, @NotNull UUID world, @NotNull UUID id, @Nullable String name, @Nullable String description, @Nullable UUID owner, @NotNull ZonedDateTime creationDate, int priority, @Nullable PrivateSet<UUID> moderators, @Nullable PrivateSet<UUID> members, @Nullable FlagMap flags, @Nullable MemberFlagMap memberFlags) {
         this.minDiagonal = findMinMax(first, second, true);
         this.maxDiagonal = findMinMax(first, second, false);
-        this.borders = findBorders(minDiagonal, maxDiagonal);
-        this.chunks = findChunks(minDiagonal, maxDiagonal);
+        this.chunks = findChunks();
         this.name = name == null ? defaultName(id, owner) : name;
         this.id = id;
         this.world = world;
@@ -175,7 +171,6 @@ public class Terrain implements Serializable {
     public Terrain(@NotNull Terrain terrain) {
         this(terrain.minDiagonal, terrain.maxDiagonal, terrain.world, terrain.id, terrain.name, terrain.description, terrain.owner, terrain.creationDate, terrain.priority, terrain.moderators, terrain.members, terrain.flags, terrain.memberFlags);
     }
-
 
     /**
      * Gets the name the specified terrain should have by default.
@@ -220,18 +215,18 @@ public class Terrain implements Serializable {
     /**
      * Finds the borders of the terrain, used for showing particles.
      *
-     * @param minDiagonal The min edge of the terrain.
-     * @param maxDiagonal The max edge of the terrain.
      * @return An unmodifiable set with the coordinates of where border particles should spawn.
+     * @apiNote In order to avoid concurrency issues, this method must be called in the same lock as the values used
+     * to calculate the borders, such as minDiagonal and maxDiagonal (different implementations may use different
+     * values).
+     * @implSpec This method should provide the exact coordinates of the outer edge of blocks that are in the edge of
+     * this terrain's 2D shape.
+     * <p>
+     * In the default behavior, this method is only called by {@link #borders()} once a lazy update is required, and
+     * that method is synchronized to the same lock that updates the diagonals.
      */
     @Unmodifiable
-    protected @NotNull Set<Coordinate> findBorders(@NotNull Coordinate minDiagonal, @NotNull Coordinate maxDiagonal) {
-        Configuration config = Configurations.CONFIG.config();
-
-        if (!config.getBoolean("Borders.Enabled").orElse(false) || area() > config.getNumber("Borders.Max Area").orElse(2500).doubleValue()) {
-            return Collections.emptySet();
-        }
-
+    protected @NotNull Set<Coordinate> findBorders() {
         double startX = minDiagonal.x(), endX = maxDiagonal.x() + 1d, startZ = minDiagonal.z(), endZ = maxDiagonal.z() + 1d;
         double borderAmount = ((endX - startX) + (endZ - startZ)) * 2;
         var border = new HashSet<Coordinate>((int) (borderAmount / .75f) + 1);
@@ -254,14 +249,17 @@ public class Terrain implements Serializable {
      * <p>
      * This will be called on instantiation and when the method {@link #setDiagonals(Coordinate, Coordinate)} is called.
      *
-     * @param minDiagonal The min edge of the terrain.
-     * @param maxDiagonal The max edge of the terrain.
      * @return An unmodifiable set with all chunks where this terrain resides.
-     * @implNote These chunks will be used for finding the terrain, so this should take into account terrains that are not rectangle shaped.
-     * @implSpec When the amount of chunks is greater than {@link #MAX_CHUNK_AMOUNT}, an empty set should be returned.
+     * @apiNote In order to avoid concurrency issues, this method must be called in the same lock that updates the
+     * fields related to chunk computation, such as minDiagonal and maxDiagonal (different implementations may use
+     * different fields).
+     * @implSpec These chunks will be used for finding the terrain, so this should take into account terrains that are
+     * not cuboid shaped.
+     * <p>
+     * When the amount of chunks is greater than {@link #MAX_CHUNK_AMOUNT}, an empty set should be returned.
      */
     @Unmodifiable
-    protected @NotNull Set<Chunk> findChunks(@NotNull Coordinate minDiagonal, @NotNull Coordinate maxDiagonal) {
+    protected @NotNull Set<Chunk> findChunks() {
         // Converting block coordinates to chunk coordinates.
         int maxX = (int) maxDiagonal.x() >> 4;
         int minX = (int) minDiagonal.x() >> 4;
@@ -284,13 +282,27 @@ public class Terrain implements Serializable {
     }
 
     /**
-     * Updates this terrain in the list of terrain chunks, removing the instance from the previous chunks and adding in the new ones.
+     * Updates the {@link #chunks} field by calling {@link #findChunks()} to obtain every chunk in which the terrain
+     * takes part of.
      *
-     * @param previousChunks The chunks that this terrain had before being updated.
+     * @apiNote This should be called every time the terrain's shape changes, such as a call to the method
+     * {@link #setDiagonals(Coordinate, Coordinate)}. After chunks are updated, you must notify {@link TerrainManager}
+     * that this terrain has new chunks by calling {@link #notifyChunksUpdate(Set)}.
+     * @see #notifyChunksUpdate(Set)
      */
-    protected void chunkUpdate(@NotNull Set<Chunk> previousChunks) {
+    protected final void updateChunks() {
+        chunks = findChunks();
+    }
+
+    /**
+     * If the terrain is registered in {@link TerrainManager}, then call an update to the chunk registry, so that this
+     * terrain is removed from previous chunks and added into the new chunks.
+     *
+     * @param previousChunks The previous chunks this terrain was in.
+     */
+    protected void notifyChunksUpdate(@NotNull Set<Chunk> previousChunks) {
         // If this terrain is registered to save, then update in registered terrain chunks map.
-        if (save && !previousChunks.equals(chunks)) TerrainManager.chunkUpdate(this, previousChunks);
+        if (save) TerrainManager.chunkUpdate(this, previousChunks);
     }
 
     /**
@@ -308,14 +320,14 @@ public class Terrain implements Serializable {
     /**
      * @return The diagonal with min coordinates of this terrain.
      */
-    public @NotNull Coordinate minDiagonal() {
+    public synchronized @NotNull Coordinate minDiagonal() {
         return minDiagonal;
     }
 
     /**
      * @return The diagonal with min coordinates of this terrain.
      */
-    public @NotNull Coordinate maxDiagonal() {
+    public synchronized @NotNull Coordinate maxDiagonal() {
         return maxDiagonal;
     }
 
@@ -327,22 +339,52 @@ public class Terrain implements Serializable {
      *
      * @param first  The new first diagonal of this terrain.
      * @param second The new second diagonal of this terrain.
+     * @implSpec Once the diagonals are changed, it is required to invalidate the {@link #borders()} by calling
+     * {@link #setBorders(Set) setBorders(null)}. It is also required to update the chunks by calling
+     * {@link #updateChunks()} and then {@link #notifyChunksUpdate(Set)} if the shape and location have changed.
+     * <p>
+     * You can maintain thread safety by locking the chunk and border updates to the same thread as the diagonals, for
+     * example:
+     * <pre>{@code
+     * private final Object diagonalsLock = new Object();
+     *
+     * @Override
+     * public void setDiagonals(@NotNull Coordinate first, @NotNull Coordinate second) {
+     *     Set<Chunk> previousChunks;
+     *
+     *     synchronized(diagonalsLock) {
+     *         // [diagonals update logic]...
+     *
+     *         setBorders(null);
+     *         previousChunks = chunks();
+     *         updateChunks();
+     *     }
+     *
+     *     notifyChunksUpdate(previousChunks);
+     *     markAsChanged();
+     * }
+     *
+     * // also make sure #borders uses the same lock.
+     * }</pre>
      */
     public void setDiagonals(@NotNull Coordinate first, @NotNull Coordinate second) {
         Coordinate minDiagonal = findMinMax(first, second, true);
         Coordinate maxDiagonal = findMinMax(first, second, false);
-        // Avoid unnecessary computations and don't mark terrain as changed.
-        if (minDiagonal.equals(this.minDiagonal) && maxDiagonal.equals(this.maxDiagonal)) return;
+        Set<Chunk> previousChunks;
 
-        this.minDiagonal = minDiagonal;
-        this.maxDiagonal = maxDiagonal;
+        synchronized (this) {
+            // Avoid unnecessary computations and don't mark terrain as changed.
+            if (minDiagonal.equals(this.minDiagonal) && maxDiagonal.equals(this.maxDiagonal)) return;
 
-        borders = findBorders(this.minDiagonal, this.maxDiagonal);
+            this.minDiagonal = minDiagonal;
+            this.maxDiagonal = maxDiagonal;
+            this.borders = null;
 
-        Set<Chunk> previousChunks = chunks;
-        chunks = findChunks(this.minDiagonal, this.maxDiagonal);
-        chunkUpdate(previousChunks);
+            previousChunks = chunks;
+            updateChunks();
+        }
 
+        notifyChunksUpdate(previousChunks);
         markAsChanged();
     }
 
@@ -354,13 +396,22 @@ public class Terrain implements Serializable {
     }
 
     /**
-     * Gets the borders of this terrain.
+     * Gets the coordinates of the outer edge of blocks that are in the outline of the terrain's 2D shape.
      *
-     * @return A set with the exact coordinates of the borders of the terrain.
-     * Empty if borders are disabled or the terrain's area exceeds the limit.
+     * @return A set with the exact coordinates of the borders of this terrain.
+     * @apiNote This method lazily populates the borders field of the instance, and may block the current thread for a
+     * long time depending on the size/complexity of the terrain.
+     * It is recommended to determine a max {@link #area()} and perform checks if it's within the limit before using it.
      */
     public @NotNull Set<Coordinate> borders() {
-        return borders;
+        synchronized (this) {
+            if (borders == null) borders = findBorders();
+            return borders;
+        }
+    }
+
+    protected void setBorders(@Nullable Set<Coordinate> borders) {
+        this.borders = borders;
     }
 
     public @NotNull Coordinate center() {

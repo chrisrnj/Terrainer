@@ -1,6 +1,6 @@
 /*
  * Terrainer - A minecraft terrain claiming protection plugin.
- * Copyright (C) 2024 Christiano Rangel
+ * Copyright (C) 2024-2026 Christiano Rangel
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -24,6 +24,7 @@ import com.epicnicity322.terrainer.core.location.Coordinate;
 import com.epicnicity322.terrainer.core.location.WorldCoordinate;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.Unmodifiable;
 
 import java.io.Serial;
 import java.time.ZonedDateTime;
@@ -36,7 +37,7 @@ public final class WorldTerrain extends Terrain {
     static final @NotNull Coordinate min = new Coordinate(Integer.MIN_VALUE, Integer.MIN_VALUE, Integer.MIN_VALUE);
     static final @NotNull Coordinate max = new Coordinate(Integer.MAX_VALUE, Integer.MAX_VALUE, Integer.MAX_VALUE);
     @Serial
-    private static final long serialVersionUID = -4194791547407605454L;
+    private static final long serialVersionUID = -2606326158813349674L;
 
     public WorldTerrain(@NotNull UUID world, @NotNull String name) {
         // The ID of the terrain is the same as of the world's.
@@ -49,7 +50,12 @@ public final class WorldTerrain extends Terrain {
     }
 
     @Override
-    protected @NotNull Set<Chunk> findChunks(@NotNull Coordinate minDiagonal, @NotNull Coordinate maxDiagonal) {
+    protected @Unmodifiable @NotNull Set<Coordinate> findBorders() {
+        return Collections.emptySet();
+    }
+
+    @Override
+    protected @NotNull Set<Chunk> findChunks() {
         return Collections.emptySet();
     }
 
