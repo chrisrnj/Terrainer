@@ -54,14 +54,19 @@ final class TerrainStorageManager {
 
     static @NotNull Terrain load(@NotNull Path path) {
         String fileName = path.getFileName().toString();
+        StorageType type;
 
         if (fileName.endsWith(StorageType.YAML.extension)) {
-            return StorageType.YAML.load.apply(path);
+            type = StorageType.YAML;
         } else if (fileName.endsWith(StorageType.SERIALIZED.extension)) {
-            return StorageType.SERIALIZED.load.apply(path);
+            type = StorageType.SERIALIZED;
         } else {
             throw new UnsupportedOperationException("Unknown terrain file type '" + fileName + "'");
         }
+
+        Terrain terrain = type.load.apply(path);
+        if (type != currentStorageType()) terrain.changed = true;
+        return terrain;
     }
 
     static void delete(@NotNull UUID terrainId) throws IOException {

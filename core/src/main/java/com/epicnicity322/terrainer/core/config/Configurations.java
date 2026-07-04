@@ -43,9 +43,10 @@ public final class Configurations {
               Log Messages: false
             
             # How terrains are saved in disk.
-            # SQL - Saves terrains in a single database file.
-            # SERIALIZED - Terrain objects are serialized directly to files.
-            # YAML - Terrains are saved as nice and readable YAML files.
+            # SQL                - Saves terrains in a single database file.
+            # SERIALIZED         - Terrain objects are serialized directly to files.
+            # YAML (recommended) - Terrains are saved as nice and readable YAML files.
+            # Currently loaded terrains will only be saved as the new type if they're changed or if they're loaded again.
             Storage Type: YAML
             
             # The minimum of area in blocks a terrain must have to be claimed.
