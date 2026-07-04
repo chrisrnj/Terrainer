@@ -1,6 +1,6 @@
 /*
  * Terrainer - A minecraft terrain claiming protection plugin.
- * Copyright (C) 2025 Christiano Rangel
+ * Copyright (C) 2025-2026 Christiano Rangel
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,6 +21,7 @@ package com.epicnicity322.terrainer.core.util;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.concurrent.ForkJoinPool;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BiConsumer;
 
 /**
@@ -35,11 +36,11 @@ public final class LongTaskFeedback {
     private static final double UPDATE_SCALING_FACTOR = 82.07;
     private static final double PARALLELISM_OFFSET = 26.29;
 
+    private final @NotNull AtomicLong counter = new AtomicLong();
     private final @NotNull BiConsumer<String, Long> printer;
     private final boolean print;
     private final long top;
     private final long step;
-    private long counter = 0;
 
     /**
      * Constructs a new {@link LongTaskFeedback} instance for monitoring progress of a long-running task.
@@ -65,8 +66,8 @@ public final class LongTaskFeedback {
      * Atomically increments the internal counter and triggers a progress update if the step threshold is reached.
      */
     public void increment() {
-        if (print) synchronized (this) {
-            long current = ++counter;
+        if (print) {
+            long current = counter.incrementAndGet();
 
             if (current == top || current % step == 0) printer.accept(render(current), current);
         }
