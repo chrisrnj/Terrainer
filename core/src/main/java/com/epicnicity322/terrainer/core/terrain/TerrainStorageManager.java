@@ -147,7 +147,7 @@ final class TerrainStorageManager {
                 throw new RuntimeException(e);
             }
         }, terrain -> {
-            Path path = terrainFile(terrain.id, ".ser");
+            Path path = terrainFile(terrain.id(), ".ser");
 
             try (PathLocker.LockToken ignore = PathLocker.lock(path); ObjectOutputStream oos = new ObjectOutputStream(Files.newOutputStream(path))) {
                 oos.writeObject(terrain);
@@ -218,50 +218,56 @@ final class TerrainStorageManager {
             }
         }, terrain -> {
             Configuration config = new Configuration(new YamlConfigurationLoader());
-            config.set("type", terrain.getClass().getName());
-            config.set("id", terrain.id.toString());
-            config.set("name", terrain.name);
-            config.set("description", terrain.description);
-            config.set("creation-date", terrain.creationDate.toString());
-            config.set("world", terrain.world.toString());
-            config.set("priority", terrain.priority);
-            config.set("diagonals.max-x", terrain.maxDiagonal.x());
-            config.set("diagonals.max-y", terrain.maxDiagonal.y());
-            config.set("diagonals.max-z", terrain.maxDiagonal.z());
-            config.set("diagonals.min-x", terrain.minDiagonal.x());
-            config.set("diagonals.min-y", terrain.minDiagonal.y());
-            config.set("diagonals.min-z", terrain.minDiagonal.z());
-            config.set("owner", terrain.owner == null ? null : terrain.owner.toString());
-            config.set("moderators", terrain.moderators.view().stream().map(Objects::toString).collect(Collectors.toList()));
-            config.set("members", terrain.members.view().stream().map(Objects::toString).collect(Collectors.toList()));
-            serializeFlagsSection(terrain.flags, config);
+            UUID id = terrain.id();
+            UUID owner = terrain.owner();
+            Coordinate maxDiagonal = terrain.maxDiagonal();
+            Coordinate minDiagonal = terrain.minDiagonal();
 
-            if (terrain.memberFlags.map != null) {
+            config.set("type", terrain.getClass().getName());
+            config.set("id", id.toString());
+            config.set("name", terrain.name());
+            config.set("description", terrain.description);
+            config.set("creation-date", terrain.creationDate().toString());
+            config.set("world", terrain.world().toString());
+            config.set("priority", terrain.priority());
+            config.set("diagonals.max-x", maxDiagonal.x());
+            config.set("diagonals.max-y", maxDiagonal.y());
+            config.set("diagonals.max-z", maxDiagonal.z());
+            config.set("diagonals.min-x", minDiagonal.x());
+            config.set("diagonals.min-y", minDiagonal.y());
+            config.set("diagonals.min-z", minDiagonal.z());
+            config.set("owner", owner == null ? null : owner.toString());
+            config.set("moderators", terrain.moderators().view().stream().map(Objects::toString).collect(Collectors.toList()));
+            config.set("members", terrain.members().view().stream().map(Objects::toString).collect(Collectors.toList()));
+            serializeFlagsSection(terrain.flags(), config);
+
+            HashMap<UUID, Terrain.FlagMap> memberFlagsMap = terrain.memberFlags().map;
+            if (memberFlagsMap != null) {
                 ConfigurationSection memberFlagsSection = config.createSection("member-flags");
 
-                terrain.memberFlags.map.forEach((member, flagMap) -> {
+                memberFlagsMap.forEach((member, flagMap) -> {
                     ConfigurationSection memberSection = memberFlagsSection.createSection(member.toString());
                     serializeFlagsSection(flagMap, memberSection);
                 });
             }
 
-            Path path = terrainFile(terrain.id, ".yml");
+            Path path = terrainFile(id, ".yml");
 
             try (PathLocker.LockToken ignore = PathLocker.lock(path)) {
                 try {
                     PathUtils.deleteAll(path);
                 } catch (IOException e) {
-                    Terrainer.logger().log("Error while deleting old terrain file of '" + terrain.id + "':", ConsoleLogger.Level.ERROR);
+                    Terrainer.logger().log("Error while deleting old terrain file of '" + id + "':", ConsoleLogger.Level.ERROR);
                     e.printStackTrace();
-                    Terrainer.logger().log("Changes were not saved for terrain '" + terrain.id + "' (" + terrain.name + ") and it will be reset when the server restarts.", ConsoleLogger.Level.ERROR);
+                    Terrainer.logger().log("Changes were not saved for terrain '" + id + "' (" + terrain.name + ") and it will be reset when the server restarts.", ConsoleLogger.Level.ERROR);
                     throw new RuntimeException(e);
                 }
                 try {
                     config.save(path);
                 } catch (IOException e) {
-                    Terrainer.logger().log("Error while saving terrain '" + terrain.id + "':", ConsoleLogger.Level.ERROR);
+                    Terrainer.logger().log("Error while saving terrain '" + id + "':", ConsoleLogger.Level.ERROR);
                     e.printStackTrace();
-                    Terrainer.logger().log("The terrain '" + terrain.id + "' (" + terrain.name + ") was deleted, but could not be saved again. The terrain will not exist when the server restarts.", ConsoleLogger.Level.ERROR);
+                    Terrainer.logger().log("The terrain '" + id + "' (" + terrain.name + ") was deleted, but could not be saved again. The terrain will not exist when the server restarts.", ConsoleLogger.Level.ERROR);
                     throw new RuntimeException(e);
                 }
             }
