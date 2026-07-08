@@ -58,7 +58,7 @@ import java.util.stream.Stream;
  */
 public final class TerrainManager {
     /**
-     * The folder where terrains are saved at. Terrain are saved in files with '.terrain' extension.
+     * The folder where terrains are saved at. Terrains are saved in files with '.yml' or '.ser' extensions.
      */
     public static final @NotNull Path TERRAINS_FOLDER = Configurations.DATA_FOLDER.resolve("Terrains");
     /**
@@ -497,8 +497,8 @@ public final class TerrainManager {
      *     <li>Returns false if the flag is explicitly denied and the player lacks any relations to terrains with the same or higher priority as the terrain where the flag was denied.</li>
      * </ul>
      * <p>
-     * A permission check for {@link Flag#bypassPermission()} should be made before calling this method to ensure the
-     * player should have the flag tested.
+     * A permission check for {@link Flag#bypassPermission()} should be made before calling this method to determine if
+     * the player should have the flag tested.
      *
      * @param flag            The flag to be tested at the location.
      * @param player          The UUID of the player.
@@ -519,8 +519,8 @@ public final class TerrainManager {
      *     <li>Returns false if the flag is explicitly denied and the player lacks any relations to terrains with the same or higher priority as the terrain where the flag was denied.</li>
      * </ul>
      * <p>
-     * A permission check for {@link Flag#bypassPermission()} should be made before calling this method to ensure the
-     * player should have the flag tested.
+     * A permission check for {@link Flag#bypassPermission()} should be made before calling this method to determine if
+     * the player should have the flag tested.
      *
      * @param flag   The flag to be tested at the location.
      * @param player The UUID of the player.
@@ -796,7 +796,8 @@ public final class TerrainManager {
     }
 
     /**
-     * Adds a new or converts a saved global terrain for this world. This should be called only once per world, when the world is loaded.
+     * Converts or adds a new global world terrain for the specified world. This should be called only once per world,
+     * when the world is loaded.
      * <p>
      * If a terrain with this world's ID already exists, it's removed from the terrain list and added again as new
      * {@link WorldTerrain} instance, with the same data from flags, moderators, members, priority, etc.
@@ -907,9 +908,25 @@ public final class TerrainManager {
         for (Terrain terrain : allTerrains()) {
             if (!terrain.changed) continue;
 
+            UUID id = terrain.id();
+            String name = terrain.name;
+
+            try {
+                TerrainStorageManager.delete(id);
+            } catch (IOException e) {
+                Terrainer.logger().log("Error while deleting old terrain file of '" + id + "':", ConsoleLogger.Level.ERROR);
+                e.printStackTrace();
+                Terrainer.logger().log("Changes were not saved for terrain '" + id + "' (" + name + ") and it will be reset when the server restarts.", ConsoleLogger.Level.ERROR);
+                throw new RuntimeException(e);
+            }
+
             try {
                 TerrainStorageManager.save(terrain);
-            } catch (Exception ignored) {
+            } catch (Exception e) {
+                Terrainer.logger().log("Error while saving terrain '" + id + "':", ConsoleLogger.Level.ERROR);
+                e.printStackTrace();
+                Terrainer.logger().log("The terrain '" + id + "' (" + name + ") was deleted, but could not be saved again. The terrain will not exist when the server restarts.", ConsoleLogger.Level.ERROR);
+                throw new RuntimeException(e);
             }
         }
     }

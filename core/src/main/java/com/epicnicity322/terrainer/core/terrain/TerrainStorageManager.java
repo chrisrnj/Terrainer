@@ -259,22 +259,9 @@ final class TerrainStorageManager {
             Path path = terrainFile(id, ".yml");
 
             try (PathLocker.LockToken ignore = PathLocker.lock(path)) {
-                try {
-                    PathUtils.deleteAll(path);
-                } catch (IOException e) {
-                    Terrainer.logger().log("Error while deleting old terrain file of '" + id + "':", ConsoleLogger.Level.ERROR);
-                    e.printStackTrace();
-                    Terrainer.logger().log("Changes were not saved for terrain '" + id + "' (" + terrain.name + ") and it will be reset when the server restarts.", ConsoleLogger.Level.ERROR);
-                    throw new RuntimeException(e);
-                }
-                try {
-                    config.save(path);
-                } catch (IOException e) {
-                    Terrainer.logger().log("Error while saving terrain '" + id + "':", ConsoleLogger.Level.ERROR);
-                    e.printStackTrace();
-                    Terrainer.logger().log("The terrain '" + id + "' (" + terrain.name + ") was deleted, but could not be saved again. The terrain will not exist when the server restarts.", ConsoleLogger.Level.ERROR);
-                    throw new RuntimeException(e);
-                }
+                config.save(path);
+            } catch (IOException e) {
+                throw new RuntimeException(e);
             }
         }, ".yml");
 
