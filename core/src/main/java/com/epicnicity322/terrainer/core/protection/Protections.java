@@ -377,7 +377,7 @@ public abstract class Protections<P extends R, R, B, I, E> {
         return handleProtection(player, world, x, y, z, Flags.CONTAINERS, true);
     }
 
-    public boolean fallingBlockFall(@NotNull UUID world, int x, int y, int z, int fromX, int fromY, int fromZ) {
+    public boolean entityChangeBlock(@NotNull UUID world, int x, int y, int z, int fromX, int fromY, int fromZ) {
         return handleOutsideAction(world, x, y, z, fromX, fromY, fromZ, Flags.BUILD);
     }
 
