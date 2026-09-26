@@ -35,7 +35,7 @@
     <properties>
         <maven.compiler.release>21</maven.compiler.release>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <epicpluginlib.version>2cff649d42</epicpluginlib.version>
+        <epicpluginlib.version>3.0</epicpluginlib.version>
         <jetbrains-annotations.version>26.1.0</jetbrains-annotations.version>
     </properties>
 
